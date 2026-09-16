@@ -1,31 +1,39 @@
 # AtendeIA TMF
 
-Protótipo de atendimento para WhatsApp com painel, conversas, configuração de chatbots, contatos, campanhas e equipe.
+Protótipo de atendimento com Next.js App Router, React, TypeScript estrito e validação Zod.
 
-## Rodar localmente
+## Executar localmente
 
-Com Python 3 instalado, execute na pasta do projeto:
+Requer Node.js 20.9 ou superior e pnpm.
 
 ```sh
-python -m http.server 8000 --bind 127.0.0.1
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Abra http://127.0.0.1:8000 e clique em **Entrar no MVP**. O login é demonstrativo.
+Abra http://127.0.0.1:8000 e clique em **Entrar no MVP**. O acesso é demonstrativo, sem autenticação real.
 
-## Chatbot IA
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm start
+```
 
-O campo **Contexto geral** contém o prompt de atendimento da TMF e permite editar e salvar o conteúdo no navegador. O botão **Configurar** abre as opções de persona, conhecimento, transferência, fluxos e temperatura.
+## Estrutura
 
-## Integrações
+- `src/app/`: entrada, layout e tratamento de erros do Next.js.
+- `src/components/`: telas React, formulário de chatbot, configurações e caixa de entrada.
+- `src/lib/chatbots/`: modelo validado, prompt inicial e repositório local centralizado.
+- `src/lib/demo/`: dados e visualizações estáticas de demonstração.
+- `src/styles/`: estilos separados por responsabilidade.
+- `tests/`: testes de validação, preservação de dados e conflitos.
+- `docs/regras-negocio.md`: limites e regras de persistência do protótipo.
 
-Este projeto é um front-end demonstrativo, sem backend ou autenticação real. Os dados de atendimento são simulados. As configurações de chatbot são armazenadas no localStorage deste navegador.
+## Dados e integrações
 
-O campo da chave OpenAI em **Configurações** mantém o valor apenas em memória até atualizar ou fechar a página. Não há chamadas à API da OpenAI nem conexão real com WhatsApp. Uma integração de produção deve guardar os segredos no servidor, fora do código-fonte.
+O campo **Contexto geral** contém o prompt TMF e permite editar e salvar no navegador. A migração mantém a chave `atendeia.chatbots.v1` e preserva contextos anteriormente editados na mesma origem (endereço e porta). Dados inválidos geram erro sem sobrescrever o conteúdo original.
 
-## Arquivos
+A chave OpenAI fica somente na memória da página. Não existem chamadas OpenAI, conexão WhatsApp, backend de dados ou autenticação real. O QR Code, os indicadores e as telas comerciais são demonstrativos.
 
-- `index.html`: entrada da aplicação.
-- `src/app.js`: telas e navegação.
-- `src/chatbot.js`: configuração e edição dos chatbots.
-- `src/agent-context.js`: prompt inicial de atendimento.
-- `src/styles.css`: estilos e layout responsivo.
+O próximo estágio de persistência no servidor deve usar PostgreSQL 16 e Drizzle, com auditoria, exclusão lógica, controle de concorrência e RBAC conforme o AGENTS.md fornecido. Nenhum banco ou endpoint sem autenticação foi adicionado nesta revisão.
