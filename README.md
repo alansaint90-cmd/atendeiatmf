@@ -20,6 +20,17 @@ pnpm build
 pnpm start
 ```
 
+## Deploy no EasyPanel
+
+Use o build por **Dockerfile**, caminho `Dockerfile` na raiz, e configure o domínio para a porta interna **3000**. O container executa `node server.js` com `HOSTNAME=0.0.0.0`; não é necessário sobrescrever o comando de inicialização.
+
+Para testar onde houver Docker instalado:
+
+```sh
+docker build -t atendeiatmf .
+docker run --rm -p 3000:3000 atendeiatmf
+```
+
 ## Estrutura
 
 - `src/app/`: entrada, layout e tratamento de erros do Next.js.
