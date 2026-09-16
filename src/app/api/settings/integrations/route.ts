@@ -1,5 +1,5 @@
 import { isSettingsAdmin } from "@/lib/settings/security";
-import { environmentSettings, readSettings, saveSettings, SettingsConflict } from "@/lib/settings/repository";
+import { environmentSettings, readSettings, saveSettings, SettingsConflict, AgentSettingsIncomplete } from "@/lib/settings/repository";
 import { saveSettingsSchema, settingsStatus } from "@/lib/settings/schema";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function PUT(request: Request) {
     } catch { return json({ error: "Origem não permitida." }, 403); }
   }
   if (request.headers.get("content-type")?.split(";")[0] !== "application/json") return json({ error: "Envie JSON." }, 415);
-  if (Number(request.headers.get("content-length")) > 32768) return json({ error: "Conteúdo muito grande." }, 413);
+  if (Number(request.headers.get("content-length")) > 1048576) return json({ error: "Conteúdo muito grande." }, 413);
   let input: unknown;
   try {
     if (!request.body) return json({ error: "Corpo vazio." }, 400);
@@ -39,7 +39,7 @@ export async function PUT(request: Request) {
         const { value, done } = await reader.read();
         if (done) break;
         size += value.byteLength;
-        if (size > 32768) { await reader.cancel(); return json({ error: "Conteúdo muito grande." }, 413); }
+        if (size > 1048576) { await reader.cancel(); return json({ error: "Conteúdo muito grande." }, 413); }
         chunks.push(value);
       }
     } finally { reader.releaseLock(); }
@@ -51,6 +51,7 @@ export async function PUT(request: Request) {
     const result = await saveSettings(parsed.data.values, parsed.data.version);
     return json(settingsStatus({ ...environmentSettings(), ...result.values }, result.version));
   } catch (error) {
+    if (error instanceof AgentSettingsIncomplete) return json({ error: "Para ativar, preencha contexto, modelo e chave OpenAI, URL/chave/instância Evolution e Redis." }, 422);
     if (error instanceof SettingsConflict) return json({ error: "Outra sessão alterou as configurações. Recarregue antes de salvar." }, 409);
     return unavailable();
   }

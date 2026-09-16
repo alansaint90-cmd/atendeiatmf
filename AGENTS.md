@@ -176,3 +176,8 @@ base; divergências do legado ficam no relatório de instalação, sem isentar r
 O schema ativo também usa fábricas locais de colunas (`timestamps()` e `audit()`).
 O auditor analisa seus objetos de retorno e dependências sem executar código;
 fábricas incompletas continuam reprovadas. Essa compatibilidade não altera o banco.
+
+O agente de respostas segue ADR-0003. Código em `src/lib/agent/`; ativação explícita
+por ATENDEIA_WORKER_ENABLED e AI_ENABLED. Não iniciar testes locais com credenciais
+de produção. Testes de provedores usam mocks. Teste Redis usa apenas serviço local
+descartável no banco 15. Nunca repetir automaticamente entrega incerta.

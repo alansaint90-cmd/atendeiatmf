@@ -6,7 +6,7 @@
 - Atraso: inteiro entre 0 e 3600 segundos. Temperatura: entre 0 e 1. Contexto: até 200 mil caracteres.
 - Toda leitura e gravação passa pela validação centralizada. Dados inválidos não são substituídos automaticamente.
 - Uma gravação é recusada se outra aba alterou os dados desde a leitura. O usuário deve recarregar antes de tentar novamente. Essa checagem local não substitui transações no futuro backend.
-- O acesso demonstrativo não representa autenticação. A administração de integrações exige um token próprio e não há atendimento real por IA/WhatsApp.
+- O acesso demonstrativo não representa autenticação. A administração de integrações e do agente exige token próprio. Respostas por IA dependem da ativação explícita no servidor e nas configurações.
 
 ## Credenciais de integrações
 
@@ -16,7 +16,7 @@
 - Credenciais são criptografadas com AES-256-GCM e não são devolvidas ao navegador, registradas em logs nem na auditoria. Auditoria registra somente campos alterados, versão, data e administrador. Faça backup do banco e da chave de criptografia separadamente. Alterar a chave sem migrar os dados impede sua leitura.
 - Campos vazios preservam valores existentes; valores salvos prevalecem sobre o ambiente. A versão impede sobrescritas concorrentes. A confirmação de gravação aguarda 3 segundos.
 - O webhook lê a configuração persistida quando a chave de criptografia está definida. Falhas no banco ou na descriptografia retornam 503, sem recorrer silenciosamente a credenciais antigas. Instalações sem persistência continuam usando o ambiente.
-- Salvar não testa conexão com provedores. As chaves OpenAI/Evolution ficam disponíveis no servidor para futura integração; não há consumidor da fila nem geração/envio de respostas implementados.
+- Salvar não testa conexão com provedores. O agente usa as chaves OpenAI/Evolution no servidor, sem devolvê-las ao navegador. Ativar exige contexto, modelo e credenciais completos.
 
 ## Estrutura PostgreSQL
 
@@ -38,6 +38,20 @@
 - Exige JSON, com no máximo 1 MiB; rejeita envelopes inválidos e remove campos extras do envelope, incluindo a chave de API da Evolution.
 - Retorna 202 apenas após gravação no stream Redis `atendeia:{evolution}:events`. Cada registro contém data de recebimento e origem. Redis indisponível ou fila cheia resultam em 503, sem alegar recebimento.
 - Eventos idênticos são deduplicados por 24 horas; transições de conexão/status sem timestamp não são deduplicadas para não perder ocorrências legítimas.
-- O stream comporta até 1000 eventos e não descarta eventos antigos automaticamente. Ainda não existe consumidor da fila; após atingir a capacidade, novas entregas recebem 503. O próximo estágio deve processar e arquivar eventos antes de liberar capacidade.
+- O stream comporta até 1000 eventos. O consumidor arquiva o resultado antes de confirmar e remover cada evento da fila, atomicamente. Após atingir a capacidade, novas entregas recebem 503.
 - Usar Redis dedicado com volume persistente, AOF e política `noeviction` para evitar perda por reinício ou pressão de memória. A aplicação confirma a gravação no Redis, não a sincronização em disco.
 - O endpoint não fornece mensagens a usuários sem autenticação. O GET público só identifica a rota; não testa credenciais nem a conexão Redis. O painel continua demonstrativo e não consome esses eventos.
+
+## Agente de respostas de texto
+
+- O processador inicia com `ATENDEIA_WORKER_ENABLED=true` no processo Next.js persistente (EasyPanel), fora do build. A configuração administrativa `AI_ENABLED=true` também é obrigatória; padrão desativado.
+- O campo `AI_SYSTEM_PROMPT` é o contexto usado no servidor. Em Configurações, carregar com token, copiar um chatbot local ou escrever o contexto, selecionar o modelo OpenAI disponível na conta, ativar e confirmar o salvamento. A confirmação bloqueia por três segundos.
+- Copiar um chatbot importa persona, estilo, missão, contexto e fallback. Não importa automações, temperatura, atraso ou transferência humana: essas funções ainda não são executadas pelo processador. Edições locais posteriores precisam ser copiadas e salvas novamente.
+- Somente `messages.upsert` individual com texto, `fromMe=false`, ID, telefone e timestamp é respondido. Grupos, mensagens próprias, mídia, lotes e eventos de status não geram resposta. LID requer telefone alternativo válido. Mensagens com mais de cinco minutos ou timestamp mais de um minuto no futuro são arquivadas como ignoradas, evitando responder histórico antigo.
+- OpenAI Responses recebe contexto separado da mensagem e até 12 turnos de histórico, com `store=false`, limite de saída de 1000 tokens e timeout de 45 segundos. Resposta incompleta/vazia não é enviada.
+- Evolution recebe telefone e texto em `POST /message/sendText/{instance}`, com timeout de 20 segundos. Nunca usa URL ou credencial enviada no evento. Não segue redirects com credenciais.
+- Uma lease Redis global de dois minutos serializa os eventos. O consumidor fixo recupera pendentes após reinício. Toda mudança de estado e confirmação da fila verifica a posse da lease.
+- O diário usa instância + ID de mensagem, com retenção de 30 dias. Geração pode ser tentada até três vezes. Envio é marcado antes da chamada externa: timeout, erro de confirmação ou queda deixa estado incerto, sem repetição automática. Não há garantia de exatamente uma entrega entre dois serviços independentes; casos incertos exigem conferência manual na Evolution.
+- Histórico das últimas 12 falas expira após 24 horas sem conversa. O arquivo Redis conserva os últimos 10 mil resultados e textos elegíveis, sem anexos, chaves ou envelope bruto. A fila só libera espaço após arquivar. Use Redis dedicado com AOF, volume e `noeviction`; perda de Redis perde o diário e o histórico.
+- `GET /api/settings/agent` exige token administrativo e mostra habilitação, fila, sinal do processador e último código seguro. A tela `AgentSettings` permite consultar sem expor conteúdo de conversas ou credenciais. Códigos `openai_http_401`, `openai_http_429` e `evolution_http_401`, por exemplo, identificam o provedor a revisar.
+- A caixa de entrada e tabelas operacionais PostgreSQL ainda não são o histórico desse processador; o estado de entrega fica no Redis. Não há envio de campanhas, áudio, execução de fluxos ou transferência para equipe nesta etapa.

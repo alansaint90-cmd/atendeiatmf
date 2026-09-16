@@ -117,7 +117,9 @@ const semCodeFence = (texto) => texto.replace(/```[\s\S]*?```/g, "");
 
 const seenRef = new Set();
 for (const d of docBlobs) {
-  const matches = semCodeFence(d.text).match(pathRe) || [];
+  // Caminhos dentro de URLs externas pertencem ao repositório citado.
+  const textoLocal = semCodeFence(d.text).replace(/https?:\/\/[^\s<>"')]+/g, "");
+  const matches = textoLocal.match(pathRe) || [];
   for (const raw of matches) {
     const ref = raw.replace(/[.,)]+$/, ""); // tira pontuacao final colada
     const topDir = ref.split("/")[0];

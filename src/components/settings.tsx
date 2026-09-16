@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
+import { AgentSettings } from "./agent-settings";
+import { ModalConfirmacaoBlock } from "./modal-confirmacao-block";
 const fields = [
   ["OPENAI_API_KEY", "Chave de API da OpenAI", true],
   ["OPENAI_MODEL", "Modelo OpenAI", false],
@@ -18,14 +20,8 @@ export function Settings() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [seconds, setSeconds] = useState(3);
   const hydrated = useHydrated();
   const webhook = hydrated ? `${window.location.origin}/api/webhooks/evolution` : "";
-  useEffect(() => {
-    if (!confirm || seconds === 0) return;
-    const timer = setTimeout(() => setSeconds(value => value - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [confirm, seconds]);
   async function request(save: boolean) {
     setBusy(true); setMessage("");
     try {
@@ -47,13 +43,16 @@ export function Settings() {
       <small>Use o SETTINGS_ADMIN_TOKEN definido no EasyPanel. O acesso demonstrativo não autoriza alterações. O token não é salvo no navegador.</small>
       <button className="secondary" disabled={busy || token.length < 32} onClick={() => void request(false)}>{busy ? "Aguarde…" : "Carregar configurações"}</button>
       {status && <button className="secondary" disabled={busy} onClick={() => { setToken(""); setStatus(null); setValues({}); setMessage(""); setConfirm(false); }}>Bloquear configurações</button>}
-    </article><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>O webhook recebe eventos no Redis. O processamento e as respostas automáticas por IA ainda não estão disponíveis.</small></article></section>
+    </article><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small></article></section>
     <p role="status" aria-live="polite">{message}</p>
-    {status && <form className="panel form-panel" onSubmit={event => { event.preventDefault(); setConfirm(true); setSeconds(3); }}>
+    {status && <form className="panel form-panel" onSubmit={event => { event.preventDefault(); setConfirm(true); }}>
+      <AgentSettings values={values} disabled={busy || confirm} token={token} onChange={(name, value) => setValues(previous => ({ ...previous, [name]: value }))} />
       {fields.map(([name, label, secret]) => <label key={name}>{label}<input type={secret ? "password" : "text"} autoComplete="off" spellCheck={false} maxLength={4096} disabled={busy || confirm} value={values[name] ?? ""} placeholder={status.configured[name] ? "Configurado — deixe vazio para manter" : "Não configurado"} onChange={event => setValues(previous => ({ ...previous, [name]: event.target.value }))} /><small>{status.configured[name] ? "Valor configurado no servidor" : "Nenhum valor configurado"}</small></label>)}
       <small>Campos vazios mantêm o valor atual. As configurações salvas prevalecem sobre as variáveis de ambiente. Redis deve começar com redis:// ou rediss://.</small>
       <button className="primary" disabled={busy || confirm}>Salvar configurações</button>
-      {confirm && <div role="alertdialog" aria-label="Confirmar alterações"><p>Confirmar as novas credenciais? Alterar o segredo do webhook exige atualizar o mesmo valor na Evolution.</p><button type="button" className="primary" disabled={busy || seconds > 0} onClick={() => void request(true)}>{seconds > 0 ? `Confirmar em ${seconds}s` : "Confirmar e salvar"}</button><button type="button" className="secondary" disabled={busy} onClick={() => setConfirm(false)}>Cancelar</button></div>}
+      <ModalConfirmacaoBlock aberto={confirm} titulo="Salvar configurações do agente"
+        mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto no WhatsApp usando o contexto salvo. Alterar o segredo exige atualizar também a Evolution."
+        carregando={busy} onConfirmar={() => void request(true)} onCancelar={() => setConfirm(false)} textoConfirmar="Confirmar e salvar" />
     </form>}
   </>;
 }

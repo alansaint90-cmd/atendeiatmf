@@ -5,4 +5,8 @@ export async function register() {
     await ensureDatabase();
     console.info("AtendeIA: migrações PostgreSQL verificadas com sucesso.");
   }
+  if (process.env.NEXT_RUNTIME === "nodejs" && process.env.ATENDEIA_WORKER_ENABLED === "true") {
+    const { startAgentWorker } = await import("./lib/agent/worker");
+    startAgentWorker();
+  }
 }

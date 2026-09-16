@@ -3,6 +3,7 @@ import { seal, unseal } from "./security";
 import { settingsSchema, settingNames, type IntegrationSettings } from "./schema";
 import { db } from "../db/client";
 import { ensureDatabase } from "../db/migrate";
+import { agentConfigSchema } from "../agent/config";
 
 async function initialize() {
   await ensureDatabase();
@@ -22,10 +23,15 @@ export async function readSettings() {
 }
 
 export class SettingsConflict extends Error {}
+export class AgentSettingsIncomplete extends Error {}
 export async function saveSettings(values: IntegrationSettings, version: number) {
   const current = await readSettings();
   if (current.version !== version) throw new SettingsConflict();
   const merged = settingsSchema.parse({ ...current.values, ...values });
+  const effective = { ...environmentSettings(), ...merged };
+  if (effective.AI_ENABLED === "true" && !agentConfigSchema.safeParse(effective).success) {
+    throw new AgentSettingsIncomplete();
+  }
   await db().transaction(async tx => {
     const actor = await tx.execute(sql`SELECT id FROM atendeia_settings_actors
       WHERE id = 'bootstrap-admin' AND role = 'super_admin' AND is_deleted = false`);

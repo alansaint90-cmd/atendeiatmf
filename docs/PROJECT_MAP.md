@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 44 |
+| Arquivos TS/TSX | 53 |
 | Tabelas (Drizzle) | 17 |
 | Server Actions (arquivos) | 0 |
-| Rotas de API | 2 |
+| Rotas de API | 3 |
 | Paginas | 1 |
-| Componentes | 8 |
+| Componentes | 9 |
 
 ## Arvore (profundidade 3)
 
@@ -31,12 +31,21 @@ components/
   ui/
     alert-dialog.tsx
     button.tsx
+  agent-settings.tsx
   inbox.tsx
   modal-confirmacao-block.tsx
   settings.tsx
   workspace.tsx
 lib/
   actions/
+  agent/
+    config.ts
+    message.ts
+    processor.ts
+    providers.ts
+    redis.ts
+    store.ts
+    worker.ts
   audit/
     registrar.ts
   auth/
@@ -138,6 +147,7 @@ _(colunas nao detectadas)_
 
 | Rota | Metodos |
 |------|---------|
+| `/api/settings/agent` | GET |
 | `/api/settings/integrations` | GET, PUT |
 | `/api/webhooks/evolution` | POST |
 
