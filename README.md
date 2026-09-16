@@ -45,9 +45,11 @@ docker run --rm -p 3000:3000 atendeiatmf
 
 O campo **Contexto geral** contém o prompt TMF e permite editar e salvar no navegador. A migração mantém a chave `atendeia.chatbots.v1` e preserva contextos anteriormente editados na mesma origem (endereço e porta). Dados inválidos geram erro sem sobrescrever o conteúdo original.
 
-A chave OpenAI fica somente na memória da página. Não existem chamadas OpenAI nem autenticação de usuários. O QR Code, os indicadores e as telas comerciais são demonstrativos. O webhook autenticado da Evolution recebe eventos no Redis, mas ainda não há processamento, respostas automáticas ou exibição desses eventos na caixa de entrada.
+As configurações de integrações são salvas criptografadas no PostgreSQL, com token administrativo. No EasyPanel, defina `DATABASE_URL`, `SETTINGS_ADMIN_TOKEN` (mínimo 32 caracteres aleatórios) e `SETTINGS_ENCRYPTION_KEY` (32 bytes em base64). As chaves não são devolvidas à tela. Não existem chamadas OpenAI nem autenticação de usuários. Os indicadores e as telas comerciais são demonstrativos. O webhook autenticado da Evolution recebe eventos no Redis, mas ainda não há processamento, respostas automáticas ou exibição desses eventos na caixa de entrada.
 
-O próximo estágio de persistência relacional deve usar PostgreSQL 16 e Drizzle, com auditoria, exclusão lógica, controle de concorrência e RBAC conforme o AGENTS.md fornecido.
+O schema relacional usa PostgreSQL 16 e Drizzle. Crie um banco dedicado no EasyPanel e configure sua URL interna em `DATABASE_URL`. Ao iniciar, o container aplica as migrações e registra `AtendeIA: migrações PostgreSQL verificadas com sucesso.` O usuário do banco precisa de permissão CREATE. As 19 tabelas incluem credenciais, usuários, equipe, contatos, chatbots, canais, conversas, mensagens, campanhas e auditoria. A migração preserva configurações existentes e cria apenas um ator de sistema desabilitado e quatro departamentos; não cria login padrão. As telas operacionais ainda usam dados locais/de demonstração.
+
+Para migrar localmente: `pnpm db:migrate` (lê `.env`). Para gerar uma nova migração após alterar o schema: `pnpm db:generate`. Nunca altere SQL já aplicado; o histórico verifica checksums. Faça backup do banco e da chave de criptografia separadamente.
 
 ## Webhook Evolution
 

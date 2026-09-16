@@ -18,6 +18,19 @@
 - O webhook lê a configuração persistida quando a chave de criptografia está definida. Falhas no banco ou na descriptografia retornam 503, sem recorrer silenciosamente a credenciais antigas. Instalações sem persistência continuam usando o ambiente.
 - Salvar não testa conexão com provedores. As chaves OpenAI/Evolution ficam disponíveis no servidor para futura integração; não há consumidor da fila nem geração/envio de respostas implementados.
 
+## Estrutura PostgreSQL
+
+- A instalação atual é de uma única empresa. O schema Drizzle em `src/lib/db/schema.ts` define usuários, sessões, departamentos, membros, contatos, etiquetas, vínculos de etiquetas, chatbots, fluxos, canais, conversas, mensagens, campanhas, destinatários e auditoria. Somados às três tabelas de credenciais e ao histórico de migrações, são 19 tabelas.
+- As migrações SQL versionadas são aplicadas pelo servidor na inicialização, quando existe `DATABASE_URL`, ou pelo comando `pnpm db:migrate`. O banco deve existir (PostgreSQL 16) e o usuário deve poder criar tabelas. Não há conexão nem alteração do banco durante o build.
+- O Docker inclui os arquivos de migração. A aplicação usa uma transação e trava PostgreSQL para serializar deploys; checksum impede editar uma migração já aplicada. Novas mudanças exigem novas migrações (`pnpm db:generate`). Não executar `drizzle-kit push` sobre produção.
+- O bootstrap preserva as tabelas e os valores de credenciais das versões anteriores. As migrações não importam os exemplos da interface ou prompts salvos no navegador.
+- Dados iniciais: quatro departamentos e um ator de sistema desabilitado, sem email ou senha. Não há conta com senha padrão nem autenticação de usuários habilitada por essa migração. O token das configurações continua usando o ator administrativo próprio.
+- Todas as tabelas possuem criação/alteração/exclusão lógica e rastreio de autor com FK RESTRICT. As tabelas operacionais têm `version` para futuras atualizações otimistas. Repositórios devem filtrar `is_deleted=false`, comparar versão, incrementar versão e registrar campos alterados na auditoria, sem armazenar segredos no log.
+- Contatos usam telefone normalizado E.164; emails de usuários e nomes de chatbots/etiquetas/departamentos são únicos entre registros ativos, sem distinção de maiúsculas. Conversas permitem apenas um atendimento aberto/pendente por canal e JID. Identidade externa de mensagens é única dentro da conversa, mesmo após exclusão lógica.
+- Sessões guardam apenas hash de token; senhas devem ser hashes, nunca texto simples. A tabela de auditoria guarda nomes de campos alterados, sem cópias dos conteúdos das mensagens ou das credenciais.
+- Planos/cobrança continuam uma demonstração comercial; não foi criado um sistema de faturamento. As tabelas operacionais ainda não estão ligadas às telas, ao login nem ao consumidor da Evolution. Criar tabelas não ativa envio de campanhas ou respostas de IA.
+- Testes executam migrações e restrições em PostgreSQL isolado via PGlite (WASM). A implantação deve validar também conexão, permissões e persistência no PostgreSQL 16 real do EasyPanel.
+
 ## Recepção de eventos Evolution
 
 - `POST /api/webhooks/evolution` autentica o serviço pelo header `x-webhook-secret`, comparado com `EVOLUTION_WEBHOOK_SECRET` (mínimo de 32 caracteres).
