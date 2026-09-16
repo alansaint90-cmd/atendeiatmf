@@ -1,0 +1,27 @@
+import { z } from "zod";
+
+const secret = z.string().trim().min(1).max(4096).regex(/^\S+$/);
+export const settingsSchema = z.object({
+  OPENAI_API_KEY: secret.regex(/^sk-[A-Za-z0-9_-]+$/).optional(),
+  OPENAI_MODEL: z.string().trim().min(1).max(100).regex(/^[A-Za-z0-9_.:-]+$/).optional(),
+  EVOLUTION_API_URL: z.string().trim().url().regex(/^https?:\/\//).refine(value => {
+    const url = new URL(value);
+    return !url.username && !url.password && !url.search && !url.hash;
+  }).optional(),
+  EVOLUTION_API_KEY: secret.optional(),
+  EVOLUTION_INSTANCE_NAME: z.string().trim().min(1).max(100).regex(/^[\p{L}\p{N}_. -]+$/u).optional(),
+  EVOLUTION_WEBHOOK_SECRET: secret.min(32).max(256).optional(),
+  REDIS_URL: z.string().trim().url().regex(/^rediss?:\/\//).max(4096).optional(),
+}).strict();
+export type IntegrationSettings = z.infer<typeof settingsSchema>;
+export const settingNames = Object.keys(settingsSchema.shape) as (keyof IntegrationSettings)[];
+export const publicNames = ["OPENAI_MODEL", "EVOLUTION_API_URL", "EVOLUTION_INSTANCE_NAME"] as const;
+export const saveSettingsSchema = z.object({ version: z.number().int().min(0), values: settingsSchema }).strict();
+
+export function settingsStatus(values: IntegrationSettings, version: number) {
+  return {
+    version,
+    configured: Object.fromEntries(settingNames.map(name => [name, Boolean(values[name])])),
+    values: Object.fromEntries(publicNames.map(name => [name, values[name] ?? ""])),
+  };
+}

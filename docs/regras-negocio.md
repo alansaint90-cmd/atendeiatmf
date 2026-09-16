@@ -6,8 +6,17 @@
 - Atraso: inteiro entre 0 e 3600 segundos. Temperatura: entre 0 e 1. Contexto: até 200 mil caracteres.
 - Toda leitura e gravação passa pela validação centralizada. Dados inválidos não são substituídos automaticamente.
 - Uma gravação é recusada se outra aba alterou os dados desde a leitura. O usuário deve recarregar antes de tentar novamente. Essa checagem local não substitui transações no futuro backend.
-- A chave OpenAI permanece apenas na memória da página. Nunca é gravada no navegador nem enviada a serviços externos pelo protótipo.
-- O acesso demonstrativo não representa autenticação ou RBAC. Não há banco de dados nem atendimento real por IA/WhatsApp.
+- O acesso demonstrativo não representa autenticação. A administração de integrações exige um token próprio e não há atendimento real por IA/WhatsApp.
+
+## Credenciais de integrações
+
+- `DATABASE_URL`, `SETTINGS_ADMIN_TOKEN` (mínimo 32 caracteres aleatórios) e `SETTINGS_ENCRYPTION_KEY` (32 bytes em base64) habilitam a persistência. Esses valores são definidos no ambiente, nunca pelo formulário público.
+- O token concede exclusivamente o papel `super_admin` da configuração global desta instalação. Não é uma solução multiempresa. A validação ocorre no servidor em toda leitura e gravação; o token fica apenas na memória da tela.
+- Drizzle/PostgreSQL cria tabelas próprias com inicialização transacional serializada, sem modificar tabelas existentes. Tabelas possuem auditoria, soft delete e referências RESTRICT. O usuário de banco precisa de permissão para criá-las.
+- Credenciais são criptografadas com AES-256-GCM e não são devolvidas ao navegador, registradas em logs nem na auditoria. Auditoria registra somente campos alterados, versão, data e administrador. Faça backup do banco e da chave de criptografia separadamente. Alterar a chave sem migrar os dados impede sua leitura.
+- Campos vazios preservam valores existentes; valores salvos prevalecem sobre o ambiente. A versão impede sobrescritas concorrentes. A confirmação de gravação aguarda 3 segundos.
+- O webhook lê a configuração persistida quando a chave de criptografia está definida. Falhas no banco ou na descriptografia retornam 503, sem recorrer silenciosamente a credenciais antigas. Instalações sem persistência continuam usando o ambiente.
+- Salvar não testa conexão com provedores. As chaves OpenAI/Evolution ficam disponíveis no servidor para futura integração; não há consumidor da fila nem geração/envio de respostas implementados.
 
 ## Recepção de eventos Evolution
 
