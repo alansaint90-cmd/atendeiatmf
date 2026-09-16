@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+node_modules/
+chatbot-*.png
+verify-chatbot.cjs
+*.log
+
