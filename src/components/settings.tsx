@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 const fields = [
   ["OPENAI_API_KEY", "Chave de API da OpenAI", true],
   ["OPENAI_MODEL", "Modelo OpenAI", false],
@@ -18,8 +19,8 @@ export function Settings() {
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [seconds, setSeconds] = useState(3);
-  const [webhook, setWebhook] = useState("");
-  useEffect(() => { setWebhook(`${window.location.origin}/api/webhooks/evolution`); }, []);
+  const hydrated = useHydrated();
+  const webhook = hydrated ? `${window.location.origin}/api/webhooks/evolution` : "";
   useEffect(() => {
     if (!confirm || seconds === 0) return;
     const timer = setTimeout(() => setSeconds(value => value - 1), 1000);

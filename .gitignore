@@ -10,3 +10,4 @@ verify-chatbot.cjs
 *.tsbuildinfo
 next-env.d.ts
 tests/artifacts/
+.lixo-quarentena/

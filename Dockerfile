@@ -4,6 +4,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm install --global pnpm@11.19.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY scripts/ativar-hooks.mjs ./scripts/ativar-hooks.mjs
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN mkdir -p public && pnpm build

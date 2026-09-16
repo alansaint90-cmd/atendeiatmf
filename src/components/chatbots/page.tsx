@@ -4,19 +4,25 @@ import { chatbotExample } from "@/lib/chatbots/defaults";
 import { type Chatbot } from "@/lib/chatbots/schema";
 import { errorMessage, loadChatbots, saveChatbots, type Snapshot } from "@/lib/chatbots/repository";
 import { ChatbotEditor } from "./editor";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function ChatbotsPage() {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [selected, setSelected] = useState("");
-  const [context, setContext] = useState("");
+  const hydrated = useHydrated();
+  return hydrated ? <ChatbotsLoaded /> : <p role="status">Carregando chatbots…</p>;
+}
+
+function ChatbotsLoaded() {
+  const [initial] = useState(() => {
+    try { return { snapshot: loadChatbots(localStorage), error: "" }; }
+    catch (error) { return { snapshot: null, error: errorMessage(error) }; }
+  });
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(initial.snapshot);
+  const [selected, setSelected] = useState(initial.snapshot?.bots[0]?.id ?? "");
+  const [context, setContext] = useState(initial.snapshot?.bots[0]?.context ?? "");
   const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initial.error);
   const [editor, setEditor] = useState<{ bot: Chatbot; creating: boolean } | null>(null);
-  useEffect(() => {
-    try { const data = loadChatbots(localStorage); setSnapshot(data); setSelected(data.bots[0]?.id ?? ""); setContext(data.bots[0]?.context ?? ""); }
-    catch (error) { setError(errorMessage(error)); }
-  }, []);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };

@@ -1,0 +1,23 @@
+/* Utilitários para componentes da estrutura base; sem reset dos estilos atuais. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-background: #ffffff;
+  --color-foreground: #10242f;
+  --color-primary: #087d68;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eef4f5;
+  --color-secondary-foreground: #10242f;
+  --color-muted: #eef4f5;
+  --color-muted-foreground: #587080;
+  --color-accent: #e8f7f0;
+  --color-accent-foreground: #10242f;
+  --color-destructive: #b91c1c;
+  --color-border: #d8e2e8;
+  --color-input: #d8e2e8;
+  --color-ring: #087d68;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}
