@@ -17,7 +17,7 @@ export async function executar<T>(corpo: () => Promise<T>): Promise<Resultado<T>
   } catch (e) {
     if (e instanceof ErroDeNegocio) return { ok: false, erro: e.message };
     if (e instanceof ZodError) return { ok: false, erro: e.issues[0]?.message ?? "Dados invalidos." };
-    console.error(e); // erro inesperado: detalhe so no log do servidor
+    console.error("AtendeIA: operação administrativa falhou."); // Não registrar SQL, tokens ou conteúdo privado.
     return { ok: false, erro: "Falha inesperada. Tente novamente." };
   }
 }

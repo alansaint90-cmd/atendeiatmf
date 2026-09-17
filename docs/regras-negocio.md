@@ -55,3 +55,21 @@
 - Histórico das últimas 12 falas expira após 24 horas sem conversa. O arquivo Redis conserva os últimos 10 mil resultados e textos elegíveis, sem anexos, chaves ou envelope bruto. A fila só libera espaço após arquivar. Use Redis dedicado com AOF, volume e `noeviction`; perda de Redis perde o diário e o histórico.
 - `GET /api/settings/agent` exige token administrativo e mostra habilitação, fila, sinal do processador e último código seguro. A tela `AgentSettings` permite consultar sem expor conteúdo de conversas ou credenciais. Códigos `openai_http_401`, `openai_http_429` e `evolution_http_401`, por exemplo, identificam o provedor a revisar.
 - A caixa de entrada e tabelas operacionais PostgreSQL ainda não são o histórico desse processador; o estado de entrega fica no Redis. Não há envio de campanhas, áudio, execução de fluxos ou transferência para equipe nesta etapa.
+
+## Follow-ups automáticos e tags
+
+- As páginas Follow-ups automáticos e Tags e rótulos exigem token administrativo e ator super_admin vivo no banco (ADR-0004). Dados são salvos no servidor, não no armazenamento local.
+- Tags têm nome único entre registros ativos, cor hexadecimal e busca/paginação. Edição e exclusão lógica conferem versão. Mutação e auditoria são atômicas; excluir preserva contatos e vínculos históricos.
+- Follow-ups são desligados por padrão e atuam no chip Evolution configurado, após uma resposta de IA confirmada. Cada ciclo admite até três textos de até 3.000 caracteres, intervalos de um minuto a 30 dias, dias da semana, janela de horário e fuso.
+- Cada etapa conta o intervalo a partir da resposta anterior. Fora da janela, aguarda o próximo horário permitido. Mensagem individual nova do contato ou do operador cancela a sequência, inclusive mídia. Ecos do próprio agente não cancelam.
+- Qualquer salvamento invalida sequências da configuração anterior. Reativar não recupera sequências antigas. Entrega incerta encerra o ciclo sem retentativa automática. A ativação requer confirmação de três segundos e depende do processador ativo.
+- Os cadastros não implementam associação de tags a contatos, nem transferência humana. A fila de eventos tem prioridade sobre follow-ups; cancelar depende do recebimento do webhook e não interrompe um envio externo já iniciado.
+
+## Agendamentos individuais
+
+- A página Mensagens agendadas apresenta data/hora, telefone, chip, texto, status e ações, com busca, filtro de status e dez itens por página.
+- Novos agendamentos exigem token administrativo, telefone E.164, chip igual à instância configurada, texto até 6.000 caracteres e horário de um minuto a um ano no futuro. Horários são exibidos no fuso do navegador e persistidos em UTC.
+- Salvar e cancelar exigem confirmação de três segundos. Somente pendentes podem ser editados ou cancelados; a versão impede sobrescrita de outra sessão e alterações após início do envio. Cancelamento conserva histórico.
+- O worker habilitado executa os textos pela Evolution mesmo se a IA estiver desligada. Indisponibilidade pode atrasar envios, que permanecem pendentes. A tela informa quando o worker está desativado.
+- O banco reserva antes de enviar e registra aceitação da Evolution. Queda, timeout ou confirmação incerta não causam reenvio automático. Reservas interrompidas são marcadas incertas após cinco minutos. Consulte a Evolution antes de criar novo envio nesses casos.
+- O status Enviado não comprova leitura ou entrega ao destinatário. Use Carregar dados para atualizar a lista. Credenciais nunca são recebidas do formulário de agendamento.

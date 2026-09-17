@@ -181,3 +181,13 @@ O agente de respostas segue ADR-0003. Código em `src/lib/agent/`; ativação ex
 por ATENDEIA_WORKER_ENABLED e AI_ENABLED. Não iniciar testes locais com credenciais
 de produção. Testes de provedores usam mocks. Teste Redis usa apenas serviço local
 descartável no banco 15. Nunca repetir automaticamente entrega incerta.
+
+Follow-ups e tags seguem ADR-0004. Enquanto a sessão de usuários não estiver
+integrada, as actions administrativas usam exigirAdmin (token + papel no banco),
+nunca o login demonstrativo. Tags preservam auditoria e versão do schema ativo.
+Follow-ups usam o lease Redis existente; alteração de configuração invalida ciclos
+anteriores. Não ativar envios reais para testar as páginas.
+
+Agendamentos individuais seguem ADR-0005 e a mesma guarda administrativa.
+Reservar no PostgreSQL antes de chamar a Evolution; registro em envio nunca volta
+automaticamente para pendente. A execução depende do worker, mas não de AI_ENABLED.

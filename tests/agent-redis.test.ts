@@ -8,6 +8,8 @@ import { incomingMessage } from "../src/lib/agent/message";
 import { streamKey } from "../src/lib/evolution/queue";
 import type { AgentConfig } from "../src/lib/agent/config";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
+import { defaultFollowup } from "../src/lib/followups/schema";
+import { followupStore, followupQueue } from "../src/lib/followups/queue";
 
 test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio duplicado", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
@@ -42,6 +44,27 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
     assert.equal(sends, 1);
     assert.equal(await client.xlen(streamKey), 0);
     assert.ok(await client.xlen(agentKeys.archive) >= 2);
+    const lease = randomUUID();
+    await client.set(agentKeys.lock, lease, "PX", 120000);
+    const followups = followupStore(client, lease);
+    const schedule = structuredClone(defaultFollowup);
+    schedule.enabled = true; schedule.instance = "teste"; schedule.revision = randomUUID(); schedule.steps[0].enabled = true;
+    await followups.schedule(message, schedule);
+    const jobKey = `atendeia:{evolution}:followup:${message.conversation}`;
+    const original = await client.get(jobKey);
+    assert.ok(original);
+    await followups.schedule(message, schedule);
+    assert.equal(await client.get(jobKey), original, "Duplicata não reinicia o prazo.");
+    await followups.outgoing("teste", "eco-teste");
+    await followups.observe({ ...event, data: { ...event.data, key: { id: "eco-teste", fromMe: true, remoteJid: "5511999999999@s.whatsapp.net" } } }, "teste");
+    assert.equal(await client.get(jobKey), original, "Eco do agente preserva a sequência.");
+    const job = JSON.parse(original);
+    await followups.save({ ...job, due: Date.now() - 1 });
+    assert.equal((await followups.due())?.identity, message.identity);
+    await followups.observe({ ...event, data: { ...event.data, message: { imageMessage: {} },
+      key: { id: "nova-atividade", fromMe: false, remoteJid: "5511999999999@s.whatsapp.net" } } }, "teste");
+    assert.equal(await client.get(jobKey), null, "Nova atividade cancela inclusive mídia.");
+    assert.equal(await client.zscore(followupQueue, message.conversation), null);
     await client.set(agentKeys.lock, "outro-processo", "PX", 120000);
     await assert.rejects(messageStore(client, "posse-antiga", message).write({ status: "enviando", attempts: 1 }));
     await runAgentTick(dependencies);

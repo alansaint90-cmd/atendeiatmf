@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 53 |
-| Tabelas (Drizzle) | 17 |
-| Server Actions (arquivos) | 0 |
+| Arquivos TS/TSX | 70 |
+| Tabelas (Drizzle) | 18 |
+| Server Actions (arquivos) | 3 |
 | Rotas de API | 3 |
 | Paginas | 1 |
-| Componentes | 9 |
+| Componentes | 13 |
 
 ## Arvore (profundidade 3)
 
@@ -25,12 +25,19 @@ app/
   layout.tsx
   page.tsx
 components/
+  agendamentos/
+    page.tsx
   chatbots/
     editor.tsx
+    page.tsx
+  followups/
+    page.tsx
+  tags/
     page.tsx
   ui/
     alert-dialog.tsx
     button.tsx
+  admin-access.tsx
   agent-settings.tsx
   inbox.tsx
   modal-confirmacao-block.tsx
@@ -38,6 +45,13 @@ components/
   workspace.tsx
 lib/
   actions/
+    agendamentos.ts
+    followups.ts
+    tags.ts
+  agendamentos/
+    repository.ts
+    schema.ts
+    worker.ts
   agent/
     config.ts
     message.ts
@@ -73,15 +87,25 @@ lib/
     queue.ts
     schema.ts
     webhook.ts
+  followups/
+    processor.ts
+    queue.ts
+    schedule.ts
+    schema.ts
   settings/
+    access.ts
     repository.ts
     schema.ts
     security.ts
+  tags/
+    repository.ts
+    schema.ts
   validators/
   acao.ts
   use-hydrated.ts
   utils.ts
 styles/
+  automation.css
   base.css
   features.css
   improvements.css
@@ -100,6 +124,9 @@ instrumentation.ts
 
 ### `atendeia_users` — src/lib/db/schema.ts
 `id`, `passwordHash`, `enabled`
+
+### `atendeia_agendamentos` — src/lib/db/schema.ts
+`id`, `agendadoPara`, `iniciadoEm`, `codigoErro`, `modified_by`
 
 ### `atendeia_sessions` — src/lib/db/schema.ts
 `id`, `tokenHash`
@@ -150,6 +177,12 @@ _(colunas nao detectadas)_
 | `/api/settings/agent` | GET |
 | `/api/settings/integrations` | GET, PUT |
 | `/api/webhooks/evolution` | POST |
+
+## Server Actions
+
+- `src/lib/actions/agendamentos.ts`: `carregarAgendamentos()`, `gravarAgendamento()`, `cancelarEnvioAgendado()`
+- `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
+- `src/lib/actions/tags.ts`: `carregarTags()`, `salvarTag()`, `excluirTag()`
 
 ## Paginas
 

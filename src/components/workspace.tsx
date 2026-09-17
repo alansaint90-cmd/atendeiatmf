@@ -6,6 +6,9 @@ import { icon } from "@/lib/demo/icons";
 import { ChatbotsPage } from "./chatbots/page";
 import { Inbox } from "./inbox";
 import { Settings } from "./settings";
+import { FollowupsPage } from "./followups/page";
+import { TagsPage } from "./tags/page";
+import { AgendamentosPage } from "./agendamentos/page";
 
 export function Workspace() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -18,6 +21,9 @@ export function Workspace() {
       <main className="content">
         {/* Keep form drafts mounted across navigation, but hide inactive sections. */}
         <div hidden={route !== "chatbot"} className="page-stack"><ChatbotsPage /></div>
+        <div hidden={route !== "followups"}><FollowupsPage /></div>
+        <div hidden={route !== "tags"}><TagsPage /></div>
+        <div hidden={route !== "agendamentos"}><AgendamentosPage /></div>
         {route === "settings" && <Settings />}
         {route === "inbox" && <Inbox conversations={conversations} onChange={setConversations} />}
         {demoViews[route] && <div className="page-stack demo-view" dangerouslySetInnerHTML={{ __html: demoViews[route]() }} />}

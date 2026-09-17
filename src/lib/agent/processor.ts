@@ -3,7 +3,7 @@ import type { IncomingMessage } from "./message";
 import { digest } from "./message";
 import { ProviderError, type Turn } from "./providers";
 
-export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; code?: string; configHash?: string }
+export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; code?: string; configHash?: string; providerId?: string }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
@@ -44,7 +44,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   }
   if (!await port.enabled()) return "pausada";
   await port.write({ ...state, status: "enviando" });
-  try { await port.send(config, message.number, state.reply!); }
+  try { state.providerId = await port.send(config, message.number, state.reply!); }
   catch (error) {
     await port.write({ ...state, status: "incerta", code: error instanceof ProviderError ? error.code : "envio_incerto" });
     return "incerta";

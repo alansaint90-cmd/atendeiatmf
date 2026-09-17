@@ -29,7 +29,7 @@ export async function generateReply(config: AgentConfig, history: Turn[], text: 
   return reply;
 }
 
-export async function sendReply(config: AgentConfig, number: string, text: string, request = fetch): Promise<string> {
+export async function sendReply(config: Pick<AgentConfig, "EVOLUTION_API_URL" | "EVOLUTION_API_KEY" | "EVOLUTION_INSTANCE_NAME">, number: string, text: string, request = fetch): Promise<string> {
   if (!/^[1-9]\d{6,14}$/.test(number) || !text.trim() || text.length > 6000) throw new ProviderError("envio_invalido");
   const url = `${config.EVOLUTION_API_URL.replace(/\/$/, "")}/message/sendText/${encodeURIComponent(config.EVOLUTION_INSTANCE_NAME)}`;
   let response: Response;

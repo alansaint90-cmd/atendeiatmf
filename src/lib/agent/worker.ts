@@ -4,11 +4,15 @@ import { effectiveSettings } from "../settings/repository";
 import { evolutionEventSchema } from "../evolution/schema";
 import { streamKey } from "../evolution/queue";
 import { agentConfigSchema } from "./config";
-import { incomingMessage } from "./message";
+import { incomingMessage, digest } from "./message";
 import { generateReply, sendReply } from "./providers";
 import { processMessage } from "./processor";
 import { agentRedis, agentKeys, owned } from "./redis";
 import { finishEvent, messageStore } from "./store";
+import { parseFollowup } from "../followups/schema";
+import { followupStore } from "../followups/queue";
+import { processFollowup } from "../followups/processor";
+import { executarAgendamentos } from "../agendamentos/worker";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -33,6 +37,8 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
       lastResult: last.lastResult, lastCode: last.lastCode, lastAt: last.lastAt }), "EX", 180);
     report(status);
     if (!config.success) return;
+    const followups = followupStore(client, token);
+    const followupConfig = parseFollowup(settings.FOLLOW_UP_CONFIG);
     try { await client.xgroup("CREATE", streamKey, agentKeys.group, "0", "MKSTREAM"); }
     catch (error) { if (!(error instanceof Error) || !error.message.includes("BUSYGROUP")) throw error; }
     // Consumidor fixo + lease global recuperam o primeiro pendente antes de ler novos.
@@ -47,6 +53,7 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
       let value: unknown;
       try { value = JSON.parse(payload); } catch { value = null; }
       const parsed = evolutionEventSchema.safeParse(value);
+      if (parsed.success) await followups.observe(parsed.data, config.data.EVOLUTION_INSTANCE_NAME);
       const message = parsed.success ? incomingMessage(parsed.data, config.data.EVOLUTION_INSTANCE_NAME) : null;
       let result = "ignorada";
       if (message) {
@@ -60,6 +67,12 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
           },
         });
         const state = await store.read();
+        if (state?.status === "enviada" && state.providerId) {
+          await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
+          if (followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME && state.configHash === digest(JSON.stringify(config.data))) {
+            await followups.schedule(message, followupConfig);
+          }
+        }
         await client.set(agentKeys.heartbeat, JSON.stringify({ status: "ativo", at: new Date().toISOString(),
           lastResult: result, lastCode: state?.code ?? null, lastAt: new Date().toISOString() }), "EX", 180);
       }
@@ -69,6 +82,23 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
       }
       report(result);
       return result !== "repetir" && result !== "pausada";
+    }
+    const job = await followups.due();
+    if (job) {
+      await processFollowup(job, followupConfig, {
+        save: followups.save, finish: result => followups.finish(job, result),
+        enabled: async () => {
+          const current = agentConfigSchema.safeParse(await dependencies.settings());
+          return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
+            && followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME
+            && await client.get(agentKeys.lock) === token && await client.xlen(streamKey) === 0;
+        },
+        send: (number, text) => dependencies.send(config.data, number, text),
+        delivered: async (id, text) => {
+          await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, id);
+          await followups.history(job, text);
+        },
+      });
     }
   } finally {
     if (client.status === "ready") await client.eval(owned + "redis.call('DEL', KEYS[1]); return 1", 1, agentKeys.lock, token).catch(() => {});
@@ -81,6 +111,8 @@ export function startAgentWorker() {
   started = true;
   const loop = async () => {
     let processed = false;
+    try { await executarAgendamentos(); }
+    catch { console.error("AtendeIA: falha ao processar agendamentos; confira banco e configuração."); }
     try { processed = Boolean(await runAgentTick()); }
     catch { report("falha de configuração, Redis ou processamento; nova tentativa em 5 segundos"); }
     const timer = setTimeout(() => void loop(), processed ? 100 : 5000);

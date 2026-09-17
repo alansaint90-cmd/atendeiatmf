@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { pgTable, uuid, text, timestamp, boolean, integer, jsonb, index, uniqueIndex, check, type AnyPgColumn } from "drizzle-orm/pg-core";
 import type { Chatbot } from "../chatbots/schema";
+import { colunasAuditoria, instante } from "./schema/_compartilhado";
 
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -20,6 +21,17 @@ export const users = pgTable("atendeia_users", {
 ]);
 const audit = () => ({ ...timestamps(), modifiedBy: uuid("modified_by").notNull().references(() => users.id, { onDelete: "restrict" }) });
 const id = () => uuid("id").primaryKey().defaultRandom();
+
+export const agendamentos = pgTable("atendeia_agendamentos", {
+  id: id(), telefone: text("telefone").notNull(), instancia: text("instancia").notNull(), mensagem: text("mensagem").notNull(),
+  agendadoPara: instante("agendado_para").notNull(), status: text("status").notNull().default("pendente"),
+  iniciadoEm: instante("iniciado_em"), enviadoEm: instante("enviado_em"), provedorId: text("provedor_id"),
+  codigoErro: text("codigo_erro"), version: integer("version").notNull().default(0),
+  ...colunasAuditoria,
+  modified_by: uuid("modified_by").notNull().references(() => users.id, { onDelete: "restrict", onUpdate: "restrict" }),
+}, t => [index("atendeia_agendamentos_pendentes").on(t.agendadoPara).where(sql`${t.is_deleted}=false AND ${t.status}='pendente'`),
+  check("atendeia_agendamentos_status", sql`${t.status} IN ('pendente','enviando','enviado','cancelado','incerto','erro')`),
+  check("atendeia_agendamentos_telefone", sql`${t.telefone} ~ '^[+][1-9][0-9]{6,14}$'`)]);
 
 export const sessions = pgTable("atendeia_sessions", {
   id: id(), userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
@@ -42,7 +54,7 @@ export const contacts = pgTable("atendeia_contacts", {
   check("atendeia_contact_score", sql`${t.score} BETWEEN 0 AND 100`),
   check("atendeia_contact_phone", sql`${t.phone} IS NULL OR ${t.phone} ~ '^[+][1-9][0-9]{6,14}$'`),
 ]);
-export const tags = pgTable("atendeia_tags", { id: id(), name: text("name").notNull(), ...audit() },
+export const tags = pgTable("atendeia_tags", { id: id(), name: text("name").notNull(), color: text("color").notNull().default("#10b981"), ...audit() },
   t => [uniqueIndex("atendeia_tag_name_active").on(sql`lower(${t.name})`).where(sql`${t.isDeleted} = false`)]);
 export const contactTags = pgTable("atendeia_contact_tags", {
   id: id(), contactId: uuid("contact_id").notNull().references(() => contacts.id, { onDelete: "restrict" }),

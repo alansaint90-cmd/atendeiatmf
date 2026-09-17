@@ -1,5 +1,7 @@
 export function icon(name: string) {
   const paths: Record<string, string> = {
+    calendar: "<rect x='3' y='5' width='18' height='16' rx='2'/><path d='M16 3v4M8 3v4M3 11h18'/><path d='M8 15h2M14 15h2'/>",
+    tag: "<path d='M20 13l-7 7L3 10V3h7z'/><circle cx='7.5' cy='7.5' r='1'/>",
     grid: "<rect x='3' y='3' width='7' height='7'/><rect x='14' y='3' width='7' height='7'/><rect x='3' y='14' width='7' height='7'/><rect x='14' y='14' width='7' height='7'/>",
     inbox: "<path d='M22 12h-6l-2 3h-4l-2-3H2'/><path d='M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z'/>",
     message: "<path d='M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z'/>",

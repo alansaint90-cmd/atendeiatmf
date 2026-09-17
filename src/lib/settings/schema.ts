@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { parseFollowup } from "../followups/schema";
 
 const secret = z.string().trim().min(1).max(4096).regex(/^\S+$/);
 export const settingsSchema = z.object({
+  FOLLOW_UP_CONFIG: z.string().max(20000).refine(value => { try { parseFollowup(value); return true; } catch { return false; } }, "Configuração de follow-up inválida.").optional(),
   AI_ENABLED: z.enum(["true", "false"]).optional(),
   AI_SYSTEM_PROMPT: z.string().trim().min(1).max(200000).optional(),
   OPENAI_API_KEY: secret.regex(/^sk-[A-Za-z0-9_-]+$/).optional(),

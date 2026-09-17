@@ -4,6 +4,7 @@ import "@/styles/layout.css";
 import "@/styles/features.css";
 import "@/styles/improvements.css";
 import "@/styles/ui.css";
+import "@/styles/automation.css";
 
 export const metadata: Metadata = { title: "AtendeIA TMF", description: "Protótipo de atendimento e configuração de chatbots TMF." };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

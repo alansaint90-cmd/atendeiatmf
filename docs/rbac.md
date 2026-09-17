@@ -38,6 +38,9 @@ antes de virar codigo.
 | Configuracoes | admin | super_admin | admin | super_admin |
 | Auditoria | admin | — (so o sistema grava) | nunca | nunca |
 | Painel de problemas | super_admin | — | — | — |
+| Tags (administração legada, ADR-0004) | super_admin | super_admin | super_admin | super_admin |
+| Follow-ups (administração legada, ADR-0004) | super_admin | — | super_admin | — |
+| Agendamentos individuais (ADR-0005) | super_admin | super_admin | super_admin | super_admin (cancelar) |
 
 Recurso novo: acrescente a linha aqui ANTES de escrever a action.
 
