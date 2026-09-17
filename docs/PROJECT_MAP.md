@@ -6,9 +6,9 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 97 |
-| Tabelas (Drizzle) | 29 |
-| Server Actions (arquivos) | 5 |
+| Arquivos TS/TSX | 101 |
+| Tabelas (Drizzle) | 30 |
+| Server Actions (arquivos) | 6 |
 | Rotas de API | 4 |
 | Paginas | 4 |
 | Componentes | 13 |
@@ -44,6 +44,8 @@ components/
     page.tsx
   followups/
     page.tsx
+  operacao/
+    page.tsx
   tags/
     page.tsx
   ui/
@@ -51,7 +53,6 @@ components/
     button.tsx
   admin-access.tsx
   agent-settings.tsx
-  inbox.tsx
   modal-confirmacao-block.tsx
   settings.tsx
   workspace.tsx
@@ -60,6 +61,7 @@ lib/
     agendamentos.ts
     crm.ts
     followups.ts
+    operacao.ts
     sessoes.ts
     tags.ts
   agendamentos/
@@ -118,6 +120,10 @@ lib/
     queue.ts
     schedule.ts
     schema.ts
+  operacao/
+    consultas.ts
+    evento.ts
+    receber.ts
   settings/
     access.ts
     repository.ts
@@ -184,6 +190,9 @@ instrumentation.ts
 ### `atendeia_users` — src/lib/db/schema.ts
 `id`, `passwordHash`, `enabled`
 
+### `atendeia_webhook_recebimentos` — src/lib/db/schema.ts
+`id`, `modified_by`
+
 ### `atendeia_agendamentos` — src/lib/db/schema.ts
 `id`, `agendadoPara`, `iniciadoEm`, `codigoErro`, `modified_by`
 
@@ -243,6 +252,7 @@ _(colunas nao detectadas)_
 - `src/lib/actions/agendamentos.ts`: `carregarAgendamentos()`, `gravarAgendamento()`, `cancelarEnvioAgendado()`
 - `src/lib/actions/crm.ts`: `carregarCrm()`, `adicionarFunil()`, `adicionarMotivo()`, `modificarMotivo()`, `salvarAcessosFunis()`, `adicionarOportunidade()`, `fecharNegocio()`, `moverNegocio()`
 - `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
+- `src/lib/actions/operacao.ts`: `carregarOperacao()`
 - `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`
 - `src/lib/actions/tags.ts`: `carregarTags()`, `salvarTag()`, `excluirTag()`
 

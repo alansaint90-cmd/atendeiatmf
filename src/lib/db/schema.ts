@@ -24,6 +24,11 @@ export const users = pgTable("atendeia_users", {
 const audit = () => ({ ...timestamps(), modifiedBy: uuid("modified_by").notNull().references(() => users.id, { onDelete: "restrict" }) });
 const id = () => uuid("id").primaryKey().defaultRandom();
 
+export const webhookRecebimentos = pgTable("atendeia_webhook_recebimentos", {
+  id: id(), identidade: text("identidade").notNull(), ...colunasAuditoria,
+  modified_by: uuid("modified_by").notNull().references(() => users.id, { onDelete: "restrict", onUpdate: "restrict" }),
+}, t => [uniqueIndex("atendeia_webhook_recebimentos_identidade").on(t.identidade)]);
+
 export const agendamentos = pgTable("atendeia_agendamentos", {
   id: id(), telefone: text("telefone").notNull(), instancia: text("instancia").notNull(), mensagem: text("mensagem").notNull(),
   agendadoPara: instante("agendado_para").notNull(), status: text("status").notNull().default("pendente"),

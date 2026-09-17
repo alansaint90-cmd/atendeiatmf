@@ -15,12 +15,12 @@
 - Drizzle/PostgreSQL cria tabelas próprias com inicialização transacional serializada, sem modificar tabelas existentes. Tabelas possuem auditoria, soft delete e referências RESTRICT. O usuário de banco precisa de permissão para criá-las.
 - Credenciais são criptografadas com AES-256-GCM e não são devolvidas ao navegador, registradas em logs nem na auditoria. Auditoria registra somente campos alterados, versão, data e administrador. Faça backup do banco e da chave de criptografia separadamente. Alterar a chave sem migrar os dados impede sua leitura.
 - Campos vazios preservam valores existentes; valores salvos prevalecem sobre o ambiente. A versão impede sobrescritas concorrentes. A confirmação de gravação aguarda 3 segundos.
-- O webhook lê a configuração persistida quando a chave de criptografia está definida. Falhas no banco ou na descriptografia retornam 503, sem recorrer silenciosamente a credenciais antigas. Instalações sem persistência continuam usando o ambiente.
+- O webhook lê a configuração persistida quando a chave de criptografia está definida. Falhas no banco ou na descriptografia retornam 503, sem recorrer silenciosamente a credenciais antigas. As credenciais podem vir do ambiente, mas o registro operacional de mensagens exige DATABASE_URL.
 - Salvar não testa conexão com provedores. O agente usa as chaves OpenAI/Evolution no servidor, sem devolvê-las ao navegador. Ativar exige contexto, modelo e credenciais completos.
 
 ## Estrutura PostgreSQL
 
-- A instalação atual é de uma única empresa. O schema Drizzle em `src/lib/db/schema.ts` define usuários, sessões, departamentos, membros, contatos, etiquetas, vínculos de etiquetas, chatbots, fluxos, canais, conversas, mensagens, campanhas, destinatários e auditoria. Somados às três tabelas de credenciais e ao histórico de migrações, são 19 tabelas.
+- A instalação atual é de uma única empresa. O schema Drizzle em `src/lib/db/schema.ts` define usuários, sessões, departamentos, membros, contatos, etiquetas, vínculos de etiquetas, chatbots, fluxos, canais, conversas, mensagens, campanhas, destinatários e auditoria. Com as extensões de identidade, CRM, agendamentos e recibos de webhook, mais as tabelas de configuração e migrações, são 32 tabelas.
 - As migrações SQL versionadas são aplicadas pelo servidor na inicialização, quando existe `DATABASE_URL`, ou pelo comando `pnpm db:migrate`. O banco deve existir (PostgreSQL 16) e o usuário deve poder criar tabelas. Não há conexão nem alteração do banco durante o build.
 - O Docker inclui os arquivos de migração. A aplicação usa uma transação e trava PostgreSQL para serializar deploys; checksum impede editar uma migração já aplicada. Novas mudanças exigem novas migrações (`pnpm db:generate`). Não executar `drizzle-kit push` sobre produção.
 - O bootstrap preserva as tabelas e os valores de credenciais das versões anteriores. As migrações não importam os exemplos da interface ou prompts salvos no navegador.
@@ -28,7 +28,7 @@
 - Todas as tabelas possuem criação/alteração/exclusão lógica e rastreio de autor com FK RESTRICT. As tabelas operacionais têm `version` para futuras atualizações otimistas. Repositórios devem filtrar `is_deleted=false`, comparar versão, incrementar versão e registrar campos alterados na auditoria, sem armazenar segredos no log.
 - Contatos usam telefone normalizado E.164; emails de usuários e nomes de chatbots/etiquetas/departamentos são únicos entre registros ativos, sem distinção de maiúsculas. Conversas permitem apenas um atendimento aberto/pendente por canal e JID. Identidade externa de mensagens é única dentro da conversa, mesmo após exclusão lógica.
 - Sessões guardam apenas hash de token; senhas devem ser hashes, nunca texto simples. A tabela de auditoria guarda nomes de campos alterados, sem cópias dos conteúdos das mensagens ou das credenciais.
-- Planos/cobrança continuam uma demonstração comercial; não foi criado um sistema de faturamento. As tabelas operacionais ainda não estão ligadas às telas, ao login nem ao consumidor da Evolution. Criar tabelas não ativa envio de campanhas ou respostas de IA.
+- Planos, campanhas e gestão de equipe ainda não possuem operação integrada. Dashboard, contatos e caixa de entrada consultam as tabelas operacionais mediante token administrativo (ADR-0007). Criar tabelas não ativa envio de campanhas ou respostas de IA.
 - Testes executam migrações e restrições em PostgreSQL isolado via PGlite (WASM). A implantação deve validar também conexão, permissões e persistência no PostgreSQL 16 real do EasyPanel.
 
 ## Recepção de eventos Evolution
@@ -40,7 +40,7 @@
 - Eventos idênticos são deduplicados por 24 horas; transições de conexão/status sem timestamp não são deduplicadas para não perder ocorrências legítimas.
 - O stream comporta até 1000 eventos. O consumidor arquiva o resultado antes de confirmar e remover cada evento da fila, atomicamente. Após atingir a capacidade, novas entregas recebem 503.
 - Usar Redis dedicado com volume persistente, AOF e política `noeviction` para evitar perda por reinício ou pressão de memória. A aplicação confirma a gravação no Redis, não a sincronização em disco.
-- O endpoint não fornece mensagens a usuários sem autenticação. O GET público só identifica a rota; não testa credenciais nem a conexão Redis. O painel continua demonstrativo e não consome esses eventos.
+- O endpoint não fornece mensagens a usuários sem autenticação. O GET público só identifica a rota; não testa credenciais nem a conexão Redis. O painel operacional exige token administrativo para consultar o histórico persistido desses eventos.
 
 ## Agente de respostas de texto
 
@@ -54,7 +54,7 @@
 - O diário usa instância + ID de mensagem, com retenção de 30 dias. Geração pode ser tentada até três vezes. Envio é marcado antes da chamada externa: timeout, erro de confirmação ou queda deixa estado incerto, sem repetição automática. Não há garantia de exatamente uma entrega entre dois serviços independentes; casos incertos exigem conferência manual na Evolution.
 - Histórico das últimas 12 falas expira após 24 horas sem conversa. O arquivo Redis conserva os últimos 10 mil resultados e textos elegíveis, sem anexos, chaves ou envelope bruto. A fila só libera espaço após arquivar. Use Redis dedicado com AOF, volume e `noeviction`; perda de Redis perde o diário e o histórico.
 - `GET /api/settings/agent` exige token administrativo e mostra habilitação, fila, sinal do processador e último código seguro. A tela `AgentSettings` permite consultar sem expor conteúdo de conversas ou credenciais. Códigos `openai_http_401`, `openai_http_429` e `evolution_http_401`, por exemplo, identificam o provedor a revisar.
-- A caixa de entrada e tabelas operacionais PostgreSQL ainda não são o histórico desse processador; o estado de entrega fica no Redis. Não há envio de campanhas, áudio, execução de fluxos ou transferência para equipe nesta etapa.
+- A caixa de entrada consulta os eventos registrados no PostgreSQL. O histórico de contexto e o estado de entrega do processador continuam no Redis. Não há envio de campanhas, áudio, execução de fluxos ou transferência para equipe nesta etapa.
 
 ## Follow-ups automáticos e tags
 
@@ -85,3 +85,14 @@
 - Passkeys exigem verificação do usuário, origem/RP configurados, convite e desafio de uso único. Sessões são opacas, HttpOnly, armazenadas por hash e expiram em 24 horas ou uma hora de inatividade.
 - `AUTH_LOGIN_ENABLED` permanece false até concluir a homologação da identidade. Rotação/recuperação de fatores e administração completa de pessoas ainda estão pendentes; não habilitar em produção nesta etapa.
 - Provisionamento inicial é manual no servidor e não roda nas migrações. O script `scripts/provisionar-proprietario.ts` exige PROVISIONAR_NOME, PROVISIONAR_EMAIL e PROVISIONAR_ARQUIVO (arquivo privado fora do repositório), DATABASE_URL e AUTH_ORIGIN. Convite expira em 15 minutos; nenhuma senha padrão é criada. Não executar com credenciais de produção durante testes.
+
+
+## Painel e contatos reais (ADR-0007)
+
+- Não são inseridos nem exibidos números, contatos, conversas ou membros de equipe fictícios. Registros reais existentes são preservados; não há limpeza física do banco.
+- O webhook autenticado registra mensagens individuais, contatos e canais antes da fila Redis. Falha de banco ou fila retorna 503 para permitir retentativa. Recibo único por instância/ID impede recontar mensagens, mesmo após encerrar a conversa.
+- O histórico recebe texto, legenda ou marcador de mídia, sem guardar binários, URLs privadas ou segredos do envelope. Mensagens enviadas dependem do eco messages.upsert/fromMe da Evolution; não é realizada importação automática dos eventos antigos do Redis.
+- Conversas abertas contam status diferente de closed; pendentes são as não encerradas marcadas pending ou cuja última mensagem é recebida. Qualificados contam lead_status=qualificado, sem inferir qualificação pela simples chegada de uma mensagem.
+- Taxa de resposta é a porcentagem de conversas com entrada que possuem uma saída posterior confirmada no histórico; zero se nenhuma recebeu mensagens. Não representa SLA nem taxa de leitura.
+- Volume soma mensagens recebidas e enviadas nos últimos sete dias em UTC. Todas as métricas excluem registros com exclusão lógica e não dependem do limite de linhas exibidas.
+- Carregar dados atualiza o snapshot. Ausência de acesso ou falha de consulta exibe mensagem, nunca métricas zeradas enganosas. Listas vazias só aparecem após consulta autorizada bem-sucedida.

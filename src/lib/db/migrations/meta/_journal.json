@@ -43,6 +43,13 @@
       "when": 1789661732700,
       "tag": "0005_lovely_photon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789663171285,
+      "tag": "0006_familiar_shadow_king",
+      "breakpoints": true
     }
   ]
 }

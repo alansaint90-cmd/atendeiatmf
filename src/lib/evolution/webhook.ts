@@ -12,7 +12,8 @@ function authorized(request: Request, secret: string): boolean {
   return expectedBuffer.length === receivedBuffer.length && timingSafeEqual(expectedBuffer, receivedBuffer);
 }
 
-export async function receiveEvolutionEvent(request: Request, environment: Record<string, string | undefined>, enqueue: Enqueue): Promise<Response> {
+export async function receiveEvolutionEvent(request: Request, environment: Record<string, string | undefined>, enqueue: Enqueue,
+  persistir: (event: EvolutionEvent) => Promise<void> = async () => {}): Promise<Response> {
   const config = webhookConfigSchema.safeParse(environment);
   if (!config.success) return json({ error: "Webhook não configurado no servidor." }, 503);
   if (!authorized(request, config.data.EVOLUTION_WEBHOOK_SECRET)) return json({ error: "Não autorizado." }, 401);
@@ -44,6 +45,8 @@ export async function receiveEvolutionEvent(request: Request, environment: Recor
   const event = evolutionEventSchema.safeParse(raw);
   if (!event.success) return json({ error: "Evento ou conteúdo não suportado." }, 422);
   if (event.data.instance !== config.data.EVOLUTION_INSTANCE_NAME) return json({ error: "Instância não autorizada." }, 403);
+  try { await persistir(event.data); }
+  catch { return json({ error: "Registro das mensagens indisponível. Tente novamente." }, 503); }
   try {
     const result = await enqueue(event.data, config.data.REDIS_URL);
     return json({ received: true, status: result }, result === "queued" ? 202 : 200);

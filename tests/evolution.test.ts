@@ -49,3 +49,17 @@ test("webhook limita corpo mesmo sem Content-Length", async () => {
   const response = await receiveEvolutionEvent(request({ ...payload, data: { text: "x".repeat(1024 * 1024) } }), config, async () => { throw new Error("must not enqueue"); });
   assert.equal(response.status, 413);
 });
+
+test("persistência exige autenticação e antecede fila; falha de banco não confirma evento", async () => {
+  const ordem: string[] = [];
+  const persistir = async () => { ordem.push("banco"); };
+  const fila: Enqueue = async () => { ordem.push("fila"); return "queued"; };
+  assert.equal((await receiveEvolutionEvent(request(payload, "incorreto"), config, fila, persistir)).status, 401);
+  assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: "outra" }), config, fila, persistir)).status, 403);
+  assert.deepEqual(ordem, []);
+  assert.equal((await receiveEvolutionEvent(request(), config, fila, persistir)).status, 202);
+  assert.deepEqual(ordem, ["banco", "fila"]);
+  ordem.length = 0;
+  const resposta = await receiveEvolutionEvent(request(), config, fila, async () => { throw new Error("senha privada"); });
+  assert.equal(resposta.status, 503); assert.deepEqual(ordem, []); assert.ok(!(await resposta.text()).includes("senha privada"));
+});
