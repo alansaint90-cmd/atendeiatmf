@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "@/styles/base.css";
 import "@/styles/layout.css";
 import "@/styles/features.css";
 import "@/styles/improvements.css";
 import "@/styles/ui.css";
 import "@/styles/automation.css";
+import "@/styles/marca.css";
 
-export const metadata: Metadata = { title: "AtendeIA TMF", description: "Protótipo de atendimento e configuração de chatbots TMF." };
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+export const metadata: Metadata = { title: "AtendeIA | Atendimento inteligente", description: "Atendimento inteligente, resultados reais. Centralize conversas e configure seus assistentes com AtendeIA." };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body>{children}</body></html>;
+  return <html lang="pt-BR" className={inter.variable}><body>{children}</body></html>;
 }

@@ -3,6 +3,16 @@
 Como construir e organizar componentes nesta base. A IA DEVE seguir este padrao.
 Arquivo-ouro de referencia: [`templates/component.tsx`](../templates/component.tsx).
 
+## Identidade AtendeIA
+
+O componente compartilhado `Marca` em `src/components/marca.tsx` representa o robô
+em vetor e o nome AtendeIA, com variantes clara, grande e com slogan. O ícone da aba
+fica em `src/app/icon.svg`. A fonte Inter é servida pelo próprio Next.js via
+`next/font`. A paleta do kit (#6366F1, #8B5CF6, #06B6D4, #0F172A, #F3F4F6) e as
+variantes de contraste ficam em `src/styles/marca.css`; os componentes shadcn usam
+os tokens correspondentes de `src/styles/ui.css`. Verde e vermelho continuam
+indicando sucesso e alerta, sem substituir estados por cores decorativas.
+
 ## Principio: Colocation (colocate first, extract later)
 
 Comece colocando o componente do lado de quem usa. So mova para uma pasta

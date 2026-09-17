@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 101 |
+| Arquivos TS/TSX | 102 |
 | Tabelas (Drizzle) | 30 |
 | Server Actions (arquivos) | 6 |
 | Rotas de API | 4 |
 | Paginas | 4 |
-| Componentes | 13 |
+| Componentes | 14 |
 
 ## Arvore (profundidade 3)
 
@@ -34,6 +34,7 @@ app/
     _components/
     page.tsx
   error.tsx
+  icon.svg
   layout.tsx
   page.tsx
 components/
@@ -53,6 +54,7 @@ components/
     button.tsx
   admin-access.tsx
   agent-settings.tsx
+  marca.tsx
   modal-confirmacao-block.tsx
   settings.tsx
   workspace.tsx
@@ -142,6 +144,7 @@ styles/
   features.css
   improvements.css
   layout.css
+  marca.css
   ui.css
 instrumentation.ts
 ```

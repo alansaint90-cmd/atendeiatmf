@@ -1,0 +1,77 @@
+/* Identidade AtendeIA: cores do kit, com variantes de contraste para controles. */
+:root {
+  --marca-indigo: #6366f1;
+  --marca-violeta: #8b5cf6;
+  --marca-ciano: #06b6d4;
+  --marca-acao: #5145cd;
+  --bg: #f3f4f6;
+  --surface-2: #f0efff;
+  --text: #0f172a;
+  --muted: #5f6b80;
+  --line: #e2e5ee;
+  --blue: #5145cd;
+  --blue-soft: #efedff;
+  --shadow: 0 8px 28px #0f172a0d;
+  font-family: var(--font-inter), "Segoe UI", Arial, sans-serif;
+}
+body { font-family: var(--font-inter), "Segoe UI", Arial, sans-serif; }
+::selection { background: #ddd6fe; color: #0f172a; }
+a { color: var(--marca-acao); }
+.marca { display: flex; align-items: center; color: var(--text); gap: 10px; flex-shrink: 0; }
+.marca-simbolo { flex: 0 0 auto; width: 44px; height: 50px; }
+.marca-textos { display: flex; flex-direction: column; gap: 10px; }
+.marca-nome { font-weight: 800; font-size: 28px; letter-spacing: -1.3px; line-height: 1; white-space: nowrap; }
+.marca-ia { color: var(--marca-acao); }
+.marca-slogan { font-size: 10px; font-weight: 450; line-height: 1.7; letter-spacing: 2.3px; text-transform: uppercase; color: var(--muted); }
+.marca.large .marca-simbolo { width: 68px; height: 76px; }
+.marca.large .marca-nome { font-size: clamp(32px, 3vw, 46px); letter-spacing: -2px; }
+.marca-clara { color: #fff; }
+.marca-clara .marca-ia { color: #a78bfa; }
+.marca-clara .marca-slogan { color: #c4c9dc; }
+.sidebar .marca { padding: 0 16px 8px; }
+.sidebar { gap: 20px; overflow-y: auto; }
+.sidebar button { color: #475569; border-radius: 10px; }
+.sidebar button.active { background: #eeebff; color: var(--marca-acao); }
+.sidebar button:hover { background: #f4f2ff; transform: none; }
+.primary { background: var(--marca-acao); border-radius: 10px; box-shadow: 0 4px 12px #6366f11a; }
+.primary:hover:not(:disabled) { background: #4338b5; }
+.secondary:hover:not(:disabled) { border-color: var(--marca-indigo); color: var(--marca-acao); }
+:focus-visible { outline: 3px solid var(--marca-indigo); outline-offset: 3px; }
+input:focus, textarea:focus, select:focus { border-color: var(--marca-indigo); }
+input[type="checkbox"], input[type="range"] { accent-color: var(--marca-acao); }
+.panel, .kpi, .flow-card, .plan { border-radius: 14px; box-shadow: 0 2px 8px #0f172a03; }
+.kpi.blue { border-color: #d7d2ff; }
+.kpi strong { letter-spacing: -1.5px; }
+.topbar .badge { background: #eeebff; color: var(--marca-acao); }
+.content > a { font-size: 13px; text-decoration: none; font-weight: 600; }
+.content > a:hover { text-decoration: underline; }
+.bot-examples { background: #eeebff; color: #5145cd; }
+.bot-switch input:checked, .bot-personalities input:checked + span { background: var(--marca-acao); }
+.bot-temperature output { color: var(--marca-acao); background: #eeebff; }
+.bot-temperature input { accent-color: var(--marca-acao); }
+.bot-dialog-body { scrollbar-color: #aaa2df transparent; }
+.message.agent, .bubble.agent, .bubble.bot { background: #eeebff; }
+.auth-shell { background: #f9fafc; grid-template-columns: minmax(360px, 560px) minmax(0, 1fr); }
+.auth-panel { padding: clamp(28px, 4vw, 64px); }
+.auth-panel h1 { letter-spacing: -1.5px; font-size: clamp(30px, 3vw, 42px); }
+.auth-preview { position: relative; overflow: hidden; min-height: 100vh; padding: clamp(32px, 5vw, 88px); color: white; background: radial-gradient(ellipse at 80% 0%, #6338d766, transparent 52%), radial-gradient(ellipse at 0% 100%, #06b6d42e, transparent 50%), #080d20; }
+.marca-apresentacao { position: relative; display: grid; gap: 54px; max-width: 620px; }
+.marca-promessa { font-size: clamp(36px, 4vw, 64px); font-weight: 650; line-height: 1.15; letter-spacing: -2px; margin: 0; }
+.marca-promessa strong { color: #b29bff; font-weight: 750; }
+.marca-pilares { display: flex; flex-wrap: wrap; gap: 12px; }
+.marca-pilares span { border: 1px solid #ffffff26; border-radius: 100px; padding: 10px 16px; color: #d8dced; font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; }
+.sidebar-collapsed .marca .marca-textos { display: none; }
+.sidebar-collapsed .sidebar .marca { padding: 0 8px; }
+@media (max-width: 1050px) {
+  .sidebar .marca .marca-textos { display: none; }
+  .sidebar .marca { padding: 0 8px; }
+}
+@media (max-width: 720px) {
+  .auth-shell { grid-template-columns: 1fr; }
+  .shell, .sidebar-collapsed { display: block; }
+  .topbar { flex-direction: row; align-items: center; }
+  .top-actions { margin-left: auto; }
+  .sidebar .marca .marca-textos { display: flex; }
+  .sidebar .marca .marca-nome, .sidebar .marca .marca-ia { font-size: 25px; }
+  .sidebar-collapsed .sidebar .marca .marca-textos { display: none; }
+}
