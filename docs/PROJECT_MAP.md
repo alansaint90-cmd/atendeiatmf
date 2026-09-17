@@ -6,11 +6,11 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 70 |
-| Tabelas (Drizzle) | 18 |
-| Server Actions (arquivos) | 3 |
-| Rotas de API | 3 |
-| Paginas | 1 |
+| Arquivos TS/TSX | 97 |
+| Tabelas (Drizzle) | 29 |
+| Server Actions (arquivos) | 5 |
+| Rotas de API | 4 |
+| Paginas | 4 |
 | Componentes | 13 |
 
 ## Arvore (profundidade 3)
@@ -19,8 +19,20 @@
 app/
   (app)/
   api/
+    auth/
     settings/
     webhooks/
+  crm/
+    _components/
+    error.tsx
+    loading.tsx
+    page.tsx
+  entrar/
+    _components/
+    page.tsx
+  perfil/
+    _components/
+    page.tsx
   error.tsx
   layout.tsx
   page.tsx
@@ -46,7 +58,9 @@ components/
 lib/
   actions/
     agendamentos.ts
+    crm.ts
     followups.ts
+    sessoes.ts
     tags.ts
   agendamentos/
     repository.ts
@@ -63,13 +77,24 @@ lib/
   audit/
     registrar.ts
   auth/
+    cookies.ts
+    desafios.ts
+    passkeys.ts
     permissoes.ts
+    repositorio.ts
     sessao.ts
+    validacao.ts
   chatbots/
     defaults.ts
     prompt.ts
     repository.ts
     schema.ts
+  crm/
+    acesso.ts
+    cadastros.ts
+    consultas.ts
+    oportunidades.ts
+    validacao.ts
   db/
     migrations/
     schema/
@@ -77,6 +102,7 @@ lib/
     client.ts
     index.ts
     migrate.ts
+    porta.ts
     schema.ts
     soft-delete.ts
   demo/
@@ -118,6 +144,39 @@ instrumentation.ts
 
 ### `auditoria` — src/lib/db/schema/auditoria.ts
 `id`, `user_id`, `acao`, `tabela`, `registro_id`, `detalhes`, `dados_anteriores`, `dados_novos`, `created_at`
+
+### `atendeia_funis` — src/lib/db/schema/crm.ts
+`id`, `modified_by`
+
+### `atendeia_funis_etapas` — src/lib/db/schema/crm.ts
+`id`, `nome`, `modified_by`
+
+### `atendeia_funis_acessos` — src/lib/db/schema/crm.ts
+`id`, `usuarioId`, `modified_by`
+
+### `atendeia_motivos_perda` — src/lib/db/schema/crm.ts
+`id`, `modified_by`
+
+### `atendeia_funis_oportunidades` — src/lib/db/schema/crm.ts
+`id`, `funilId`, `etapaId`, `contatoId`, `canalId`, `responsavelId`, `status`, `motivoId`, `observacao`, `modified_by`
+
+### `atendeia_funis_oportunidades_tags` — src/lib/db/schema/crm.ts
+`id`, `tagId`, `modified_by`
+
+### `atendeia_funis_oportunidades_fechamentos` — src/lib/db/schema/crm.ts
+`id`, `funilId`, `etapaAnteriorId`, `responsavelId`, `valor`, `modified_by`
+
+### `atendeia_users_passkeys` — src/lib/db/schema/identidade.ts
+`id`, `credencialId`, `nome`
+
+### `atendeia_users_convites` — src/lib/db/schema/identidade.ts
+`id`, `tokenHash`
+
+### `atendeia_auth_desafios` — src/lib/db/schema/identidade.ts
+`id`, `finalidade`, `conviteId`, `expiraEm`
+
+### `atendeia_auth_limites` — src/lib/db/schema/identidade.ts
+`id`, `tentativas`
 
 ### `usuarios` — src/lib/db/schema/usuarios.ts
 `id`, `nome`, `email`, `papel`, `ativo`
@@ -168,12 +227,13 @@ _(colunas nao detectadas)_
 `id`, `contactId`, `messageId`, `status`
 
 ### `atendeia_audit_logs` — src/lib/db/schema.ts
-`id`, `entityId`
+`id`, `details`, `entityId`
 
 ## Rotas de API
 
 | Rota | Metodos |
 |------|---------|
+| `/api/auth/passkey` | POST |
 | `/api/settings/agent` | GET |
 | `/api/settings/integrations` | GET, PUT |
 | `/api/webhooks/evolution` | POST |
@@ -181,9 +241,14 @@ _(colunas nao detectadas)_
 ## Server Actions
 
 - `src/lib/actions/agendamentos.ts`: `carregarAgendamentos()`, `gravarAgendamento()`, `cancelarEnvioAgendado()`
+- `src/lib/actions/crm.ts`: `carregarCrm()`, `adicionarFunil()`, `adicionarMotivo()`, `modificarMotivo()`, `salvarAcessosFunis()`, `adicionarOportunidade()`, `fecharNegocio()`, `moverNegocio()`
 - `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
+- `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`
 - `src/lib/actions/tags.ts`: `carregarTags()`, `salvarTag()`, `excluirTag()`
 
 ## Paginas
 
+- `src/app/crm/page.tsx`
+- `src/app/entrar/page.tsx`
 - `src/app/page.tsx`
+- `src/app/perfil/page.tsx`

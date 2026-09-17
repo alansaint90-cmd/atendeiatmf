@@ -191,3 +191,8 @@ anteriores. Não ativar envios reais para testar as páginas.
 Agendamentos individuais seguem ADR-0005 e a mesma guarda administrativa.
 Reservar no PostgreSQL antes de chamar a Evolution; registro em envio nunca volta
 automaticamente para pendente. A execução depende do worker, mas não de AI_ENABLED.
+
+CRM e identidade seguem ADR-0006, em validação. Novos módulos usam sessão individual
+sobre atendeia_users; não reutilizar token administrativo como identidade humana.
+Não ativar AUTH_LOGIN_ENABLED em produção antes de fechar a régua de segurança de
+login e conta. Migrações 0003/0004 são aditivas; testes usam banco descartável.

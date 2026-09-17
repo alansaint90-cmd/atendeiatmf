@@ -73,3 +73,15 @@
 - O worker habilitado executa os textos pela Evolution mesmo se a IA estiver desligada. Indisponibilidade pode atrasar envios, que permanecem pendentes. A tela informa quando o worker está desativado.
 - O banco reserva antes de enviar e registra aceitação da Evolution. Queda, timeout ou confirmação incerta não causam reenvio automático. Reservas interrompidas são marcadas incertas após cinco minutos. Consulte a Evolution antes de criar novo envio nesses casos.
 - O status Enviado não comprova leitura ou entrega ao destinatário. Use Carregar dados para atualizar a lista. Credenciais nunca são recebidas do formulário de agendamento.
+
+## CRM e identidade individual (ADR-0006, em validação)
+
+- CRM usa dados reais em `/crm` e sessão individual; o token administrativo legado não identifica pessoas.
+- Papéis e atividade são relidos no banco. Atendentes e visualizadores consultam apenas funis concedidos; administradores e proprietários acessam todos.
+- O mesmo escopo restringe Kanban, criação, movimentação, fechamento e agregações financeiras. Valores monetários permanecem strings decimais/numeric.
+- Ganho/perda só encerra oportunidade aberta, com trava de atualização. Perda exige motivo ativo. Histórico conserva valor, funil, etapa anterior, responsável, autor e motivo textual mesmo após exclusão lógica do motivo.
+- Conversão é ganhas / (ganhas + perdidas), zero quando não há encerradas. Receita considera somente ganhas. Filtros de data têm início inclusivo e fim exclusivo; atalhos da interface usam fuso do navegador.
+- Filtros são mantidos por usuário em sessionStorage sem credenciais. Listagem de oportunidades usa páginas de 50; agregações consideram todo o resultado filtrado.
+- Passkeys exigem verificação do usuário, origem/RP configurados, convite e desafio de uso único. Sessões são opacas, HttpOnly, armazenadas por hash e expiram em 24 horas ou uma hora de inatividade.
+- `AUTH_LOGIN_ENABLED` permanece false até concluir a homologação da identidade. Rotação/recuperação de fatores e administração completa de pessoas ainda estão pendentes; não habilitar em produção nesta etapa.
+- Provisionamento inicial é manual no servidor e não roda nas migrações. O script `scripts/provisionar-proprietario.ts` exige PROVISIONAR_NOME, PROVISIONAR_EMAIL e PROVISIONAR_ARQUIVO (arquivo privado fora do repositório), DATABASE_URL e AUTH_ORIGIN. Convite expira em 15 minutos; nenhuma senha padrão é criada. Não executar com credenciais de produção durante testes.

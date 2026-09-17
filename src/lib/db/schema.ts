@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm";
 import { pgTable, uuid, text, timestamp, boolean, integer, jsonb, index, uniqueIndex, check, type AnyPgColumn } from "drizzle-orm/pg-core";
 import type { Chatbot } from "../chatbots/schema";
 import { colunasAuditoria, instante } from "./schema/_compartilhado";
+export * from "./schema/identidade";
+export * from "./schema/crm";
 
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -122,5 +124,6 @@ export const campaignRecipients = pgTable("atendeia_campaign_recipients", {
   check("atendeia_recipient_status", sql`${t.status} IN ('pending', 'sent', 'failed', 'cancelled')`)]);
 export const auditLogs = pgTable("atendeia_audit_logs", {
   id: id(), action: text("action").notNull(), entityType: text("entity_type").notNull(),
+  details: jsonb("details").$type<{ motivo?: string; antes?: string[]; depois?: string[] }>().notNull().default({}),
   entityId: uuid("entity_id").notNull(), changedFields: jsonb("changed_fields").$type<string[]>().notNull().default([]), ...audit(),
 }, t => [index("atendeia_audit_entity").on(t.entityType, t.entityId, t.createdAt)]);

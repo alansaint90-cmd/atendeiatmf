@@ -60,3 +60,15 @@ Recurso novo: acrescente a linha aqui ANTES de escrever a action.
 - Volume de erros por usuario e o detalhe (o que foi lancado × o que deveria ser)
 - Registros excluidos: quem, quando, o que era
 - Historico de alteracoes (tabela `auditoria`)
+
+## CRM individual — ADR-0006
+
+| Recurso | Leitura | Escrita |
+| --- | --- | --- |
+| Funis, etapas e motivos | visualizador, com escopo de funil | admin |
+| Oportunidades e métricas | visualizador, com escopo de funil | operador, com escopo de funil |
+| Concessão de acesso ao funil | admin | admin; versão do usuário e motivo obrigatórios |
+| Sessões próprias | visualizador | visualizador, somente as próprias |
+
+Proprietário operacional usa o papel existente super_admin, provisionado localmente.
+A API comum não concede esse papel. Papel desconhecido é sempre recusado.

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { nav, conversations as demoConversations } from "@/lib/demo/data";
 import { demoViews } from "@/lib/demo/views";
 import { icon } from "@/lib/demo/icons";
@@ -19,6 +20,7 @@ export function Workspace() {
   return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""}`}><aside className="sidebar"><div className="brand"><span className="brand-mark">A</span><span>AtendeIA</span></div><nav>{nav.map(([id, label, ico]) => <button key={id} className={route === id ? "active" : ""} data-route={id} aria-label={label} aria-current={route === id ? "page" : undefined} onClick={() => setRoute(id)}><span dangerouslySetInnerHTML={{ __html: icon(ico) }} /><span className="nav-label">{label}</span></button>)}</nav><div className="account"><strong>Wellington Tavares</strong><span>Demonstração</span></div></aside>
     <section className="workspace"><header className="topbar"><button className="icon-button" aria-label="Alternar menu" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>☰</button><strong>{nav.find(item => item[0] === route)?.[1]}</strong><div className="top-actions"><span className="badge">Modo demonstração</span></div></header>
       <main className="content">
+        <Link href="/crm">CRM · Kanban e oportunidades</Link>
         {/* Keep form drafts mounted across navigation, but hide inactive sections. */}
         <div hidden={route !== "chatbot"} className="page-stack"><ChatbotsPage /></div>
         <div hidden={route !== "followups"}><FollowupsPage /></div>

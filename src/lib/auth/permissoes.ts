@@ -13,7 +13,9 @@ export interface SessaoAtiva {
  */
 export function temPermissao(sessao: SessaoAtiva | null, papelMinimo: Papel): boolean {
   if (!sessao) return false;
-  return PAPEIS.indexOf(sessao.papel) <= PAPEIS.indexOf(papelMinimo);
+  const atual = PAPEIS.indexOf(sessao.papel);
+  const minimo = PAPEIS.indexOf(papelMinimo);
+  return atual >= 0 && minimo >= 0 && atual <= minimo;
 }
 
 export function exigirPermissao(sessao: SessaoAtiva, papelMinimo: Papel): void {
