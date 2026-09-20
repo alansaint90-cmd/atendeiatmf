@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 102 |
+| Arquivos TS/TSX | 103 |
 | Tabelas (Drizzle) | 30 |
 | Server Actions (arquivos) | 6 |
 | Rotas de API | 4 |
@@ -71,6 +71,7 @@ lib/
     schema.ts
     worker.ts
   agent/
+    audio.ts
     config.ts
     message.ts
     processor.ts

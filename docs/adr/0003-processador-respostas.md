@@ -26,8 +26,26 @@ Não declarar entrega exatamente uma vez. Redis deve ter persistência e noevict
 
 Retenções: diário de entrega 30 dias, histórico de 12 turnos por 24 horas, arquivo
 limitado a 10 mil resultados. As tabelas operacionais e a caixa de entrada não são
-integradas por esta mudança. Grupos, mídia, lotes, fluxos e atendimento humano ficam
+integradas por esta mudança. Grupos, outras mídias, lotes, fluxos e atendimento humano ficam
 fora da automação de texto inicial. Eventos antigos não geram respostas atrasadas.
+
+Extensão de áudio (2026-09-20): a seleção também aceita audioMessage individual.
+O adaptador consulta getBase64FromMediaMessage pelo ID, na instância configurada,
+com convertToMp4=false; não baixa URLs fornecidas pelo evento. OGG/Opus segue para
+OpenAI audio/transcriptions com gpt-4o-mini-transcribe, usando a chave existente.
+O limite local é 10 MiB; download e transcrição têm 15 e 25 segundos de timeout.
+Somados à geração (45 s) e envio (20 s), ficam abaixo da lease de 120 s; posse e
+ativação continuam verificadas antes do envio. Webhook Base64 deve ficar desligado
+e a Evolution deve persistir mensagens para permitir consulta por ID.
+
+O binário existe apenas em memória. A transcrição é validada e salva no checkpoint
+antes da geração, permitindo retomar sem retranscrever após falha de geração.
+Usa as retenções existentes do diário e histórico Redis; não exige migração SQL.
+Falha de transcrição não produz resposta inventada nem expõe o erro do provedor.
+O retorno ao WhatsApp continua sendo texto e preserva a barreira de envio incerto.
+
+- [OpenAI transcrição](https://developers.openai.com/api/reference/cli/resources/audio/subresources/transcriptions/methods/create): multipart, formatos e modelo.
+- [Evolution mídia](https://github.com/EvolutionAPI/evolution-api/blob/main/src/api/integrations/channel/whatsapp/whatsapp.baileys.service.ts): consulta por message.key.id e retorno base64/mimetype.
 
 Fontes verificadas para os contratos externos:
 

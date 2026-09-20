@@ -32,7 +32,7 @@ export function AgentSettings({ values, disabled, token, onChange }: AgentSettin
     </select></label>
     <label>Contexto geral do agente<textarea rows={14} maxLength={200000} value={values.AI_SYSTEM_PROMPT ?? ""}
       onChange={event => onChange("AI_SYSTEM_PROMPT", event.target.value)} placeholder="Escreva o prompt de atendimento que será usado no WhatsApp." /></label>
-    <small>Este é o contexto usado no servidor. Alterações nos chatbots locais precisam ser copiadas novamente e salvas aqui. Somente texto individual recente é respondido.</small>
+    <small>Este é o contexto usado no servidor. Alterações nos chatbots locais precisam ser copiadas novamente e salvas aqui. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
     <button type="button" className="secondary" onClick={() => {
       try { setBots(loadChatbots(localStorage).bots); setError(""); }
       catch (error) { setError(errorMessage(error)); }

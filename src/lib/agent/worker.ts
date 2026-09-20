@@ -6,6 +6,7 @@ import { streamKey } from "../evolution/queue";
 import { agentConfigSchema } from "./config";
 import { incomingMessage, digest } from "./message";
 import { generateReply, sendReply } from "./providers";
+import { transcribeAudio } from "./audio";
 import { processMessage } from "./processor";
 import { agentRedis, agentKeys, owned } from "./redis";
 import { finishEvent, messageStore } from "./store";
@@ -59,7 +60,7 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
       if (message) {
         const store = messageStore(client, token, message);
         result = await processMessage(message, config.data, {
-          ...store, generate: dependencies.generate, send: dependencies.send,
+          ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
           enabled: async () => {
             const current = agentConfigSchema.safeParse(await dependencies.settings());
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)

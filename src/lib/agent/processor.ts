@@ -3,13 +3,14 @@ import type { IncomingMessage } from "./message";
 import { digest } from "./message";
 import { ProviderError, type Turn } from "./providers";
 
-export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; code?: string; configHash?: string; providerId?: string }
+export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; transcript?: string; code?: string; configHash?: string; providerId?: string }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
   history(): Promise<Turn[]>;
   complete(state: DeliveryState, turns: Turn[]): Promise<void>;
   enabled(): Promise<boolean>;
+  transcribe?(config: AgentConfig, message: IncomingMessage): Promise<string>;
   generate(config: AgentConfig, history: Turn[], text: string): Promise<string>;
   send(config: AgentConfig, number: string, text: string): Promise<string>;
 }
@@ -31,15 +32,26 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   }
   if (!state?.reply) {
     const attempts = (state?.attempts ?? 0) + 1;
-    await port.write({ status: "gerando", attempts, configHash });
+    let transcript = state?.transcript;
+    await port.write({ status: "gerando", attempts, configHash, transcript });
     let reply: string;
-    try { reply = await port.generate(config, await port.history(), message.text); }
+    try {
+      if (message.audio && !transcript) {
+        if (!port.transcribe) throw new ProviderError("audio_transcricao_indisponivel");
+        const candidate = (await port.transcribe(config, message)).trim();
+        if (!candidate || candidate.length > 12000) throw new ProviderError("audio_transcricao_invalida");
+        transcript = candidate;
+        await port.write({ status: "gerando", attempts, configHash, transcript });
+        if (!await port.enabled()) return "pausada";
+      }
+      reply = await port.generate(config, await port.history(), transcript ?? message.text);
+    }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
-      await port.write({ status: attempts >= 3 ? "falhou" : "gerando", attempts, code, configHash });
+      await port.write({ status: attempts >= 3 ? "falhou" : "gerando", attempts, code, configHash, transcript });
       return attempts >= 3 ? "falhou" : "repetir";
     }
-    state = { status: "gerada", attempts, reply, configHash };
+    state = { status: "gerada", attempts, reply, configHash, transcript };
     await port.write(state);
   }
   if (!await port.enabled()) return "pausada";
@@ -51,7 +63,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   }
   // Estado e histórico são confirmados juntos. Se falhar, permanece "enviando".
   await port.complete({ ...state, status: "enviada" }, [
-    { role: "user", content: message.text }, { role: "assistant", content: state.reply! },
+    { role: "user", content: state.transcript ?? message.text }, { role: "assistant", content: state.reply! },
   ]);
   return "enviada";
 }
