@@ -42,6 +42,8 @@ Configurar PROVISIONAR_NOME, PROVISIONAR_EMAIL, PROVISIONAR_ARQUIVO (fora do che
 DATABASE_URL e AUTH_ORIGIN. Executar `pnpm exec tsx scripts/provisionar-proprietario.ts`.
 O convite fica somente no arquivo privado, nunca nos logs. Abrir /entrar e escolher
 Primeiro acesso; usuário define a senha e registra a passkey em origem HTTPS.
+Se a execução falhar, o arquivo de convite parcial é removido. Para identificar a
+etapa sem expor dados do banco, adicione PROVISIONAR_DIAGNOSTICO=true à execução.
 
 O e-mail solicitado para o primeiro proprietário é alansaint90@gmail.com.
 A implementação não cria essa conta automaticamente nem altera o banco de produção.

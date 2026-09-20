@@ -12,9 +12,10 @@ test("provisionamento empacotado funciona sem checkout e recusa configuração a
   try {
     await build({ entryPoints: ["scripts/provisionar-proprietario.ts"], bundle: true, platform: "node", format: "cjs", target: "node24", outfile: destino, logLevel: "silent" });
     const resultado = spawnSync(process.execPath, [destino], { cwd: pasta, encoding: "utf8", timeout: 15000,
-      env: { ...process.env, DATABASE_URL: "", AUTH_ORIGIN: "", PROVISIONAR_NOME: "", PROVISIONAR_EMAIL: "", PROVISIONAR_ARQUIVO: "" } });
+      env: { ...process.env, DATABASE_URL: "", AUTH_ORIGIN: "", PROVISIONAR_NOME: "", PROVISIONAR_EMAIL: "", PROVISIONAR_ARQUIVO: "", PROVISIONAR_DIAGNOSTICO: "true" } });
     assert.equal(resultado.status, 1);
     assert.match(resultado.stderr, /Provisionamento não concluído/);
+    assert.match(resultado.stderr, /Diagnóstico seguro: validacao_de_variaveis/);
     assert.doesNotMatch(resultado.stderr, /MODULE_NOT_FOUND|Cannot find module|ReferenceError/);
     assert.equal(resultado.stdout, "");
     const docker = await readFile("Dockerfile", "utf8");
