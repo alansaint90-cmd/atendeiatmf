@@ -1,4 +1,4 @@
-# Instalação da estrutura base no AtendeIA
+# Instalação da estrutura base no Atende AI
 
 Data: 16/09/2026. Branch de trabalho: `develop`.
 Fonte: arquivo ESTRUTURA-BASE-CODEX.md fornecido pelo usuário.
@@ -37,7 +37,7 @@ foram concluídos depois e estão descritos no ADR-0002.
 - tsconfig.json: templates excluídos. .gitignore: quarentena excluída.
 - Dockerfile: copia o script prepare antes de instalar dependências.
 - Layout: importa apenas os utilitários de UI, sem reset dos estilos existentes.
-- AGENTS.md: contexto AtendeIA e registro da adoção gradual.
+- AGENTS.md: contexto Atende AI e registro da adoção gradual.
 
 Os arquivos `.env`, `.env.example` e `docs/regras-negocio.md` existentes foram
 preservados na instalação inicial. Na revisão autorizada, `.env.example` recebeu

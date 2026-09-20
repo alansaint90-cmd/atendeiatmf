@@ -19,7 +19,7 @@ const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z
 let started = false;
 let lastLog = "";
 function report(status: string) {
-  if (lastLog !== status) { console.info(`AtendeIA agente: ${status}`); lastLog = status; }
+  if (lastLog !== status) { console.info(`Atende AI agente: ${status}`); lastLog = status; }
 }
 
 export async function runAgentTick(dependencies = { settings: effectiveSettings, generate: generateReply, send: sendReply }) {
@@ -113,7 +113,7 @@ export function startAgentWorker() {
   const loop = async () => {
     let processed = false;
     try { await executarAgendamentos(); }
-    catch { console.error("AtendeIA: falha ao processar agendamentos; confira banco e configuração."); }
+    catch { console.error("Atende AI: falha ao processar agendamentos; confira banco e configuração."); }
     try { processed = Boolean(await runAgentTick()); }
     catch { report("falha de configuração, Redis ou processamento; nova tentativa em 5 segundos"); }
     const timer = setTimeout(() => void loop(), processed ? 100 : 5000);

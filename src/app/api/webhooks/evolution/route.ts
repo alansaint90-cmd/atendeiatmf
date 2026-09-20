@@ -20,5 +20,5 @@ export async function POST(request: Request) {
 }
 
 export function GET() {
-  return Response.json({ service: "AtendeIA Evolution webhook", method: "POST", mode: "queue-worker" }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json({ service: "Atende AI Evolution webhook", method: "POST", mode: "queue-worker" }, { headers: { "Cache-Control": "no-store" } });
 }

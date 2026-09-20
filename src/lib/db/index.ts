@@ -1,6 +1,6 @@
 import { db as obterBanco } from "./client";
 
-/** Adaptador da base: mantém a conexão única e preguiçosa já usada pelo AtendeIA. */
+/** Adaptador da base: mantém a conexão única e preguiçosa já usada pelo Atende AI. */
 type Banco = ReturnType<typeof obterBanco>;
 export const db = new Proxy({} as Banco, {
   get(_alvo, propriedade) {

@@ -16,7 +16,7 @@ export async function iniciarFator(banco: BancoSql, sessao: SessaoAtiva, senha: 
   if (!usuario || !await conferirSenha(senha, usuario.hash)) throw recusaLogin();
   const existentes = linhas<{ id: string }>(await banco.execute(sql`SELECT credencial_id AS id FROM atendeia_users_passkeys
     WHERE user_id=${sessao.userId} AND is_deleted=false`));
-  const options = await generateRegistrationOptions({ rpName: "AtendeIA", rpID: configuracaoPasskey().expectedRPID,
+  const options = await generateRegistrationOptions({ rpName: "Atende AI", rpID: configuracaoPasskey().expectedRPID,
     userName: sessao.userId, userDisplayName: usuario.nome, userID: new TextEncoder().encode(sessao.userId),
     attestationType: "none", excludeCredentials: existentes, authenticatorSelection: { residentKey: "required", userVerification: "required" } });
   return { options, token: await guardarDesafio(banco, options.challenge, "fator", sessao.userId) };

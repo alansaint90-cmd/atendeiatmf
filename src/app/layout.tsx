@@ -9,7 +9,7 @@ import "@/styles/automation.css";
 import "@/styles/marca.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-export const metadata: Metadata = { title: "AtendeIA | Atendimento inteligente", description: "Atendimento inteligente, resultados reais. Centralize conversas e configure seus assistentes com AtendeIA." };
+export const metadata: Metadata = { title: "Atende AI | Atendimento inteligente", description: "Atendimento inteligente, resultados reais. Centralize conversas e configure seus assistentes com Atende AI." };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="pt-BR" className={inter.variable}><body>{children}</body></html>;
 }

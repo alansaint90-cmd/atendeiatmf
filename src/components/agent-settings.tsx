@@ -24,7 +24,10 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
     } catch (error) { setError(errorMessage(error)); }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { void check(); }, [check]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void check(), 0);
+    return () => window.clearTimeout(timer);
+  }, [check]);
   return <fieldset disabled={disabled} className="form-panel">
     <legend>Agente de IA no WhatsApp</legend>
     <label>Respostas automáticas<select value={values.AI_ENABLED || "false"} onChange={event => onChange("AI_ENABLED", event.target.value)}>

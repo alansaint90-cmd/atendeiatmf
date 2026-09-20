@@ -32,7 +32,10 @@ export function Settings() {
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Falha de conexão."); }
     finally { setBusy(false); }
   }, []);
-  useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void carregar(), 0);
+    return () => window.clearTimeout(timer);
+  }, [carregar]);
   async function salvar() {
     setBusy(true); setMessage(""); setError("");
     try {

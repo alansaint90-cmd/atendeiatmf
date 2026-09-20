@@ -41,7 +41,7 @@ export async function iniciarRegistro(banco: BancoSql, convite: string, origem?:
     if (!alterado.length) throw recusaLogin();
     await auditarIdentidade(tx, usuario.id, "senha_inicial_definida");
   });
-  const options = await generateRegistrationOptions({ rpName: "AtendeIA", rpID: config.expectedRPID,
+  const options = await generateRegistrationOptions({ rpName: "Atende AI", rpID: config.expectedRPID,
     userName: usuario.id, userDisplayName: usuario.nome, userID: new TextEncoder().encode(usuario.id),
     attestationType: "none", authenticatorSelection: { residentKey: "required", userVerification: "required" } });
   return { options, token: await guardarDesafio(banco, options.challenge, "registro", usuario.id, usuario.convite), aviso: preparada.aviso };

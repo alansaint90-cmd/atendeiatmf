@@ -1,4 +1,4 @@
-/* Identidade AtendeIA: cores do kit, com variantes de contraste para controles. */
+/* Identidade Atende AI: cores do kit, com variantes de contraste para controles. */
 :root {
   --marca-indigo: #6366f1;
   --marca-violeta: #8b5cf6;
@@ -20,11 +20,11 @@ a { color: var(--marca-acao); }
 .marca { display: flex; align-items: center; color: var(--text); gap: 10px; flex-shrink: 0; }
 .marca-simbolo { flex: 0 0 auto; width: 44px; height: 50px; }
 .marca-textos { display: flex; flex-direction: column; gap: 10px; }
-.marca-nome { font-weight: 800; font-size: 28px; letter-spacing: -1.3px; line-height: 1; white-space: nowrap; }
+.marca-nome { font-weight: 800; font-size: 28px; letter-spacing: 0; line-height: 1; white-space: nowrap; }
 .marca-ia { color: var(--marca-acao); }
 .marca-slogan { font-size: 10px; font-weight: 450; line-height: 1.7; letter-spacing: 2.3px; text-transform: uppercase; color: var(--muted); }
 .marca.large .marca-simbolo { width: 68px; height: 76px; }
-.marca.large .marca-nome { font-size: clamp(32px, 3vw, 46px); letter-spacing: -2px; }
+.marca.large .marca-nome { font-size: clamp(32px, 3vw, 46px); letter-spacing: 0; }
 .marca-clara { color: #fff; }
 .marca-clara .marca-ia { color: #a78bfa; }
 .marca-clara .marca-slogan { color: #c4c9dc; }

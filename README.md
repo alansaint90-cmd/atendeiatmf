@@ -1,4 +1,4 @@
-# AtendeIA TMF
+# Atende AI TMF
 
 Protótipo de atendimento com Next.js App Router, React, TypeScript estrito e validação Zod.
 
@@ -47,7 +47,7 @@ O campo **Contexto geral** contém o prompt TMF e permite editar e salvar no nav
 
 As integrações são criptografadas no PostgreSQL com SETTINGS_ENCRYPTION_KEY. O painel exige sessão individual; apenas super administrador altera chaves. Configure DATABASE_URL, AUTH_ORIGIN e provisione o proprietário antes de ativar AUTH_LOGIN_ENABLED. Veja docs/adr/0008-sessao-individual-em-todo-painel.md. Token administrativo não é mais utilizado. O worker pode responder texto e áudio quando explicitamente habilitado; dashboard, contatos e caixa de entrada usam dados reais.
 
-O schema relacional usa PostgreSQL 16 e Drizzle. Crie um banco dedicado no EasyPanel e configure sua URL interna em `DATABASE_URL`. Ao iniciar, o container aplica as migrações e registra `AtendeIA: migrações PostgreSQL verificadas com sucesso.` O usuário do banco precisa de permissão CREATE. As 19 tabelas incluem credenciais, usuários, equipe, contatos, chatbots, canais, conversas, mensagens, campanhas e auditoria. A migração preserva configurações existentes e cria apenas um ator de sistema desabilitado e quatro departamentos; não cria login padrão. As telas operacionais ainda usam dados locais/de demonstração.
+O schema relacional usa PostgreSQL 16 e Drizzle. Crie um banco dedicado no EasyPanel e configure sua URL interna em `DATABASE_URL`. Ao iniciar, o container aplica as migrações e registra `Atende AI: migrações PostgreSQL verificadas com sucesso.` O usuário do banco precisa de permissão CREATE. As 19 tabelas incluem credenciais, usuários, equipe, contatos, chatbots, canais, conversas, mensagens, campanhas e auditoria. A migração preserva configurações existentes e cria apenas um ator de sistema desabilitado e quatro departamentos; não cria login padrão. As telas operacionais ainda usam dados locais/de demonstração.
 
 Para migrar localmente: `pnpm db:migrate` (lê `.env`). Para gerar uma nova migração após alterar o schema: `pnpm db:generate`. Nunca altere SQL já aplicado; o histórico verifica checksums. Faça backup do banco e da chave de criptografia separadamente.
 
@@ -58,9 +58,9 @@ Após fazer deploy, configure na instância da Evolution:
 - URL: `https://autoproiacfcsalmos-atendeiatmf.5ejbw3.easypanel.host/api/webhooks/evolution`
 - Habilitado: sim. Webhook por eventos: não. Base64: não.
 - Eventos: `MESSAGES_UPSERT`, `MESSAGES_UPDATE`, `CONNECTION_UPDATE`.
-- Header personalizado: `x-webhook-secret`, com o mesmo valor de `EVOLUTION_WEBHOOK_SECRET` no AtendeIA.
+- Header personalizado: `x-webhook-secret`, com o mesmo valor de `EVOLUTION_WEBHOOK_SECRET` no Atende AI.
 
-No ambiente do AtendeIA, preencha `REDIS_URL`, `EVOLUTION_INSTANCE_NAME` e `EVOLUTION_WEBHOOK_SECRET`. O segredo deve ter pelo menos 32 caracteres aleatórios; não reutilize a chave da Evolution. Para gerar um segredo localmente:
+No ambiente do Atende AI, preencha `REDIS_URL`, `EVOLUTION_INSTANCE_NAME` e `EVOLUTION_WEBHOOK_SECRET`. O segredo deve ter pelo menos 32 caracteres aleatórios; não reutilize a chave da Evolution. Para gerar um segredo localmente:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"

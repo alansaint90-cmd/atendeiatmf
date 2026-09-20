@@ -1,4 +1,4 @@
-# AtendeIA TMF — instruções para agentes IA
+# Atende AI TMF — instruções para agentes IA
 
 > Codex, Cursor, Copilot, Gemini, Claude: leia este arquivo INTEIRO antes de qualquer
 > tarefa. Ele é a fonte única das regras. `CLAUDE.md` só importa este arquivo.
@@ -159,7 +159,7 @@ Rode `docs/definition-of-done.md`. No mínimo:
 
 Tarefa que toca login ou conta: siga também `docs/seguranca-login.md`.
 
-## Adoção no AtendeIA existente
+## Adoção no Atende AI existente
 
 Leia `docs/adr/0002-adocao-base-projeto-existente.md` antes de aplicar os modelos.
 Esta instalação mantém pnpm, postgres-js e o histórico de migrações existente.

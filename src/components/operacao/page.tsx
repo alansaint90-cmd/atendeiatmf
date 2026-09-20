@@ -21,7 +21,11 @@ export function OperacaoPage({ rota }: { rota: string }) {
     finally { if (atual === requisicao.current) definirOcupado(false); }
   }, []);
   const rotaOperacional = rota === "dashboard" || rota === "contacts" || rota === "inbox";
-  useEffect(() => { if (rotaOperacional) void carregar(); }, [carregar, rota, rotaOperacional]);
+  useEffect(() => {
+    if (!rotaOperacional) return;
+    const timer = window.setTimeout(() => void carregar(), 0);
+    return () => window.clearTimeout(timer);
+  }, [carregar, rotaOperacional]);
   const conversa = dados?.conversas.find(item => item.id === selecionada) ?? dados?.conversas[0];
   return <div className="page-stack">
     <section className="page-head"><div><h1>{rota === "contacts" ? "Contatos e leads" : rota === "inbox" ? "Caixa de entrada" : "Visão geral do atendimento"}</h1>

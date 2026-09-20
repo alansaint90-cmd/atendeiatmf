@@ -32,7 +32,11 @@ export function AgendamentosPage({ ativoNaTela = true }: { ativoNaTela?: boolean
       setItens(r.dados.itens); setInstancia(r.dados.instancia); setAtivo(r.dados.processadorAtivo); setPagina(0);
     } catch { setErro("Falha de conexão ao carregar agendamentos."); } finally { setOcupado(false); }
   }, []);
-  useEffect(() => { if (ativoNaTela) void carregar(); }, [ativoNaTela, carregar]);
+  useEffect(() => {
+    if (!ativoNaTela) return;
+    const timer = window.setTimeout(() => void carregar(), 0);
+    return () => window.clearTimeout(timer);
+  }, [ativoNaTela, carregar]);
   function editar(item?: Agendamento) {
     setErro(""); setAviso(""); setVersao(item?.version);
     const iso = item?.agendadoPara ?? new Date(Date.now() + 3600000).toISOString();

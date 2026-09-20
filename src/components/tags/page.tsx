@@ -19,7 +19,11 @@ export function TagsPage({ ativo = true }: { ativo?: boolean }) {
     try { const result = await carregarTags(); if (result.ok) { setTags(result.dados); setPage(0); } else setError(result.erro); }
     catch { setError("Falha de conexão ao carregar as tags."); } finally { setBusy(false); }
   }, []);
-  useEffect(() => { if (ativo) void load(); }, [ativo, load]);
+  useEffect(() => {
+    if (!ativo) return;
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [ativo, load]);
   async function mutate() {
     setBusy(true); setError("");
     try {

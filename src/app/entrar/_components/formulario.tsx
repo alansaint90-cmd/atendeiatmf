@@ -36,7 +36,7 @@ export function FormularioPasskey() {
     finally { setCarregando(false); }
   }
   if (concluido) return <section className="form-card"><h1>Acesso criado</h1><p role="status">{aviso}</p><Link href="/">Continuar para o painel</Link></section>;
-  return <section className="form-card"><h1>Entrar no AtendeIA</h1><p>Acesse com seu e-mail e senha e confirme com a passkey do seu dispositivo.</p>
+  return <section className="form-card"><h1>Entrar no Atende AI</h1><p>Acesse com seu e-mail e senha e confirme com a passkey do seu dispositivo.</p>
     {erro && <p role="alert">{erro}</p>}{aviso && <p role="status">{aviso}</p>}
     <form onSubmit={e => { e.preventDefault(); void entrar(false); }}>
       <label>E-mail<input type="email" required maxLength={254} autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></label>

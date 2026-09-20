@@ -25,7 +25,11 @@ export function FollowupsPage({ ativo = true }: { ativo?: boolean }) {
       setVersion(result.dados.version); setInstance(result.dados.instance); setMessage("");
     } catch { setError("Falha de conexão ao carregar follow-ups."); } finally { setBusy(false); }
   }, []);
-  useEffect(() => { if (ativo) void load(); }, [ativo, load]);
+  useEffect(() => {
+    if (!ativo) return;
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [ativo, load]);
   async function save() {
     setBusy(true); setError("");
     try { const result = await salvarFollowups(config, version!);

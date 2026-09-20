@@ -18,7 +18,10 @@ export function UsuariosPage({ papel }: { papel: Papel }) {
     try { const r = await carregarUsuarios(); if (r.ok) setItens(r.dados); else setErro(r.erro); }
     catch { setErro("Não foi possível carregar usuários."); } finally { setOcupado(false); }
   }, []);
-  useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void carregar(), 0);
+    return () => window.clearTimeout(timer);
+  }, [carregar]);
   function editar(usuario: UsuarioResumo | null) {
     setAlvo(usuario); setCodigo(""); setFormulario(true);
     setDados({ nome: usuario?.nome ?? "", email: usuario?.email ?? "", papel: usuario?.papel ?? "operador", ativo: usuario?.ativo ?? false, motivo: "" });

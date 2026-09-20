@@ -18,7 +18,7 @@
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
@@ -106,12 +106,9 @@ try {
   mkdirSync(join(dir, "src", "components", "comum"), { recursive: true });
   writeFileSync(join(dir, "src", "components", "comum", "grande.tsx"), arquivoLongo(600), "utf8");
 
-  let saida;
-  try {
-    saida = execFileSync(process.execPath, [AUDITOR, "--json"], { cwd: dir, encoding: "utf8" });
-  } catch (e) {
-    saida = e.stdout; // exit 1 quando ha erro: esperado, o relatorio vem no stdout
-  }
+  const execucao = spawnSync(process.execPath, [AUDITOR, "--json"], { cwd: dir, encoding: "utf8" });
+  assert.ok(execucao.stdout, execucao.stderr || execucao.error?.message || `Auditor nao retornou JSON. status=${execucao.status ?? "nulo"} signal=${execucao.signal ?? "nulo"}`);
+  const saida = execucao.stdout; // exit 1 quando ha erro: esperado, o relatorio vem no stdout
   const r = JSON.parse(saida);
   const ids = (arquivo) => r.findings.filter((f) => f.file.endsWith(arquivo)).map((f) => f.id);
   const passa = (arquivo) => () => assert.deepEqual(ids(arquivo), [], `${arquivo} foi acusado`);

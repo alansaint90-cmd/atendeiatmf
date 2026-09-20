@@ -1,4 +1,4 @@
-# ADR-0002: Adoção da estrutura base no AtendeIA existente
+# ADR-0002: Adoção da estrutura base no Atende AI existente
 
 - Status: Aceito para instalação das ferramentas; migração do legado pendente de revisão.
 - Data: 2026-09-16
@@ -6,7 +6,7 @@
 ## Contexto
 
 O pacote fornecido foi criado para um projeto novo com npm, node-postgres e deploy
-SSH/PM2. O AtendeIA já usa pnpm, postgres-js, migrações com checksum e EasyPanel.
+SSH/PM2. O Atende AI já usa pnpm, postgres-js, migrações com checksum e EasyPanel.
 Sobrescrever essas partes criaria duas conexões e históricos de banco incompatíveis.
 
 ## Decisão
