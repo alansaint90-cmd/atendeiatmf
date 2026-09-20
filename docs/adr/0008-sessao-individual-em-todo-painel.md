@@ -35,7 +35,9 @@ O limitador atômico por conta complementa os limites global e, quando confiáve
 As tabelas de identidade existentes são reutilizadas; não há migração destrutiva.
 O provisionamento de proprietário continua manual pelo script
 `scripts/provisionar-proprietario.ts`, em checkout administrativo com dependências
-instaladas e conexão autorizada ao banco. Ele não roda no entrypoint Docker.
+instaladas e conexão autorizada ao banco. A imagem Docker também inclui a versão
+compilada em /app/scripts/provisionar-proprietario.cjs, executável com Node no
+terminal do serviço. Ela não roda automaticamente no entrypoint Docker.
 Configurar PROVISIONAR_NOME, PROVISIONAR_EMAIL, PROVISIONAR_ARQUIVO (fora do checkout),
 DATABASE_URL e AUTH_ORIGIN. Executar `pnpm exec tsx scripts/provisionar-proprietario.ts`.
 O convite fica somente no arquivo privado, nunca nos logs. Abrir /entrar e escolher

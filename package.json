@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 8000",
     "build": "next build",
+    "build:provisionamento": "esbuild scripts/provisionar-proprietario.ts --bundle --platform=node --format=cjs --target=node24 --outfile=.next/provisionar-proprietario.cjs",
     "start": "next start --hostname 127.0.0.1 --port 8000",
     "typecheck": "tsc --noEmit",
     "test": "pnpm test:node && pnpm test:ui",
@@ -51,6 +52,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.1.1",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "0.28.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.5",
     "jsdom": "^30.0.1",

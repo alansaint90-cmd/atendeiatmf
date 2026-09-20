@@ -7,7 +7,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY scripts/ativar-hooks.mjs ./scripts/ativar-hooks.mjs
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN mkdir -p public && pnpm build
+RUN mkdir -p public && pnpm build && pnpm build:provisionamento
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
@@ -20,6 +20,7 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/src/lib/db/migrations ./src/lib/db/migrations
+COPY --from=build --chown=node:node /app/.next/provisionar-proprietario.cjs ./scripts/provisionar-proprietario.cjs
 
 USER node
 EXPOSE 3000
