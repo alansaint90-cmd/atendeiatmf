@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 import { AgentSettings } from "./agent-settings";
 import { ModalConfirmacaoBlock } from "./modal-confirmacao-block";
@@ -17,28 +17,41 @@ export function Settings() {
   const [status, setStatus] = useState<Status | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const hydrated = useHydrated();
   const webhook = hydrated ? `${window.location.origin}/api/webhooks/evolution` : "";
-  async function request(save: boolean) {
-    setBusy(true); setMessage("");
+  const carregar = useCallback(async () => {
+    setBusy(true); setMessage(""); setError("");
+    try {
+      const response = await fetch("/api/settings/integrations");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Falha ao acessar o servidor.");
+      setStatus(result); setValues(result.values);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Falha de conexão."); }
+    finally { setBusy(false); }
+  }, []);
+  useEffect(() => { void carregar(); }, [carregar]);
+  async function salvar() {
+    setBusy(true); setMessage(""); setError("");
     try {
       const response = await fetch("/api/settings/integrations", {
-        method: save ? "PUT" : "GET",
-        headers: save ? { "Content-Type": "application/json" } : {},
-        ...(save ? { body: JSON.stringify({ version: status?.version, values: Object.fromEntries(Object.entries(values).filter(([, value]) => value.trim()).map(([name, value]) => [name, value.trim()])) }) } : {}),
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version: status?.version, values: Object.fromEntries(Object.entries(values).filter(([, value]) => value.trim()).map(([name, value]) => [name, value.trim()])) }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Falha ao acessar o servidor.");
       setStatus(result); setValues(result.values); setConfirm(false);
-      setMessage(save ? "Configurações salvas no servidor. Isso não confirma conexão com os provedores." : "Configurações carregadas. Campos secretos vazios preservam os valores existentes.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Falha de conexão."); }
+      setMessage("Configurações salvas no servidor. Isso não confirma conexão com os provedores.");
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Falha de conexão."); }
     finally { setBusy(false); }
   }
   return <><section className="page-head"><div><h1>Configurações de integrações</h1><p>Credenciais criptografadas e salvas no servidor.</p></div></section>
-    <section className="settings-grid"><article className="panel form-panel"><h2>Configurações da instalação</h2><p>Acesso autorizado pela sua sessão de super administrador.</p><button className="secondary" disabled={busy} onClick={() => void request(false)}>{busy ? "Aguarde…" : "Carregar configurações"}</button></article><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small></article></section>
+    <section className="settings-grid"><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small></article></section>
     <p role="status" aria-live="polite">{message}</p>
+    {error && <p role="alert">{error}</p>}
+    {!status && !error && <p role="status">{busy ? "Carregando configurações…" : "Aguardando a consulta das configurações."}</p>}
     {status && <form className="panel form-panel" onSubmit={event => { event.preventDefault(); setConfirm(true); }}>
       <AgentSettings values={values} disabled={busy || confirm} onChange={(name, value) => setValues(previous => ({ ...previous, [name]: value }))} />
       {fields.map(([name, label, secret]) => <label key={name}>{label}<input type={secret ? "password" : "text"} autoComplete="off" spellCheck={false} maxLength={4096} disabled={busy || confirm} value={values[name] ?? ""} placeholder={status.configured[name] ? "Configurado — deixe vazio para manter" : "Não configurado"} onChange={event => setValues(previous => ({ ...previous, [name]: event.target.value }))} /><small>{status.configured[name] ? "Valor configurado no servidor" : "Nenhum valor configurado"}</small></label>)}
@@ -46,7 +59,7 @@ export function Settings() {
       <button className="primary" disabled={busy || confirm}>Salvar configurações</button>
       <ModalConfirmacaoBlock aberto={confirm} titulo="Salvar configurações do agente"
         mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto e áudio no WhatsApp usando o contexto salvo. Alterar o segredo exige atualizar também a Evolution."
-        carregando={busy} onConfirmar={() => void request(true)} onCancelar={() => setConfirm(false)} textoConfirmar="Confirmar e salvar" />
+        carregando={busy} onConfirmar={() => void salvar()} onCancelar={() => setConfirm(false)} textoConfirmar="Confirmar e salvar" />
     </form>}
   </>;
 }

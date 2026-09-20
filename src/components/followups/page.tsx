@@ -1,12 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { carregarFollowups, salvarFollowups } from "@/lib/actions/followups";
 import { defaultFollowup, followupSchema, type FollowupConfig } from "@/lib/followups/schema";
-import { AdminAccess } from "../admin-access";
 import { ModalConfirmacaoBlock } from "../modal-confirmacao-block";
 
 const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-export function FollowupsPage() {
+export function FollowupsPage({ ativo = true }: { ativo?: boolean }) {
   const [config, setConfig] = useState<FollowupConfig>(() => structuredClone(defaultFollowup));
   const [version, setVersion] = useState<number | null>(null);
   const [instance, setInstance] = useState("");
@@ -18,14 +17,15 @@ export function FollowupsPage() {
   function step(index: number, value: Partial<FollowupConfig["steps"][number]>) {
     const steps = structuredClone(config.steps); steps[index] = { ...steps[index], ...value }; change({ steps });
   }
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true); setError("");
     try { const result = await carregarFollowups();
       if (!result.ok) { setError(result.erro); return; }
       setConfig({ ...result.dados.config, instance: result.dados.config.instance || result.dados.instance });
       setVersion(result.dados.version); setInstance(result.dados.instance); setMessage("");
     } catch { setError("Falha de conexão ao carregar follow-ups."); } finally { setBusy(false); }
-  }
+  }, []);
+  useEffect(() => { if (ativo) void load(); }, [ativo, load]);
   async function save() {
     setBusy(true); setError("");
     try { const result = await salvarFollowups(config, version!);
@@ -36,8 +36,8 @@ export function FollowupsPage() {
   }
   return <div className="page-stack">
     <section className="page-head"><div><h1>Follow-ups automáticos</h1><p>Retome atendimentos quando o contato deixar de responder.</p></div></section>
-    <AdminAccess busy={busy} onLoad={() => void load()} />
     {error && <p role="alert" className="error-message">{error}</p>}{message && <p role="status">{message}</p>}
+    {version === null && !error && <p role="status">{busy ? "Carregando follow-ups…" : "Aguardando a consulta dos follow-ups."}</p>}
     {version !== null && <form className="panel form-panel followup-form" onSubmit={event => {
       event.preventDefault(); const parsed = followupSchema.safeParse(config);
       if (!parsed.success) { setError(parsed.error.issues[0].message); return; } setError(""); setConfirm(true);

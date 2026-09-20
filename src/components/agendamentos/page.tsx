@@ -1,8 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { carregarAgendamentos, gravarAgendamento, cancelarEnvioAgendado } from "@/lib/actions/agendamentos";
 import { statusAgendamento, type Agendamento, type DadosAgendamento } from "@/lib/agendamentos/schema";
-import { AdminAccess } from "../admin-access";
 import { ModalConfirmacaoBlock } from "../modal-confirmacao-block";
 
 function dataLocal(iso: string) {
@@ -10,7 +9,7 @@ function dataLocal(iso: string) {
   return new Date(data.getTime() - data.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 const formatar = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-export function AgendamentosPage() {
+export function AgendamentosPage({ ativoNaTela = true }: { ativoNaTela?: boolean }) {
   const [itens, setItens] = useState<Agendamento[] | null>(null);
   const [instancia, setInstancia] = useState("");
   const [ativo, setAtivo] = useState(false);
@@ -25,14 +24,15 @@ export function AgendamentosPage() {
   const [horario, setHorario] = useState("");
   const [confirmacao, setConfirmacao] = useState<"salvar" | "cancelar" | null>(null);
   const [alvo, setAlvo] = useState<Agendamento | null>(null);
-  async function carregar() {
+  const carregar = useCallback(async () => {
     setOcupado(true); setErro(""); setAviso("");
     try {
       const r = await carregarAgendamentos();
       if (!r.ok) { setErro(r.erro); return; }
       setItens(r.dados.itens); setInstancia(r.dados.instancia); setAtivo(r.dados.processadorAtivo); setPagina(0);
     } catch { setErro("Falha de conexão ao carregar agendamentos."); } finally { setOcupado(false); }
-  }
+  }, []);
+  useEffect(() => { if (ativoNaTela) void carregar(); }, [ativoNaTela, carregar]);
   function editar(item?: Agendamento) {
     setErro(""); setAviso(""); setVersao(item?.version);
     const iso = item?.agendadoPara ?? new Date(Date.now() + 3600000).toISOString();
@@ -57,8 +57,8 @@ export function AgendamentosPage() {
   const atual = Math.min(pagina, Math.max(0, Math.ceil(filtrados.length / 10) - 1));
   return <div className="page-stack">
     <section className="page-head"><div><h1>Mensagens agendadas</h1><p>Agende envios individuais para contatos específicos.</p></div></section>
-    <AdminAccess busy={ocupado} onLoad={() => void carregar()} />
     {erro && <p role="alert" className="error-message">{erro}</p>}{aviso && <p role="status">{aviso}</p>}
+    {!itens && !erro && <p role="status">{ocupado ? "Carregando agendamentos…" : "Aguardando a consulta dos agendamentos."}</p>}
     {itens && <article className="panel">
       {!ativo && <p role="status" className="followup-note">Processador desativado no servidor. Os agendamentos serão salvos, mas o envio depende da ativação em Configurações do servidor.</p>}
       <div className="page-head"><div className="agendamento-filtros"><label>Buscar<input placeholder="Telefone, chip ou mensagem" value={busca} onChange={e => { setBusca(e.target.value); setPagina(0); }} /></label>
@@ -85,7 +85,7 @@ export function AgendamentosPage() {
       {!filtrados.length && <p className="feature-empty">{itens.length ? "Nenhum agendamento encontrado para os filtros." : "Nenhuma mensagem agendada. Crie seu primeiro agendamento."}</p>}
       <div className="feature-pagination"><span>{filtrados.length} agendamentos · página {atual + 1} de {Math.max(1, Math.ceil(filtrados.length / 10))}</span>
         <button className="secondary" disabled={!atual} onClick={() => setPagina(atual - 1)}>Anterior</button><button className="secondary" disabled={(atual + 1) * 10 >= filtrados.length} onClick={() => setPagina(atual + 1)}>Próxima</button></div>
-      <p className="followup-note">Use Carregar dados para atualizar os status. “Enviado” confirma a aceitação pela Evolution, não a leitura pelo destinatário. Envios incertos exigem conferência antes de criar outro agendamento.</p>
+      <p className="followup-note">“Enviado” confirma a aceitação pela Evolution, não a leitura pelo destinatário. Envios incertos exigem conferência antes de criar outro agendamento.</p>
     </article>}
     <ModalConfirmacaoBlock aberto={confirmacao !== null} titulo={confirmacao === "cancelar" ? "Cancelar envio agendado" : "Confirmar agendamento"}
       mensagem={confirmacao === "cancelar" ? `Cancelar o envio para ${alvo?.telefone}? O registro será preservado.` : `Enviar a mensagem para ${rascunho?.telefone} pelo chip ${rascunho?.instancia} em ${rascunho ? formatar(rascunho.agendadoPara) : ""}?`}

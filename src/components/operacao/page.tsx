@@ -1,6 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
-import { AdminAccess } from "../admin-access";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { carregarOperacao } from "@/lib/actions/operacao";
 import type { ResumoOperacional } from "@/lib/operacao/consultas";
 
@@ -10,7 +9,7 @@ export function OperacaoPage({ rota }: { rota: string }) {
   const [erro, definirErro] = useState("");
   const [selecionada, selecionar] = useState("");
   const requisicao = useRef(0);
-  async function carregar() {
+  const carregar = useCallback(async () => {
     const atual = ++requisicao.current;
     definirOcupado(true); definirErro("");
     try {
@@ -20,16 +19,17 @@ export function OperacaoPage({ rota }: { rota: string }) {
       else { definirDados(null); definirErro(resultado.erro); }
     } catch { if (atual === requisicao.current) { definirDados(null); definirErro("Não foi possível consultar o servidor. Tente novamente."); } }
     finally { if (atual === requisicao.current) definirOcupado(false); }
-  }
+  }, []);
+  const rotaOperacional = rota === "dashboard" || rota === "contacts" || rota === "inbox";
+  useEffect(() => { if (rotaOperacional) void carregar(); }, [carregar, rota, rotaOperacional]);
   const conversa = dados?.conversas.find(item => item.id === selecionada) ?? dados?.conversas[0];
   return <div className="page-stack">
     <section className="page-head"><div><h1>{rota === "contacts" ? "Contatos e leads" : rota === "inbox" ? "Caixa de entrada" : "Visão geral do atendimento"}</h1>
       <p>Dados reais do WhatsApp. Nenhum contato ou indicador de demonstração.</p></div></section>
-    <AdminAccess busy={ocupado} onLoad={() => void carregar()} />
     {erro && <p role="alert">{erro}</p>}
-    {!dados && !erro && <p role="status">{ocupado ? "Consultando o banco de dados…" : "Carregue os dados da sua sessão para consultar o banco."}</p>}
+    {!dados && !erro && <p role="status">{ocupado ? "Consultando o banco de dados…" : "Aguardando a consulta dos dados."}</p>}
     {dados && <>
-      <p role="status">Atualizado em {new Date(dados.atualizadoEm).toLocaleString("pt-BR")}. Use Carregar dados para atualizar.</p>
+      <p role="status">Atualizado em {new Date(dados.atualizadoEm).toLocaleString("pt-BR")}.</p>
       {rota === "dashboard" && <>
         <section className="kpi-grid">{[
           ["Conversas abertas", dados.abertas, "green"], ["Pendentes", dados.pendentes, "red"],

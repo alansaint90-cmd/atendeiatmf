@@ -10,7 +10,6 @@ test("gerente convida apenas SDR, com confirmação e código sem senha comparti
   vi.mocked(carregarUsuarios).mockResolvedValue({ ok: true, dados: [] });
   vi.mocked(convidarUsuario).mockResolvedValue({ ok: true, dados: { convite: "convite-simulado" } });
   render(<UsuariosPage papel="admin" />);
-  fireEvent.click(screen.getByText("Carregar usuários"));
   fireEvent.click(await screen.findByText("Novo usuário"));
   expect(screen.queryByRole("option", { name: "Gerente" })).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Senha")).not.toBeInTheDocument();
@@ -30,7 +29,7 @@ test("gerente convida apenas SDR, com confirmação e código sem senha comparti
 
 test("sem permissão não abre formulário de usuários", async () => {
   vi.mocked(carregarUsuarios).mockResolvedValue({ ok: false, erro: "Sem permissão." });
-  render(<UsuariosPage papel="admin" />); fireEvent.click(screen.getByText("Carregar usuários"));
+  render(<UsuariosPage papel="admin" />);
   expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
   expect(screen.queryByText("Novo usuário")).not.toBeInTheDocument();
 });

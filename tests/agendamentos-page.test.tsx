@@ -9,7 +9,6 @@ test("criação exige confirmação e mostra agendamento salvo na tabela", async
   vi.mocked(gravarAgendamento).mockImplementation(async (entrada) => ({ ok: true, dados: { ...(entrada as { id: string; telefone: string; instancia: string; mensagem: string; agendadoPara: string }),
     status: "pendente", version: 0, codigoErro: null, enviadoEm: null } }));
   render(<AgendamentosPage />);
-  fireEvent.click(screen.getByText("Carregar dados"));
   fireEvent.click(await screen.findByText("+ Novo agendamento"));
   fireEvent.change(screen.getByLabelText("Telefone com código do país"), { target: { value: "+5511999999999" } });
   fireEvent.change(screen.getByLabelText("Mensagem"), { target: { value: "Olá, podemos conversar?" } });

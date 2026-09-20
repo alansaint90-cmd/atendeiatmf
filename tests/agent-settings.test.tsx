@@ -15,11 +15,10 @@ test("importa o contexto editado sem ativar respostas automaticamente", () => {
   expect(change).toHaveBeenCalledWith("AI_SYSTEM_PROMPT", expect.stringContaining("Contexto do cliente"));
   expect(change).not.toHaveBeenCalledWith("AI_ENABLED", "true");
 });
-test("diagnóstico usa sessão sem token administrativo e exibe erro", async () => {
+test("diagnóstico é consultado automaticamente pela sessão e exibe erro", async () => {
   const fetchMock = vi.fn().mockResolvedValue(Response.json({ error: "Redis indisponível" }, { status: 503 }));
   vi.stubGlobal("fetch", fetchMock);
   render(<AgentSettings values={{}} disabled={false} onChange={() => {}} />);
-  fireEvent.click(screen.getByText("Verificar agente e fila"));
   expect(await screen.findByRole("alert")).toHaveTextContent("Redis indisponível");
   expect(fetchMock).toHaveBeenCalledWith("/api/settings/agent", { cache: "no-store" });
 });

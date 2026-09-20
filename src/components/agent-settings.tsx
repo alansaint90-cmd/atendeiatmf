@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { loadChatbots, errorMessage } from "@/lib/chatbots/repository";
 import type { Chatbot } from "@/lib/chatbots/schema";
 
@@ -14,7 +14,7 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
   const [error, setError] = useState("");
   const [diagnostic, setDiagnostic] = useState("");
   const [loading, setLoading] = useState(false);
-  async function check() {
+  const check = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const response = await fetch("/api/settings/agent", { cache: "no-store" });
@@ -23,7 +23,8 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
       setDiagnostic(`Processador: ${result.workerEnabled ? "habilitado" : "desabilitado no servidor"}. Respostas: ${result.enabled ? "ativadas" : "desativadas"}. Fila: ${result.queued}. Estado: ${result.worker?.status ?? "sem sinal do processador"}. Último resultado: ${result.worker?.lastResult ?? "nenhum"}. Código: ${result.worker?.lastCode ?? "nenhum"}.`);
     } catch (error) { setError(errorMessage(error)); }
     finally { setLoading(false); }
-  }
+  }, []);
+  useEffect(() => { void check(); }, [check]);
   return <fieldset disabled={disabled} className="form-panel">
     <legend>Agente de IA no WhatsApp</legend>
     <label>Respostas automáticas<select value={values.AI_ENABLED || "false"} onChange={event => onChange("AI_ENABLED", event.target.value)}>
@@ -42,7 +43,7 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
         `Missão: ${bot.mission}`, bot.context, `Quando não souber: ${bot.fallback}`].join("\n\n"));
     }}><option value="">Selecione um chatbot</option>{bots.map(bot => <option key={bot.id} value={bot.id}>{bot.identifier}</option>)}</select></label>
       : <small>Nenhum contexto local carregado. Você também pode escrever o prompt acima.</small>}
-    <button type="button" className="secondary" disabled={loading} onClick={() => void check()}>{loading ? "Consultando…" : "Verificar agente e fila"}</button>
+    {loading && <p role="status">Consultando agente e fila…</p>}
     {diagnostic && <p role="status">{diagnostic}</p>}{error && <p role="alert">{error}</p>}
   </fieldset>;
 }

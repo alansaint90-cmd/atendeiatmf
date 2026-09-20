@@ -26,9 +26,9 @@ export function Workspace({ papel }: { papel: Papel }) {
         <Link href="/crm">CRM · Kanban e oportunidades</Link>
         {/* Keep form drafts mounted across navigation, but hide inactive sections. */}
         {gestor && <><div hidden={route !== "chatbot"} className="page-stack"><ChatbotsPage /></div>
-        <div hidden={route !== "followups"}><FollowupsPage /></div>
-        <div hidden={route !== "tags"}><TagsPage /></div>
-        <div hidden={route !== "agendamentos"}><AgendamentosPage /></div></>}
+        <div hidden={route !== "followups"}><FollowupsPage ativo={route === "followups"} /></div>
+        <div hidden={route !== "tags"}><TagsPage ativo={route === "tags"} /></div>
+        <div hidden={route !== "agendamentos"}><AgendamentosPage ativoNaTela={route === "agendamentos"} /></div></>}
         {gestor && route === "team" && <UsuariosPage papel={papel} />}
         {papel === "super_admin" && route === "settings" && <Settings />}
         <div hidden={!["dashboard", "contacts", "inbox"].includes(route)}><OperacaoPage rota={route} /></div>

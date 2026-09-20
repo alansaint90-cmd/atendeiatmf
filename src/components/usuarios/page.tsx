@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { carregarUsuarios, convidarUsuario, atualizarUsuario, reiniciarAcessoUsuario } from "@/lib/actions/usuarios";
 import type { UsuarioResumo } from "@/lib/auth/usuarios";
 import type { Papel } from "@/lib/db/schema/_enums";
@@ -13,11 +13,12 @@ export function UsuariosPage({ papel }: { papel: Papel }) {
   const [alvo, setAlvo] = useState<UsuarioResumo | null>(null);
   const [formulario, setFormulario] = useState(false);
   const [dados, setDados] = useState({ nome: "", email: "", papel: "operador", ativo: false, motivo: "" });
-  async function carregar() {
+  const carregar = useCallback(async () => {
     setOcupado(true); setErro("");
     try { const r = await carregarUsuarios(); if (r.ok) setItens(r.dados); else setErro(r.erro); }
     catch { setErro("Não foi possível carregar usuários."); } finally { setOcupado(false); }
-  }
+  }, []);
+  useEffect(() => { void carregar(); }, [carregar]);
   function editar(usuario: UsuarioResumo | null) {
     setAlvo(usuario); setCodigo(""); setFormulario(true);
     setDados({ nome: usuario?.nome ?? "", email: usuario?.email ?? "", papel: usuario?.papel ?? "operador", ativo: usuario?.ativo ?? false, motivo: "" });
@@ -34,9 +35,9 @@ export function UsuariosPage({ papel }: { papel: Papel }) {
     } catch { setErro("Não foi possível salvar. Recarregue a lista."); }
     finally { setOcupado(false); setConfirmar(null); }
   }
-  return <section className="page-stack"><div className="page-head"><div><h1>Equipe e usuários</h1><p>Gerencie os acessos individuais da sua equipe.</p></div>
-    <button disabled={ocupado} onClick={() => void carregar()}>{ocupado ? "Carregando…" : "Carregar usuários"}</button></div>
+  return <section className="page-stack"><div className="page-head"><div><h1>Equipe e usuários</h1><p>Gerencie os acessos individuais da sua equipe.</p></div></div>
     {erro && <p role="alert">{erro}</p>}
+    {!itens && !erro && <p role="status">{ocupado ? "Carregando usuários…" : "Aguardando a consulta dos usuários."}</p>}
     {codigo && <article className="panel"><h2>Convite criado</h2><p>Entregue este código à pessoa por um canal privado. Em /entrar, ela deve escolher Primeiro acesso, definir a senha e cadastrar a passkey. Expira em 15 minutos.</p>
       <label>Código de primeiro acesso<input readOnly value={codigo} /></label><button onClick={() => setCodigo("")}>Ocultar código</button></article>}
     {itens && <article className="panel"><button className="primary" disabled={ocupado} onClick={() => editar(null)}>Novo usuário</button>

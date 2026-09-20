@@ -1,11 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { carregarTags, salvarTag, excluirTag } from "@/lib/actions/tags";
 import type { Tag } from "@/lib/tags/schema";
-import { AdminAccess } from "../admin-access";
 import { ModalConfirmacaoBlock } from "../modal-confirmacao-block";
 
-export function TagsPage() {
+export function TagsPage({ ativo = true }: { ativo?: boolean }) {
   const [tags, setTags] = useState<Tag[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -15,11 +14,12 @@ export function TagsPage() {
   const [editing, setEditing] = useState<Partial<Tag> | null>(null);
   const [confirm, setConfirm] = useState<"save" | "delete" | null>(null);
   const [removing, setRemoving] = useState<Tag | null>(null);
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true); setError("");
     try { const result = await carregarTags(); if (result.ok) { setTags(result.dados); setPage(0); } else setError(result.erro); }
     catch { setError("Falha de conexão ao carregar as tags."); } finally { setBusy(false); }
-  }
+  }, []);
+  useEffect(() => { if (ativo) void load(); }, [ativo, load]);
   async function mutate() {
     setBusy(true); setError("");
     try {
@@ -36,8 +36,8 @@ export function TagsPage() {
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 10) - 1));
   return <div className="page-stack">
     <section className="page-head"><div><h1>Tags e rótulos</h1><p>Organize seus contatos com etiquetas e cores.</p></div></section>
-    <AdminAccess busy={busy} onLoad={() => void load()} />
     {error && <p role="alert" className="error-message">{error}</p>}{message && <p role="status">{message}</p>}
+    {!tags && !error && <p role="status">{busy ? "Carregando tags e rótulos…" : "Aguardando a consulta das tags e rótulos."}</p>}
     {tags && <article className="panel"><div className="page-head"><label className="tag-search">Buscar tag ou rótulo<input placeholder="Busque pelo nome da tag" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label>
       <button className="primary" disabled={busy} onClick={() => { setEditing({ name: "", color: "#10b981" }); setError(""); }}>+ Nova tag</button></div>
       {editing && <form className="tag-editor" onSubmit={event => { event.preventDefault(); setConfirm("save"); }}><h2>{editing.id ? "Editar tag" : "Nova tag"}</h2>
