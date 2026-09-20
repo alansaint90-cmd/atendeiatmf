@@ -44,6 +44,9 @@ O convite fica somente no arquivo privado, nunca nos logs. Abrir /entrar e escol
 Primeiro acesso; usuário define a senha e registra a passkey em origem HTTPS.
 Se a execução falhar, o arquivo de convite parcial é removido. Para identificar a
 etapa sem expor dados do banco, adicione PROVISIONAR_DIAGNOSTICO=true à execução.
+PROVISIONAR_REINICIAR_PROPRIETARIO=true só reemite convite quando o proprietário
+existente tiver o mesmo e-mail, estiver inativo e não possuir passkey. Não recupera
+nem substitui uma conta ativa.
 
 O e-mail solicitado para o primeiro proprietário é alansaint90@gmail.com.
 A implementação não cria essa conta automaticamente nem altera o banco de produção.

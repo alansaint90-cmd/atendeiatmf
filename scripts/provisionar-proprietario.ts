@@ -1,14 +1,12 @@
-import { randomUUID } from "node:crypto";
 import { open, realpath, unlink } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { z } from "zod";
-import { sql } from "drizzle-orm";
 import { db, closeDatabase } from "../src/lib/db/client";
 import { ensureDatabase } from "../src/lib/db/migrate";
-import { hashToken, novoToken, auditarIdentidade } from "../src/lib/auth/repositorio";
-import { systemUserId } from "../src/lib/db/bootstrap";
+import { novoToken } from "../src/lib/auth/repositorio";
 import { configuracaoPasskey } from "../src/lib/auth/passkeys";
+import { provisionarProprietario } from "../src/lib/auth/provisionamento-proprietario";
 
 type Etapa = "validacao_de_variaveis" | "configuracao_de_origem" | "diretorio_do_convite" | "migracoes_ou_conexao_do_banco" | "arquivo_de_convite" | "provisionamento_no_banco";
 let etapa: Etapa = "validacao_de_variaveis";
@@ -35,7 +33,7 @@ async function main() {
   if (!relativo.startsWith(".." + path.sep) && !path.isAbsolute(relativo)) throw new Error("Use uma pasta privada fora do repositório para o convite.");
   etapa = "migracoes_ou_conexao_do_banco";
   await ensureDatabase();
-  const token = novoToken(); const id = randomUUID();
+  const token = novoToken();
   // Não sobrescreve um arquivo existente e não exibe o convite em logs.
   etapa = "arquivo_de_convite";
   const arquivo = await open(destino, "wx", 0o600);
@@ -48,14 +46,8 @@ async function main() {
     await arquivo.writeFile(token, "utf8");
   } finally { await arquivo.close(); }
   etapa = "provisionamento_no_banco";
-  await db().transaction(async tx => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(712940862)`);
-    const existentes = await tx.execute(sql`SELECT id FROM atendeia_users WHERE role='super_admin' AND is_deleted=false`);
-    if (existentes.length) throw new Error("Já existe proprietário. O provisionamento inicial não pode ser repetido.");
-    await tx.execute(sql`INSERT INTO atendeia_users(id,name,email,role,enabled,modified_by) VALUES (${id},${config.nome},${config.email},'super_admin',false,${systemUserId})`);
-    await tx.execute(sql`INSERT INTO atendeia_users_convites(user_id,token_hash,expira_em,modified_by) VALUES (${id},${hashToken(token)},now()+interval '15 minutes',${systemUserId})`);
-    await auditarIdentidade(tx, systemUserId, "proprietario_provisionado", id);
-  });
+  await provisionarProprietario(db(), { nome: config.nome, email: config.email, token,
+    reiniciar: process.env.PROVISIONAR_REINICIAR_PROPRIETARIO === "true" });
   arquivoCriado = undefined;
   console.log("Proprietário provisionado. O convite foi salvo no arquivo privado informado e expira em 15 minutos.");
 }
