@@ -1,5 +1,6 @@
 import { ErroDeNegocio } from "@/lib/acao";
 import { PAPEIS, type Papel } from "@/lib/db/schema/_enums";
+import type { TransacaoSql } from "../db/porta";
 
 export interface SessaoAtiva {
   userId: string;
@@ -18,6 +19,10 @@ export function temPermissao(sessao: SessaoAtiva | null, papelMinimo: Papel): bo
   return atual >= 0 && minimo >= 0 && atual <= minimo;
 }
 
-export function exigirPermissao(sessao: SessaoAtiva, papelMinimo: Papel): void {
-  if (!temPermissao(sessao, papelMinimo)) throw new ErroDeNegocio("Sem permissao para esta acao.");
+export async function exigirPermissao(sessao: SessaoAtiva, papelMinimo: Papel, banco?: TransacaoSql): Promise<void> {
+  if (!temPermissao(sessao, papelMinimo)) {
+    const { auditarIdentidade } = await import("./repositorio");
+    await auditarIdentidade(banco ?? (await import("../db/client")).db(), sessao.userId, "acesso_403");
+    throw new ErroDeNegocio("Sem permissao para esta acao.");
+  }
 }

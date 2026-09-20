@@ -21,14 +21,16 @@ test("todas as actions exportadas passam por guardas reais, incluindo aliases de
           for (const d of simbolo?.declarations ?? []) {
             const caminho = d.getSourceFile().fileName.replaceAll("\\","/");
             if (caminho.endsWith("/auth/sessao.ts") && simbolo?.name === "exigirSessao") guardas.add("sessao");
-            if (caminho.endsWith("/auth/permissoes.ts") && simbolo?.name === "exigirPermissao") guardas.add("papel");
-            if (caminho.endsWith("/settings/access.ts") && simbolo?.name === "exigirAdmin") guardas.add("admin-legado");
+            if (caminho.endsWith("/auth/permissoes.ts") && simbolo?.name === "exigirPermissao") {
+              assert.ok(ts.isAwaitExpression(no.parent), `${arquivo}: permissão assíncrona precisa de await`);
+              guardas.add("papel");
+            }
           }
         }
         ts.forEachChild(no,visitar);
       }
       visitar(declaracao);
-      assert.ok(guardas.has("admin-legado") || (guardas.has("sessao") && guardas.has("papel")), `${arquivo}: ${declaracao.name?.text} sem guarda reconhecida`);
+      assert.ok(guardas.has("sessao") && guardas.has("papel"), `${arquivo}: ${declaracao.name?.text} sem sessão individual e permissão`);
     }
   }
 });

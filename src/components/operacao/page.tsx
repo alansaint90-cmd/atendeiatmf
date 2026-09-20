@@ -5,7 +5,6 @@ import { carregarOperacao } from "@/lib/actions/operacao";
 import type { ResumoOperacional } from "@/lib/operacao/consultas";
 
 export function OperacaoPage({ rota }: { rota: string }) {
-  const [token, definirToken] = useState("");
   const [dados, definirDados] = useState<ResumoOperacional | null>(null);
   const [ocupado, definirOcupado] = useState(false);
   const [erro, definirErro] = useState("");
@@ -15,7 +14,7 @@ export function OperacaoPage({ rota }: { rota: string }) {
     const atual = ++requisicao.current;
     definirOcupado(true); definirErro("");
     try {
-      const resultado = await carregarOperacao(token);
+      const resultado = await carregarOperacao();
       if (atual !== requisicao.current) return;
       if (resultado.ok) definirDados(resultado.dados);
       else { definirDados(null); definirErro(resultado.erro); }
@@ -26,11 +25,9 @@ export function OperacaoPage({ rota }: { rota: string }) {
   return <div className="page-stack">
     <section className="page-head"><div><h1>{rota === "contacts" ? "Contatos e leads" : rota === "inbox" ? "Caixa de entrada" : "Visão geral do atendimento"}</h1>
       <p>Dados reais do WhatsApp. Nenhum contato ou indicador de demonstração.</p></div></section>
-    <AdminAccess token={token} busy={ocupado} onLoad={() => void carregar()} onToken={valor => {
-      requisicao.current++; definirToken(valor); definirDados(null); definirErro("");
-    }} />
+    <AdminAccess busy={ocupado} onLoad={() => void carregar()} />
     {erro && <p role="alert">{erro}</p>}
-    {!dados && !erro && <p role="status">{ocupado ? "Consultando o banco de dados…" : "Carregue os dados com seu token de administrador para consultar o banco."}</p>}
+    {!dados && !erro && <p role="status">{ocupado ? "Consultando o banco de dados…" : "Carregue os dados da sua sessão para consultar o banco."}</p>}
     {dados && <>
       <p role="status">Atualizado em {new Date(dados.atualizadoEm).toLocaleString("pt-BR")}. Use Carregar dados para atualizar.</p>
       {rota === "dashboard" && <>

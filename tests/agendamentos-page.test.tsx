@@ -6,10 +6,9 @@ vi.mock("@/lib/actions/agendamentos", () => ({ carregarAgendamentos: vi.fn(), gr
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
 test("criação exige confirmação e mostra agendamento salvo na tabela", async () => {
   vi.mocked(carregarAgendamentos).mockResolvedValue({ ok: true, dados: { itens: [], instancia: "teste", processadorAtivo: false } });
-  vi.mocked(gravarAgendamento).mockImplementation(async (_token, entrada) => ({ ok: true, dados: { ...(entrada as { id: string; telefone: string; instancia: string; mensagem: string; agendadoPara: string }),
+  vi.mocked(gravarAgendamento).mockImplementation(async (entrada) => ({ ok: true, dados: { ...(entrada as { id: string; telefone: string; instancia: string; mensagem: string; agendadoPara: string }),
     status: "pendente", version: 0, codigoErro: null, enviadoEm: null } }));
   render(<AgendamentosPage />);
-  fireEvent.change(screen.getByLabelText("Token de administrador"), { target: { value: "token-teste-com-mais-de-32-caracteres" } });
   fireEvent.click(screen.getByText("Carregar dados"));
   fireEvent.click(await screen.findByText("+ Novo agendamento"));
   fireEvent.change(screen.getByLabelText("Telefone com código do país"), { target: { value: "+5511999999999" } });

@@ -182,9 +182,9 @@ por ATENDEIA_WORKER_ENABLED e AI_ENABLED. Não iniciar testes locais com credenc
 de produção. Testes de provedores usam mocks. Teste Redis usa apenas serviço local
 descartável no banco 15. Nunca repetir automaticamente entrega incerta.
 
-Follow-ups e tags seguem ADR-0004. Enquanto a sessão de usuários não estiver
-integrada, as actions administrativas usam exigirAdmin (token + papel no banco),
-nunca o login demonstrativo. Tags preservam auditoria e versão do schema ativo.
+Follow-ups e tags seguem ADR-0004 e ADR-0008. Actions exigem sessão individual
+e permissão de gerente ou superior. Não aceitar token administrativo como acesso.
+Tags preservam auditoria e versão do schema ativo.
 Follow-ups usam o lease Redis existente; alteração de configuração invalida ciclos
 anteriores. Não ativar envios reais para testar as páginas.
 
@@ -196,3 +196,10 @@ CRM e identidade seguem ADR-0006, em validação. Novos módulos usam sessão in
 sobre atendeia_users; não reutilizar token administrativo como identidade humana.
 Não ativar AUTH_LOGIN_ENABLED em produção antes de fechar a régua de segurança de
 login e conta. Migrações 0003/0004 são aditivas; testes usam banco descartável.
+
+ADR-0008 substitui o acesso humano por token: senha Argon2id e passkey verificada,
+com alternativa de passkey sem senha. ExigirPermissao é assíncrona e requer await;
+tests/guardas-actions.test.ts fiscaliza a regra. admin representa Gerente e operador
+representa SDR, preservando o schema. Super administrador só por provisionamento
+manual; gerente administra apenas SDRs. Suspensão, troca de senha ou fator revogam
+sessões. Nenhum teste de autenticação usa banco de produção.

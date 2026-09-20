@@ -24,7 +24,7 @@ export async function readSettings() {
 
 export class SettingsConflict extends Error {}
 export class AgentSettingsIncomplete extends Error {}
-export async function saveSettings(values: IntegrationSettings, version: number) {
+export async function saveSettings(values: IntegrationSettings, version: number, usuario: string) {
   const current = await readSettings();
   if (current.version !== version) throw new SettingsConflict();
   const merged = settingsSchema.parse({ ...current.values, ...values });
@@ -33,6 +33,8 @@ export async function saveSettings(values: IntegrationSettings, version: number)
     throw new AgentSettingsIncomplete();
   }
   await db().transaction(async tx => {
+    await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,changed_fields)
+      VALUES (${usuario},'integracoes_alteradas','integracoes',${JSON.stringify(Object.keys(values))}::jsonb)`);
     const actor = await tx.execute(sql`SELECT id FROM atendeia_settings_actors
       WHERE id = 'bootstrap-admin' AND role = 'super_admin' AND is_deleted = false`);
     if (!actor.length) throw new Error("Admin unavailable");

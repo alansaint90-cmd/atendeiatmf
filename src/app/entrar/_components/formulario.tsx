@@ -12,27 +12,41 @@ async function requisitar<T>(entrada: unknown): Promise<T> {
 }
 export function FormularioPasskey() {
   const router = useRouter();
+  const [email, setEmail] = useState(""); const [senha, setSenha] = useState(""); const [aviso, setAviso] = useState("");
   const [convite, setConvite] = useState(""); const [erro, setErro] = useState(""); const [carregando, setCarregando] = useState(false);
-  async function entrar(registro: boolean) {
+  const [concluido, setConcluido] = useState(false);
+  async function entrar(registro: boolean, somentePasskey = false) {
     setErro(""); setCarregando(true);
+    let avisoCadastro = "";
     try {
       if (registro) {
-        const { options } = await requisitar<{ options: PublicKeyCredentialCreationOptionsJSON }>({ acao: "iniciar_registro", convite });
+        const { options, aviso } = await requisitar<{ options: PublicKeyCredentialCreationOptionsJSON; aviso?: string }>({ acao: "iniciar_registro", convite, senha });
+        if (aviso) { setAviso(aviso); avisoCadastro = aviso; }
         const resposta = await startRegistration({ optionsJSON: options });
         await requisitar({ acao: "concluir_registro", resposta }); setConvite("");
       } else {
-        const { options } = await requisitar<{ options: PublicKeyCredentialRequestOptionsJSON }>({ acao: "iniciar_login" });
+        const { options } = await requisitar<{ options: PublicKeyCredentialRequestOptionsJSON }>(somentePasskey ? { acao: "iniciar_login" } : { acao: "iniciar_senha", email, senha });
         const resposta = await startAuthentication({ optionsJSON: options });
         await requisitar({ acao: "concluir_login", resposta });
       }
-      router.push("/crm"); router.refresh();
+      setSenha("");
+      if (avisoCadastro) { setConcluido(true); return; }
+      router.push("/"); router.refresh();
     } catch { setErro("Não foi possível concluir o acesso. Verifique sua passkey ou o convite e tente novamente."); }
     finally { setCarregando(false); }
   }
-  return <section className="form-card"><h1>Acesso individual</h1><p>Use a passkey cadastrada no seu dispositivo para acessar o CRM.</p>
-    {erro && <p role="alert">{erro}</p>}<button className="primary" disabled={carregando} onClick={() => void entrar(false)}>{carregando ? "Aguardando verificação…" : "Entrar com passkey"}</button>
+  if (concluido) return <section className="form-card"><h1>Acesso criado</h1><p role="status">{aviso}</p><Link href="/">Continuar para o painel</Link></section>;
+  return <section className="form-card"><h1>Entrar no AtendeIA</h1><p>Acesse com seu e-mail e senha e confirme com a passkey do seu dispositivo.</p>
+    {erro && <p role="alert">{erro}</p>}{aviso && <p role="status">{aviso}</p>}
+    <form onSubmit={e => { e.preventDefault(); void entrar(false); }}>
+      <label>E-mail<input type="email" required maxLength={254} autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></label>
+      <label>Senha<input type="password" required maxLength={256} autoComplete="current-password" value={senha} onChange={e => setSenha(e.target.value)} /></label>
+      <button className="primary" disabled={carregando}>{carregando ? "Aguardando verificação…" : "Entrar"}</button>
+    </form><button disabled={carregando} onClick={() => void entrar(false, true)}>Entrar somente com minha passkey</button>
     <details><summary>Primeiro acesso com convite</summary><label>Convite<input type="password" autoComplete="off" value={convite} maxLength={43} onChange={e => setConvite(e.target.value)} /></label>
-      <button disabled={carregando || convite.length !== 43} onClick={() => void entrar(true)}>Cadastrar minha passkey</button></details>
-    <Link href="/">Voltar ao painel existente</Link>
+      <label>Defina sua senha<input type="password" autoComplete="new-password" minLength={15} maxLength={256} value={senha} onChange={e => setSenha(e.target.value)} /></label>
+      <small>Use uma frase exclusiva com pelo menos 15 caracteres. Você cadastrará a passkey na próxima etapa.</small>
+      <button disabled={carregando || convite.length !== 43 || senha.length < 15} onClick={() => void entrar(true)}>Criar senha e cadastrar passkey</button></details>
+    <Link href="/">Voltar ao painel</Link>
   </section>;
 }

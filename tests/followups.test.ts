@@ -68,6 +68,6 @@ test("atividade de mídia e atendimento humano pode cancelar; grupos não", () =
   assert.ok(activity(event, "teste")); assert.equal(activity(event, "outra"), null);
   event.data.key.remoteJid = "grupo@g.us"; assert.equal(activity(event, "teste"), null);
 });
-test("acesso administrativo recusa token inválido antes de acessar o banco", async () => {
-  await assert.rejects(exigirAdmin(""), /token de administrador/);
+test("acesso administrativo exige sessão individual", async () => {
+  await assert.rejects(exigirAdmin(), /Sessao expirada/);
 });

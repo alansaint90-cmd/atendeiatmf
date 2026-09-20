@@ -1,0 +1,54 @@
+# ADR-0008 - Sessão individual em todo o painel
+
+Status: implementada; ativação em produção depende de homologação e provisionamento.
+
+## Decisão
+
+Substituir SETTINGS_ADMIN_TOKEN em todas as telas, actions e APIs de configurações
+por sessão individual. A página inicial exige autenticação; não existe entrada
+demonstrativa que conceda acesso. Credenciais de máquina e criptografia permanecem.
+
+Preservar os papéis existentes no banco: super_admin é Super administrador, admin
+é Gerente e operador é SDR. Gerente administra somente SDRs; super administrador
+administra gerentes e SDRs. Nenhuma API pública cria, rebaixa ou suspende proprietários.
+Configurações de integrações exigem super administrador. Operação exige SDR;
+tags, follow-ups e agendamentos exigem gerente. CRM preserva escopos de funil.
+
+Senha usa Argon2id nativo do Node >=24.7, salt aleatório, memória de 19 MiB,
+duas passagens e paralelismo 1. São aceitos 15 a 256 caracteres, sem trim.
+Consulta HIBP transmite apenas prefixo SHA-1; indisponibilidade avisa sem bloquear.
+Login por senha exige também passkey com verificação do usuário. A alternativa
+de passkey verificada permanece disponível para contas existentes e recuperação.
+Não há senha padrão nem cadastro público. Convite de uso único expira em 15 minutos.
+
+Troca de senha, alteração de usuário e alteração de passkeys revogam sessões.
+Reinício administrativo de acesso revoga também fatores e emite novo convite.
+Não remover a última passkey, nem permitir autoalteração de papel. Toda alteração
+administrativa exige motivo, versão e auditoria na mesma transação.
+
+AUTH_TRUST_PROXY_HOPS fica 0 por padrão: não confiar em IP encaminhado pelo cliente.
+Só configurar saltos após confirmar que o proxy controlado sobrescreve o cabeçalho.
+O limitador atômico por conta complementa os limites global e, quando confiável, IP.
+
+## Operação e validação
+
+As tabelas de identidade existentes são reutilizadas; não há migração destrutiva.
+O provisionamento de proprietário continua manual pelo script
+`scripts/provisionar-proprietario.ts`, em checkout administrativo com dependências
+instaladas e conexão autorizada ao banco. Ele não roda no entrypoint Docker.
+Configurar PROVISIONAR_NOME, PROVISIONAR_EMAIL, PROVISIONAR_ARQUIVO (fora do checkout),
+DATABASE_URL e AUTH_ORIGIN. Executar `pnpm exec tsx scripts/provisionar-proprietario.ts`.
+O convite fica somente no arquivo privado, nunca nos logs. Abrir /entrar e escolher
+Primeiro acesso; usuário define a senha e registra a passkey em origem HTTPS.
+
+O e-mail solicitado para o primeiro proprietário é alansaint90@gmail.com.
+A implementação não cria essa conta automaticamente nem altera o banco de produção.
+Antes de ativar AUTH_LOGIN_ENABLED, validar convite, login e roles no PostgreSQL 16
+de homologação e em dispositivo com passkey. Manter backup antes de deploy.
+
+Actions de usuários: carregarUsuarios, convidarUsuario, atualizarUsuario,
+reiniciarAcessoUsuario. Actions de perfil: trocarMinhaSenha, minhasPasskeys,
+removerMinhaPasskey. O perfil também permite encerrar sessões próprias.
+
+Testes usam banco descartável e provedores simulados; não enviam WhatsApp real.
+O scanner de actions exige sessão e await na guarda de permissão, incluindo aliases.

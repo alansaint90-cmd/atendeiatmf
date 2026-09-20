@@ -30,14 +30,14 @@ const ROTA = "/lancamentos";
 /** Leitura para Server Component: lanca em falha (cai no error.tsx). */
 export async function listar() {
   const sessao = await exigirSessao();
-  exigirPermissao(sessao, "visualizador");
+  await exigirPermissao(sessao, "visualizador");
   return db.select().from(tabela).where(vivos(tabela)).orderBy(desc(tabela.created_at));
 }
 
 export async function criar(dados: unknown) {
   return executar(async () => {
     const sessao = await exigirSessao();
-    exigirPermissao(sessao, "operador");
+    await exigirPermissao(sessao, "operador");
     // Campo a campo: nunca espalhe o corpo da requisicao sobre a linha.
     const { contrato_id, descricao, valor } = lancamentoSchema.parse(dados);
 
@@ -65,7 +65,7 @@ export async function criar(dados: unknown) {
 export async function atualizar(id: unknown, dados: unknown, updatedAtOriginal: unknown) {
   return executar(async () => {
     const sessao = await exigirSessao();
-    exigirPermissao(sessao, "operador");
+    await exigirPermissao(sessao, "operador");
     const alvo = idSchema.parse(id);
     const versao = instanteSchema.parse(updatedAtOriginal);
     const { descricao, valor } = lancamentoEdicaoSchema.parse(dados);
@@ -101,7 +101,7 @@ export async function atualizar(id: unknown, dados: unknown, updatedAtOriginal: 
 export async function excluir(id: unknown, updatedAtOriginal: unknown) {
   return executar(async () => {
     const sessao = await exigirSessao();
-    exigirPermissao(sessao, "admin");
+    await exigirPermissao(sessao, "admin");
     const alvo = idSchema.parse(id);
     const versao = instanteSchema.parse(updatedAtOriginal);
 

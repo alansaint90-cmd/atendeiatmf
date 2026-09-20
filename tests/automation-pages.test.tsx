@@ -10,7 +10,6 @@ vi.mock("@/lib/actions/tags", () => ({ carregarTags: vi.fn(), salvarTag: vi.fn()
 vi.mock("@/lib/actions/followups", () => ({ carregarFollowups: vi.fn(), salvarFollowups: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
 function load() {
-  fireEvent.change(screen.getByLabelText("Token de administrador"), { target: { value: "token-de-teste-com-mais-de-32-caracteres" } });
   fireEvent.click(screen.getByText("Carregar dados"));
 }
 test("tags carregam, buscam e exigem confirmação antes de salvar", async () => {

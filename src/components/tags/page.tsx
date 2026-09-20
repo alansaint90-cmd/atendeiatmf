@@ -6,7 +6,6 @@ import { AdminAccess } from "../admin-access";
 import { ModalConfirmacaoBlock } from "../modal-confirmacao-block";
 
 export function TagsPage() {
-  const [token, setToken] = useState("");
   const [tags, setTags] = useState<Tag[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -18,14 +17,14 @@ export function TagsPage() {
   const [removing, setRemoving] = useState<Tag | null>(null);
   async function load() {
     setBusy(true); setError("");
-    try { const result = await carregarTags(token); if (result.ok) { setTags(result.dados); setPage(0); } else setError(result.erro); }
+    try { const result = await carregarTags(); if (result.ok) { setTags(result.dados); setPage(0); } else setError(result.erro); }
     catch { setError("Falha de conexão ao carregar as tags."); } finally { setBusy(false); }
   }
   async function mutate() {
     setBusy(true); setError("");
     try {
-      const result = confirm === "delete" ? await excluirTag(token, { id: removing?.id, version: removing?.version })
-        : await salvarTag(token, { name: editing?.name ?? "", color: editing?.color ?? "#10b981" }, editing?.id ? { id: editing.id, version: editing.version } : undefined);
+      const result = confirm === "delete" ? await excluirTag({ id: removing?.id, version: removing?.version })
+        : await salvarTag({ name: editing?.name ?? "", color: editing?.color ?? "#10b981" }, editing?.id ? { id: editing.id, version: editing.version } : undefined);
       if (!result.ok) { setError(result.erro); return; }
       setTags(previous => confirm === "delete" ? previous!.filter(tag => tag.id !== result.dados.id)
         : [...previous!.filter(tag => tag.id !== result.dados.id), result.dados].sort((a, b) => a.name.localeCompare(b.name)));
@@ -37,7 +36,7 @@ export function TagsPage() {
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 10) - 1));
   return <div className="page-stack">
     <section className="page-head"><div><h1>Tags e rótulos</h1><p>Organize seus contatos com etiquetas e cores.</p></div></section>
-    <AdminAccess token={token} busy={busy} onToken={value => { setToken(value); setTags(null); setEditing(null); setMessage(""); setError(""); }} onLoad={() => void load()} />
+    <AdminAccess busy={busy} onLoad={() => void load()} />
     {error && <p role="alert" className="error-message">{error}</p>}{message && <p role="status">{message}</p>}
     {tags && <article className="panel"><div className="page-head"><label className="tag-search">Buscar tag ou rótulo<input placeholder="Busque pelo nome da tag" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label>
       <button className="primary" disabled={busy} onClick={() => { setEditing({ name: "", color: "#10b981" }); setError(""); }}>+ Nova tag</button></div>

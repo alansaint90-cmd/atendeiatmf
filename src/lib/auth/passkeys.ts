@@ -4,6 +4,7 @@ import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthe
 import { linhas, type BancoSql } from "../db/porta";
 import { consumirDesafio, guardarDesafio, recusaLogin } from "./desafios";
 import { auditarIdentidade, criarSessao, hashToken, limitarAuth, novoToken } from "./repositorio";
+import { prepararSenha } from "./senhas";
 
 export function configuracaoPasskey(origem = process.env.AUTH_ORIGIN) {
   if (!origem) throw recusaLogin();
@@ -12,14 +13,14 @@ export function configuracaoPasskey(origem = process.env.AUTH_ORIGIN) {
   return { expectedOrigin: url.origin, expectedRPID: url.hostname };
 }
 
-export async function iniciarLogin(banco: BancoSql, origem?: string) {
+export async function iniciarLogin(banco: BancoSql, origem?: string, usuario?: string) {
   const config = configuracaoPasskey(origem);
   await limitarAuth(banco, "login:global", 120);
   const options = await generateAuthenticationOptions({ rpID: config.expectedRPID, userVerification: "required" });
-  return { options, token: await guardarDesafio(banco, options.challenge, "login") };
+  return { options, token: await guardarDesafio(banco, options.challenge, "login", usuario) };
 }
 
-export async function iniciarRegistro(banco: BancoSql, convite: string, origem?: string) {
+export async function iniciarRegistro(banco: BancoSql, convite: string, origem?: string, senha?: string) {
   const config = configuracaoPasskey(origem);
   await limitarAuth(banco, "registro:global", 30);
   if (!/^[A-Za-z0-9_-]{43}$/.test(convite)) throw recusaLogin();
@@ -30,10 +31,20 @@ export async function iniciarRegistro(banco: BancoSql, convite: string, origem?:
     AND u.is_deleted=false AND u.enabled=false
     AND NOT EXISTS(SELECT 1 FROM atendeia_users_passkeys p WHERE p.user_id=u.id AND p.is_deleted=false)`));
   if (!usuario) throw recusaLogin();
+  const preparada = await prepararSenha(senha ?? "");
+  await banco.transaction(async tx => {
+    const conviteValido = linhas(await tx.execute(sql`SELECT id FROM atendeia_users_convites WHERE id=${usuario.convite}
+      AND is_deleted=false AND usado_em IS NULL AND expira_em>now() FOR UPDATE`));
+    if (!conviteValido.length) throw recusaLogin();
+    const alterado = linhas(await tx.execute(sql`UPDATE atendeia_users SET password_hash=${preparada.hash},updated_at=now(),version=version+1,modified_by=${usuario.id}
+      WHERE id=${usuario.id} AND enabled=false AND is_deleted=false RETURNING id`));
+    if (!alterado.length) throw recusaLogin();
+    await auditarIdentidade(tx, usuario.id, "senha_inicial_definida");
+  });
   const options = await generateRegistrationOptions({ rpName: "AtendeIA", rpID: config.expectedRPID,
     userName: usuario.id, userDisplayName: usuario.nome, userID: new TextEncoder().encode(usuario.id),
     attestationType: "none", authenticatorSelection: { residentKey: "required", userVerification: "required" } });
-  return { options, token: await guardarDesafio(banco, options.challenge, "registro", usuario.id, usuario.convite) };
+  return { options, token: await guardarDesafio(banco, options.challenge, "registro", usuario.id, usuario.convite), aviso: preparada.aviso };
 }
 
 export async function concluirRegistro(banco: BancoSql, token: string, resposta: RegistrationResponseJSON, origem?: string) {
@@ -67,6 +78,7 @@ export async function concluirLogin(banco: BancoSql, token: string, resposta: Au
     SELECT p.id,p.user_id AS "userId",p.chave_publica AS chave,p.contador FROM atendeia_users_passkeys p JOIN atendeia_users u ON u.id=p.user_id
     WHERE p.credencial_id=${resposta.id} AND p.is_deleted=false AND u.is_deleted=false AND u.enabled=true`));
   if (!credencial) throw recusaLogin();
+  if (desafio.userId && desafio.userId !== credencial.userId) throw recusaLogin();
   const resultado = await verifyAuthenticationResponse({ response: resposta, expectedChallenge: desafio.challenge, ...config,
     requireUserVerification: true, credential: { id: resposta.id, publicKey: Buffer.from(credencial.chave, "base64url"), counter: Number(credencial.contador) } });
   if (!resultado.verified || !resultado.authenticationInfo.userVerified) throw recusaLogin();

@@ -10,7 +10,7 @@ import { hashToken, auditarIdentidade } from "../auth/repositorio";
 import { db } from "../db/client";
 
 export async function minhasSessoes() {
-  return executar(async () => { const sessao = await exigirSessao(); exigirPermissao(sessao, "visualizador");
+  return executar(async () => { const sessao = await exigirSessao(); await exigirPermissao(sessao, "visualizador");
     const atual = hashToken((await cookies()).get(nomeCookieSessao())?.value ?? "");
     const itens = await db().execute(sql`SELECT id,created_at,updated_at,expires_at,(token_hash=${atual}) AS atual FROM atendeia_sessions
       WHERE user_id=${sessao.userId} AND is_deleted=false AND expires_at>now() AND updated_at>now()-interval '1 hour' ORDER BY created_at DESC LIMIT 100`);
@@ -18,7 +18,7 @@ export async function minhasSessoes() {
   });
 }
 export async function encerrarMinhaSessao(entrada: unknown) {
-  return executar(async () => { const sessao = await exigirSessao(); exigirPermissao(sessao, "visualizador"); const id = z.uuid().parse(entrada);
+  return executar(async () => { const sessao = await exigirSessao(); await exigirPermissao(sessao, "visualizador"); const id = z.uuid().parse(entrada);
     const cookie = await cookies(); const hash = hashToken(cookie.get(nomeCookieSessao())?.value ?? "");
     const atual = await db().transaction(async tx => {
       const itens = await tx.execute(sql`UPDATE atendeia_sessions SET is_deleted=true,deleted_at=now(),updated_at=now(),modified_by=${sessao.userId}

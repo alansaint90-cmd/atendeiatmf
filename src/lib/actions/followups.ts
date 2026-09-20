@@ -2,21 +2,22 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { executar, ErroDeNegocio } from "../acao";
-import { exigirAdmin } from "../settings/access";
+import { exigirSessao } from "../auth/sessao";
+import { exigirPermissao } from "../auth/permissoes";
 import { readSettings, saveSettings, environmentSettings, SettingsConflict } from "../settings/repository";
 import { followupSchema, parseFollowup } from "../followups/schema";
 
-export async function carregarFollowups(token: string) {
+export async function carregarFollowups() {
   return executar(async () => {
-    await exigirAdmin(token);
+    const sessao = await exigirSessao(); await exigirPermissao(sessao, "admin");
     const current = await readSettings();
     const settings = { ...environmentSettings(), ...current.values };
     return { config: parseFollowup(settings.FOLLOW_UP_CONFIG), version: current.version, instance: settings.EVOLUTION_INSTANCE_NAME ?? "" };
   });
 }
-export async function salvarFollowups(token: string, input: unknown, version: number) {
+export async function salvarFollowups(input: unknown, version: number) {
   return executar(async () => {
-    await exigirAdmin(token);
+    const sessao = await exigirSessao(); await exigirPermissao(sessao, "admin");
     const config = followupSchema.safeParse(input);
     if (!config.success) throw new ErroDeNegocio(config.error.issues[0].message);
     if (!z.number().int().min(0).safeParse(version).success) throw new ErroDeNegocio("Versão inválida. Recarregue os dados.");
@@ -25,7 +26,7 @@ export async function salvarFollowups(token: string, input: unknown, version: nu
     if (config.data.enabled && config.data.instance !== instance) throw new ErroDeNegocio("Selecione a instância Evolution configurada no servidor.");
     try {
       config.data.revision = randomUUID();
-      const saved = await saveSettings({ FOLLOW_UP_CONFIG: JSON.stringify(config.data) }, version);
+      const saved = await saveSettings({ FOLLOW_UP_CONFIG: JSON.stringify(config.data) }, version, sessao.userId);
       return { config: config.data, version: saved.version, instance: instance ?? "" };
     } catch (error) {
       if (error instanceof SettingsConflict) throw new ErroDeNegocio("Outra sessão alterou os dados. Recarregue antes de salvar.");

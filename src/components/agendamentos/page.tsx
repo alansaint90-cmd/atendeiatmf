@@ -11,7 +11,6 @@ function dataLocal(iso: string) {
 }
 const formatar = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 export function AgendamentosPage() {
-  const [token, setToken] = useState("");
   const [itens, setItens] = useState<Agendamento[] | null>(null);
   const [instancia, setInstancia] = useState("");
   const [ativo, setAtivo] = useState(false);
@@ -29,7 +28,7 @@ export function AgendamentosPage() {
   async function carregar() {
     setOcupado(true); setErro(""); setAviso("");
     try {
-      const r = await carregarAgendamentos(token);
+      const r = await carregarAgendamentos();
       if (!r.ok) { setErro(r.erro); return; }
       setItens(r.dados.itens); setInstancia(r.dados.instancia); setAtivo(r.dados.processadorAtivo); setPagina(0);
     } catch { setErro("Falha de conexão ao carregar agendamentos."); } finally { setOcupado(false); }
@@ -45,8 +44,8 @@ export function AgendamentosPage() {
     setOcupado(true); setErro("");
     try {
       const r = confirmacao === "cancelar"
-        ? await cancelarEnvioAgendado(token, { id: alvo?.id, version: alvo?.version })
-        : await gravarAgendamento(token, rascunho, versao === undefined ? undefined : { id: rascunho!.id, version: versao });
+        ? await cancelarEnvioAgendado({ id: alvo?.id, version: alvo?.version })
+        : await gravarAgendamento(rascunho, versao === undefined ? undefined : { id: rascunho!.id, version: versao });
       if (!r.ok) { setErro(r.erro); return; }
       setItens(previous => [r.dados, ...previous!.filter(item => item.id !== r.dados.id)].sort((a, b) => b.agendadoPara.localeCompare(a.agendadoPara)));
       setRascunho(null); setAlvo(null); setPagina(0);
@@ -58,7 +57,7 @@ export function AgendamentosPage() {
   const atual = Math.min(pagina, Math.max(0, Math.ceil(filtrados.length / 10) - 1));
   return <div className="page-stack">
     <section className="page-head"><div><h1>Mensagens agendadas</h1><p>Agende envios individuais para contatos específicos.</p></div></section>
-    <AdminAccess token={token} busy={ocupado} onToken={value => { setToken(value); setItens(null); setRascunho(null); setErro(""); setAviso(""); }} onLoad={() => void carregar()} />
+    <AdminAccess busy={ocupado} onLoad={() => void carregar()} />
     {erro && <p role="alert" className="error-message">{erro}</p>}{aviso && <p role="status">{aviso}</p>}
     {itens && <article className="panel">
       {!ativo && <p role="status" className="followup-note">Processador desativado no servidor. Os agendamentos serão salvos, mas o envio depende da ativação em Configurações do servidor.</p>}

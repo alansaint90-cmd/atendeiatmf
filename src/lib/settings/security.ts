@@ -1,12 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
-
-export function isSettingsAdmin(request: Request, token = process.env.SETTINGS_ADMIN_TOKEN): boolean {
-  if (!token || token.length < 32) return false;
-  const header = request.headers.get("authorization") ?? "";
-  if (!header.startsWith("Bearer ")) return false;
-  const supplied = header.slice(7);
-  return timingSafeEqual(createHash("sha256").update(supplied).digest(), createHash("sha256").update(token).digest());
-}
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 function encryptionKey(value = process.env.SETTINGS_ENCRYPTION_KEY): Buffer {
   if (!value || !/^[A-Za-z0-9+/]{43}=$/.test(value)) throw new Error("Encryption key unavailable");

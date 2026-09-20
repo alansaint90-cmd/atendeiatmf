@@ -11,24 +11,28 @@ import { Settings } from "./settings";
 import { FollowupsPage } from "./followups/page";
 import { TagsPage } from "./tags/page";
 import { AgendamentosPage } from "./agendamentos/page";
+import { UsuariosPage } from "./usuarios/page";
+import type { Papel } from "@/lib/db/schema/_enums";
+import { nomesPapeis } from "@/lib/auth/papeis";
 
-export function Workspace() {
-  const [loggedIn, setLoggedIn] = useState(false);
+export function Workspace({ papel }: { papel: Papel }) {
   const [route, setRoute] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
-  if (!loggedIn) return <main className="auth-shell"><section className="auth-panel"><Marca grande slogan /><h1>Atendimento inteligente para WhatsApp</h1><p>Centralize conversas e configure seus assistentes.</p><form className="form-card" data-auth-form onSubmit={e => { e.preventDefault(); setLoggedIn(true); }}><label>Email<input type="email" defaultValue="admin@atendeia.com" /></label><label>Senha<input type="password" defaultValue="mvpdemo" /></label><small>Ambiente de demonstração. Este acesso não autentica usuários.</small><button className="primary">Entrar no MVP</button></form></section><aside className="auth-preview"><div className="marca-apresentacao"><Marca grande clara slogan /><p className="marca-promessa">Mais conversas.<br />Mais clientes.<br /><strong>Mais resultados.</strong></p><div className="marca-pilares"><span>Automatiza</span><span>Conecta</span><span>Converte</span></div></div></aside></main>;
-  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""}`}><aside className="sidebar"><Marca /><nav>{nav.map(([id, label, ico]) => <button key={id} className={route === id ? "active" : ""} data-route={id} aria-label={label} aria-current={route === id ? "page" : undefined} onClick={() => setRoute(id)}><span dangerouslySetInnerHTML={{ __html: icon(ico) }} /><span className="nav-label">{label}</span></button>)}</nav><div className="account"><strong>AtendeIA</strong><span>Painel da instalação</span></div></aside>
+  const gestor = papel === "admin" || papel === "super_admin";
+  const menu = nav.filter(([id]) => id === "settings" ? papel === "super_admin" : ["team", "followups", "tags", "agendamentos", "chatbot", "flows", "campaigns"].includes(id) ? gestor : true);
+  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""}`}><aside className="sidebar"><Marca /><nav>{menu.map(([id, label, ico]) => <button key={id} className={route === id ? "active" : ""} data-route={id} aria-label={label} aria-current={route === id ? "page" : undefined} onClick={() => setRoute(id)}><span dangerouslySetInnerHTML={{ __html: icon(ico) }} /><span className="nav-label">{label}</span></button>)}</nav><div className="account"><strong>{nomesPapeis[papel]}</strong><Link href="/perfil">Meu perfil e sessões</Link></div></aside>
     <section className="workspace"><header className="topbar"><button className="icon-button" aria-label="Alternar menu" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>☰</button><strong>{nav.find(item => item[0] === route)?.[1]}</strong><div className="top-actions"><span className="badge">Dados protegidos</span></div></header>
       <main className="content">
         <Link href="/crm">CRM · Kanban e oportunidades</Link>
         {/* Keep form drafts mounted across navigation, but hide inactive sections. */}
-        <div hidden={route !== "chatbot"} className="page-stack"><ChatbotsPage /></div>
+        {gestor && <><div hidden={route !== "chatbot"} className="page-stack"><ChatbotsPage /></div>
         <div hidden={route !== "followups"}><FollowupsPage /></div>
         <div hidden={route !== "tags"}><TagsPage /></div>
-        <div hidden={route !== "agendamentos"}><AgendamentosPage /></div>
-        {route === "settings" && <Settings />}
+        <div hidden={route !== "agendamentos"}><AgendamentosPage /></div></>}
+        {gestor && route === "team" && <UsuariosPage papel={papel} />}
+        {papel === "super_admin" && route === "settings" && <Settings />}
         <div hidden={!["dashboard", "contacts", "inbox"].includes(route)}><OperacaoPage rota={route} /></div>
-        {!["dashboard", "contacts", "inbox"].includes(route) && demoViews[route] && <div className="page-stack demo-view" dangerouslySetInnerHTML={{ __html: demoViews[route]() }} />}
+        {!["dashboard", "contacts", "inbox", "team"].includes(route) && demoViews[route] && <div className="page-stack demo-view" dangerouslySetInnerHTML={{ __html: demoViews[route]() }} />}
       </main>
     </section>
   </div>;

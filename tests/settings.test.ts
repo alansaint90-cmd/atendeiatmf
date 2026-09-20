@@ -1,16 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { isSettingsAdmin, seal, unseal } from "../src/lib/settings/security";
+import { seal, unseal } from "../src/lib/settings/security";
 import { settingsSchema, settingsStatus } from "../src/lib/settings/schema";
-
-test("credenciais exigem token administrativo válido", () => {
-  const token = randomBytes(32).toString("hex");
-  assert.equal(isSettingsAdmin(new Request("http://localhost"), token), false);
-  assert.equal(isSettingsAdmin(new Request("http://localhost", { headers: { authorization: "Bearer errado" } }), token), false);
-  assert.equal(isSettingsAdmin(new Request("http://localhost", { headers: { authorization: `Bearer ${token}` } }), token), true);
-  assert.equal(isSettingsAdmin(new Request("http://localhost"), "curto"), false);
-});
 
 test("criptografia aleatória autentica dados e não permite chave incorreta", () => {
   const key = randomBytes(32).toString("base64");

@@ -1,12 +1,13 @@
 "use server";
 import { executar } from "../acao";
-import { exigirAdmin } from "../settings/access";
+import { exigirSessao } from "../auth/sessao";
+import { exigirPermissao } from "../auth/permissoes";
 import { db } from "../db/client";
 import { consultarOperacao } from "../operacao/consultas";
 
-export async function carregarOperacao(token: string) {
+export async function carregarOperacao() {
   return executar(async () => {
-    await exigirAdmin(token);
+    const sessao = await exigirSessao(); await exigirPermissao(sessao, "operador");
     return consultarOperacao(db());
   });
 }

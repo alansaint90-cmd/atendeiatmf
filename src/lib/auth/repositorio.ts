@@ -4,14 +4,15 @@ import { ErroDeNegocio } from "../acao";
 import { systemUserId } from "../db/bootstrap";
 import { linhas, type BancoSql, type TransacaoSql } from "../db/porta";
 import { PAPEIS, type Papel } from "../db/schema/_enums";
+import { contextoAuth } from "./contexto";
 
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const novoToken = () => randomBytes(32).toString("base64url");
 export interface Identidade { userId: string; papel: Papel; nome: string; sessionId: string }
 
 export async function auditarIdentidade(tx: TransacaoSql, ator: string, acao: string, objeto = ator) {
-  await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields)
-    VALUES (${ator},${acao},'identidade',${objeto},'[]'::jsonb)`);
+  await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields,details)
+    VALUES (${ator},${acao},'identidade',${objeto},'[]'::jsonb,${JSON.stringify(contextoAuth.getStore() ?? {})}::jsonb)`);
 }
 
 /** Papel e suspensão são consultados em toda requisição. O token nunca carrega privilégios. */

@@ -19,7 +19,7 @@ O `default` da coluna `usuarios.papel` e `visualizador` — o menor.
 ```ts
 import { exigirPermissao, temPermissao } from "@/lib/auth/permissoes";
 
-exigirPermissao(sessao, "operador");          // na action: lanca se nao alcanca
+await exigirPermissao(sessao, "operador");    // na action: audita e lança se não alcança
 temPermissao(sessao, "admin");                // na pagina: decide o que mostrar
 ```
 
@@ -38,9 +38,9 @@ antes de virar codigo.
 | Configuracoes | admin | super_admin | admin | super_admin |
 | Auditoria | admin | — (so o sistema grava) | nunca | nunca |
 | Painel de problemas | super_admin | — | — | — |
-| Tags (administração legada, ADR-0004) | super_admin | super_admin | super_admin | super_admin |
-| Follow-ups (administração legada, ADR-0004) | super_admin | — | super_admin | — |
-| Agendamentos individuais (ADR-0005) | super_admin | super_admin | super_admin | super_admin (cancelar) |
+| Tags (ADR-0008) | admin | admin | admin | admin |
+| Follow-ups (ADR-0008) | admin | — | admin | — |
+| Agendamentos individuais (ADR-0008) | admin | admin | admin | admin (cancelar) |
 
 Recurso novo: acrescente a linha aqui ANTES de escrever a action.
 
@@ -72,3 +72,19 @@ Recurso novo: acrescente a linha aqui ANTES de escrever a action.
 
 Proprietário operacional usa o papel existente super_admin, provisionado localmente.
 A API comum não concede esse papel. Papel desconhecido é sempre recusado.
+
+## Identidade no painel - ADR-0008
+
+A matriz operacional vigente substitui os exemplos genéricos acima:
+
+| Área | Papel mínimo |
+| --- | --- |
+| Dashboard, contatos e caixa de entrada | operador (SDR) |
+| Tags, follow-ups e agendamentos | admin (Gerente) |
+| Integrações e estado do agente | super_admin (Super administrador) |
+| Equipe | admin, somente SDRs; super_admin, gerentes e SDRs |
+| Perfil, senha e passkeys próprias | visualizador |
+
+Os nomes novos não alteram os códigos armazenados. Usuários não se promovem nem
+alteram a própria conta pela administração. Proprietários exigem processo manual.
+Suspensão ou alteração administrativa revoga sessões, desafios e convites antigos.

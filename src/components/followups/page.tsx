@@ -7,7 +7,6 @@ import { ModalConfirmacaoBlock } from "../modal-confirmacao-block";
 
 const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 export function FollowupsPage() {
-  const [token, setToken] = useState("");
   const [config, setConfig] = useState<FollowupConfig>(() => structuredClone(defaultFollowup));
   const [version, setVersion] = useState<number | null>(null);
   const [instance, setInstance] = useState("");
@@ -21,7 +20,7 @@ export function FollowupsPage() {
   }
   async function load() {
     setBusy(true); setError("");
-    try { const result = await carregarFollowups(token);
+    try { const result = await carregarFollowups();
       if (!result.ok) { setError(result.erro); return; }
       setConfig({ ...result.dados.config, instance: result.dados.config.instance || result.dados.instance });
       setVersion(result.dados.version); setInstance(result.dados.instance); setMessage("");
@@ -29,7 +28,7 @@ export function FollowupsPage() {
   }
   async function save() {
     setBusy(true); setError("");
-    try { const result = await salvarFollowups(token, config, version!);
+    try { const result = await salvarFollowups(config, version!);
       if (!result.ok) { setError(result.erro); return; }
       setConfig(result.dados.config); setVersion(result.dados.version); setMessage("Follow-ups salvos no servidor.");
     } catch { setError("Falha de conexão. Recarregue antes de tentar novamente."); }
@@ -37,7 +36,7 @@ export function FollowupsPage() {
   }
   return <div className="page-stack">
     <section className="page-head"><div><h1>Follow-ups automáticos</h1><p>Retome atendimentos quando o contato deixar de responder.</p></div></section>
-    <AdminAccess token={token} busy={busy} onToken={value => { setToken(value); setVersion(null); setMessage(""); setError(""); }} onLoad={() => void load()} />
+    <AdminAccess busy={busy} onLoad={() => void load()} />
     {error && <p role="alert" className="error-message">{error}</p>}{message && <p role="status">{message}</p>}
     {version !== null && <form className="panel form-panel followup-form" onSubmit={event => {
       event.preventDefault(); const parsed = followupSchema.safeParse(config);

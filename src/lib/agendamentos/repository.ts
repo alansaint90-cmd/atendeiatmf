@@ -10,14 +10,14 @@ const campos = sql`id,telefone,instancia,mensagem,agendado_para AS "agendadoPara
 function normalizar(item: Agendamento): Agendamento {
   return { ...item, agendadoPara: new Date(item.agendadoPara).toISOString(), enviadoEm: item.enviadoEm ? new Date(item.enviadoEm).toISOString() : null };
 }
-async function auditar(tx: Transacao, id: string, acao: string) {
+async function auditar(tx: Transacao, id: string, acao: string, autor = systemUserId) {
   await tx.execute(sql`INSERT INTO atendeia_audit_logs(action,entity_type,entity_id,changed_fields,modified_by)
-    VALUES(${acao},'agendamento',${id},'[]'::jsonb,${systemUserId})`);
+    VALUES(${acao},'agendamento',${id},'[]'::jsonb,${autor})`);
 }
 export async function listarAgendamentos(banco: BancoAgendamentos) {
   return linhas<Agendamento>(await banco.execute(sql`SELECT ${campos} FROM atendeia_agendamentos WHERE is_deleted=false ORDER BY agendado_para DESC,id`)).map(normalizar);
 }
-export async function salvarAgendamento(banco: BancoAgendamentos, entrada: unknown, identidade?: unknown) {
+export async function salvarAgendamento(banco: BancoAgendamentos, entrada: unknown, identidade?: unknown, autor = systemUserId) {
   const dados = agendamentoSchema.parse(entrada);
   const alvo = identidade === undefined ? null : identidadeAgendamento.parse(identidade);
   if (alvo && alvo.id !== dados.id) throw new ErroDeNegocio("Agendamento inválido.");
@@ -26,26 +26,26 @@ export async function salvarAgendamento(banco: BancoAgendamentos, entrada: unkno
     const ator = linhas(await tx.execute(sql`SELECT id FROM atendeia_settings_actors WHERE id='bootstrap-admin' AND role='super_admin' AND is_deleted=false`));
     if (!ator.length) throw new ErroDeNegocio("Administrador indisponível.");
     const resultado = alvo ? await tx.execute(sql`UPDATE atendeia_agendamentos SET telefone=${dados.telefone},instancia=${dados.instancia},
-      mensagem=${dados.mensagem},agendado_para=${dados.agendadoPara}::timestamptz,version=version+1,updated_at=now(),modified_by=${systemUserId}
+      mensagem=${dados.mensagem},agendado_para=${dados.agendadoPara}::timestamptz,version=version+1,updated_at=now(),modified_by=${autor}
       WHERE id=${alvo.id} AND version=${alvo.version} AND status='pendente' AND is_deleted=false RETURNING ${campos}`)
       : await tx.execute(sql`INSERT INTO atendeia_agendamentos(id,telefone,instancia,mensagem,agendado_para,modified_by)
-        VALUES(${dados.id},${dados.telefone},${dados.instancia},${dados.mensagem},${dados.agendadoPara}::timestamptz,${systemUserId})
+        VALUES(${dados.id},${dados.telefone},${dados.instancia},${dados.mensagem},${dados.agendadoPara}::timestamptz,${autor})
         ON CONFLICT(id) DO NOTHING RETURNING ${campos}`);
     const item = linhas<Agendamento>(resultado)[0];
     if (!item) throw new ErroDeNegocio("Agendamento já registrado ou alterado. Recarregue a lista antes de tentar novamente.");
-    await auditar(tx, item.id, alvo ? "admin_agendamento_editado" : "admin_agendamento_criado");
+    await auditar(tx, item.id, alvo ? "admin_agendamento_editado" : "admin_agendamento_criado", autor);
     return normalizar(item);
   });
 }
-export async function cancelarAgendamento(banco: BancoAgendamentos, entrada: unknown) {
+export async function cancelarAgendamento(banco: BancoAgendamentos, entrada: unknown, autor = systemUserId) {
   const alvo = identidadeAgendamento.parse(entrada);
   return banco.transaction(async tx => {
     const ator = linhas(await tx.execute(sql`SELECT id FROM atendeia_settings_actors WHERE id='bootstrap-admin' AND role='super_admin' AND is_deleted=false`));
     if (!ator.length) throw new ErroDeNegocio("Administrador indisponível.");
-    const [item] = linhas<Agendamento>(await tx.execute(sql`UPDATE atendeia_agendamentos SET status='cancelado',version=version+1,updated_at=now(),modified_by=${systemUserId}
+    const [item] = linhas<Agendamento>(await tx.execute(sql`UPDATE atendeia_agendamentos SET status='cancelado',version=version+1,updated_at=now(),modified_by=${autor}
       WHERE id=${alvo.id} AND version=${alvo.version} AND status='pendente' AND is_deleted=false RETURNING ${campos}`));
     if (!item) throw new ErroDeNegocio("O agendamento mudou ou o envio já começou. Recarregue a lista.");
-    await auditar(tx, item.id, "admin_agendamento_cancelado"); return normalizar(item);
+    await auditar(tx, item.id, "admin_agendamento_cancelado", autor); return normalizar(item);
   });
 }
 export async function reservarAgendamento(banco: BancoAgendamentos, instancia: string) {

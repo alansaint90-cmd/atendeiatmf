@@ -1,4 +1,4 @@
-import { isSettingsAdmin } from "@/lib/settings/security";
+import { administradorHttp } from "@/lib/auth/acesso-http";
 import { environmentSettings, readSettings, saveSettings, SettingsConflict, AgentSettingsIncomplete } from "@/lib/settings/repository";
 import { saveSettingsSchema, settingsStatus } from "@/lib/settings/schema";
 
@@ -9,8 +9,9 @@ function unavailable() {
   return json({ error: "Não foi possível acessar as configurações. Confira DATABASE_URL, SETTINGS_ENCRYPTION_KEY e a conexão/permissão do PostgreSQL no servidor." }, 503);
 }
 
-export async function GET(request: Request) {
-  if (!isSettingsAdmin(request)) return json({ error: "Informe o token de administrador configurado no servidor (mínimo de 32 caracteres)." }, 401);
+export async function GET() {
+  const acesso = await administradorHttp();
+  if (acesso.erro) return json({ error: "Acesso não autorizado." }, acesso.erro);
   try {
     const result = await readSettings();
     return json(settingsStatus({ ...environmentSettings(), ...result.values }, result.version));
@@ -18,9 +19,11 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  if (!isSettingsAdmin(request)) return json({ error: "Acesso de administrador necessário." }, 401);
+  const acesso = await administradorHttp();
+  if (acesso.erro) return json({ error: "Acesso não autorizado." }, acesso.erro);
   const origin = request.headers.get("origin");
   // Host is preserved by the reverse proxy even when Next's internal URL uses localhost.
+  if (!origin || origin !== process.env.AUTH_ORIGIN) return json({ error: "Origem não permitida." }, 403);
   if (origin) {
     try {
       if (new URL(origin).host !== (request.headers.get("host") ?? new URL(request.url).host)) return json({ error: "Origem não permitida." }, 403);
@@ -48,7 +51,7 @@ export async function PUT(request: Request) {
   const parsed = saveSettingsSchema.safeParse(input);
   if (!parsed.success) return json({ error: "Campos inválidos: " + [...new Set(parsed.error.issues.map(issue => issue.path.join(".")))].join(", ") }, 422);
   try {
-    const result = await saveSettings(parsed.data.values, parsed.data.version);
+    const result = await saveSettings(parsed.data.values, parsed.data.version, acesso.sessao.userId);
     return json(settingsStatus({ ...environmentSettings(), ...result.values }, result.version));
   } catch (error) {
     if (error instanceof AgentSettingsIncomplete) return json({ error: "Para ativar, preencha contexto, modelo e chave OpenAI, URL/chave/instância Evolution e Redis." }, 422);

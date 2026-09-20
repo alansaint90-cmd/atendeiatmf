@@ -10,7 +10,7 @@ function rows<T>(result: unknown): T[] { return (Array.isArray(result) ? result 
 export async function listTags(database: TagsDatabase): Promise<Tag[]> {
   return rows<Tag>(await database.execute(sql`SELECT id, name, color, version FROM atendeia_tags WHERE is_deleted=false ORDER BY lower(name)`));
 }
-export async function mutateTag(database: TagsDatabase, input: unknown, identity?: unknown, remove = false): Promise<Tag> {
+export async function mutateTag(database: TagsDatabase, input: unknown, identity?: unknown, remove = false, autor = systemUserId): Promise<Tag> {
   const value = remove ? null : tagSchema.parse(input);
   const target = identity === undefined ? null : tagIdentity.parse(identity);
   if (remove && !target) throw new ErroDeNegocio("Selecione uma tag para excluir.");
@@ -21,18 +21,18 @@ export async function mutateTag(database: TagsDatabase, input: unknown, identity
       let updated: Tag[];
       if (!target) {
         updated = rows(await tx.execute(sql`INSERT INTO atendeia_tags (name, color, modified_by)
-          VALUES (${value!.name}, ${value!.color.toLowerCase()}, ${systemUserId}) RETURNING id,name,color,version`));
+          VALUES (${value!.name}, ${value!.color.toLowerCase()}, ${autor}) RETURNING id,name,color,version`));
       } else if (remove) {
         updated = rows(await tx.execute(sql`UPDATE atendeia_tags SET is_deleted=true, deleted_at=now(), updated_at=now(),
-          version=version+1, modified_by=${systemUserId} WHERE id=${target.id} AND version=${target.version} AND is_deleted=false RETURNING id,name,color,version`));
+          version=version+1, modified_by=${autor} WHERE id=${target.id} AND version=${target.version} AND is_deleted=false RETURNING id,name,color,version`));
       } else {
         updated = rows(await tx.execute(sql`UPDATE atendeia_tags SET name=${value!.name}, color=${value!.color.toLowerCase()}, updated_at=now(),
-          version=version+1, modified_by=${systemUserId} WHERE id=${target!.id} AND version=${target!.version} AND is_deleted=false RETURNING id,name,color,version`));
+          version=version+1, modified_by=${autor} WHERE id=${target!.id} AND version=${target!.version} AND is_deleted=false RETURNING id,name,color,version`));
       }
       if (!updated.length) throw new ErroDeNegocio("A tag foi alterada ou excluída em outra sessão. Recarregue a lista.");
       await tx.execute(sql`INSERT INTO atendeia_audit_logs (action, entity_type, entity_id, changed_fields, modified_by)
         VALUES (${remove ? "admin_tag_excluida" : target ? "admin_tag_alterada" : "admin_tag_criada"}, 'tag', ${updated[0].id},
-        ${JSON.stringify(remove ? ["is_deleted"] : ["name", "color"])}::jsonb, ${systemUserId})`);
+        ${JSON.stringify(remove ? ["is_deleted"] : ["name", "color"])}::jsonb, ${autor})`);
       return updated[0];
     });
   } catch (error) {

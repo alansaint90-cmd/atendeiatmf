@@ -14,7 +14,6 @@ const fields = [
 ] as const;
 type Status = { version: number; configured: Record<string, boolean>; values: Record<string, string> };
 export function Settings() {
-  const [token, setToken] = useState("");
   const [status, setStatus] = useState<Status | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
@@ -27,7 +26,7 @@ export function Settings() {
     try {
       const response = await fetch("/api/settings/integrations", {
         method: save ? "PUT" : "GET",
-        headers: { Authorization: `Bearer ${token}`, ...(save ? { "Content-Type": "application/json" } : {}) },
+        headers: save ? { "Content-Type": "application/json" } : {},
         ...(save ? { body: JSON.stringify({ version: status?.version, values: Object.fromEntries(Object.entries(values).filter(([, value]) => value.trim()).map(([name, value]) => [name, value.trim()])) }) } : {}),
       });
       const result = await response.json();
@@ -38,20 +37,15 @@ export function Settings() {
     finally { setBusy(false); }
   }
   return <><section className="page-head"><div><h1>Configurações de integrações</h1><p>Credenciais criptografadas e salvas no servidor.</p></div></section>
-    <section className="settings-grid"><article className="panel form-panel"><h2>Acesso administrativo</h2>
-      <label>Token de administrador<input type="password" value={token} disabled={busy} autoComplete="off" spellCheck={false} onChange={event => { setToken(event.target.value); setStatus(null); setValues({}); setConfirm(false); }} /></label>
-      <small>Use o SETTINGS_ADMIN_TOKEN definido no EasyPanel. O acesso demonstrativo não autoriza alterações. O token não é salvo no navegador.</small>
-      <button className="secondary" disabled={busy || token.length < 32} onClick={() => void request(false)}>{busy ? "Aguarde…" : "Carregar configurações"}</button>
-      {status && <button className="secondary" disabled={busy} onClick={() => { setToken(""); setStatus(null); setValues({}); setMessage(""); setConfirm(false); }}>Bloquear configurações</button>}
-    </article><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small></article></section>
+    <section className="settings-grid"><article className="panel form-panel"><h2>Configurações da instalação</h2><p>Acesso autorizado pela sua sessão de super administrador.</p><button className="secondary" disabled={busy} onClick={() => void request(false)}>{busy ? "Aguarde…" : "Carregar configurações"}</button></article><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small></article></section>
     <p role="status" aria-live="polite">{message}</p>
     {status && <form className="panel form-panel" onSubmit={event => { event.preventDefault(); setConfirm(true); }}>
-      <AgentSettings values={values} disabled={busy || confirm} token={token} onChange={(name, value) => setValues(previous => ({ ...previous, [name]: value }))} />
+      <AgentSettings values={values} disabled={busy || confirm} onChange={(name, value) => setValues(previous => ({ ...previous, [name]: value }))} />
       {fields.map(([name, label, secret]) => <label key={name}>{label}<input type={secret ? "password" : "text"} autoComplete="off" spellCheck={false} maxLength={4096} disabled={busy || confirm} value={values[name] ?? ""} placeholder={status.configured[name] ? "Configurado — deixe vazio para manter" : "Não configurado"} onChange={event => setValues(previous => ({ ...previous, [name]: event.target.value }))} /><small>{status.configured[name] ? "Valor configurado no servidor" : "Nenhum valor configurado"}</small></label>)}
       <small>Campos vazios mantêm o valor atual. As configurações salvas prevalecem sobre as variáveis de ambiente. Redis deve começar com redis:// ou rediss://.</small>
       <button className="primary" disabled={busy || confirm}>Salvar configurações</button>
       <ModalConfirmacaoBlock aberto={confirm} titulo="Salvar configurações do agente"
-        mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto no WhatsApp usando o contexto salvo. Alterar o segredo exige atualizar também a Evolution."
+        mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto e áudio no WhatsApp usando o contexto salvo. Alterar o segredo exige atualizar também a Evolution."
         carregando={busy} onConfirmar={() => void request(true)} onCancelar={() => setConfirm(false)} textoConfirmar="Confirmar e salvar" />
     </form>}
   </>;

@@ -6,11 +6,10 @@ import type { Chatbot } from "@/lib/chatbots/schema";
 interface AgentSettingsProps {
   values: Record<string, string>;
   disabled: boolean;
-  token: string;
   onChange: (name: string, value: string) => void;
 }
 
-export function AgentSettings({ values, disabled, token, onChange }: AgentSettingsProps) {
+export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps) {
   const [bots, setBots] = useState<Chatbot[]>([]);
   const [error, setError] = useState("");
   const [diagnostic, setDiagnostic] = useState("");
@@ -18,7 +17,7 @@ export function AgentSettings({ values, disabled, token, onChange }: AgentSettin
   async function check() {
     setLoading(true); setError("");
     try {
-      const response = await fetch("/api/settings/agent", { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch("/api/settings/agent", { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Falha ao consultar agente.");
       setDiagnostic(`Processador: ${result.workerEnabled ? "habilitado" : "desabilitado no servidor"}. Respostas: ${result.enabled ? "ativadas" : "desativadas"}. Fila: ${result.queued}. Estado: ${result.worker?.status ?? "sem sinal do processador"}. Último resultado: ${result.worker?.lastResult ?? "nenhum"}. Código: ${result.worker?.lastCode ?? "nenhum"}.`);

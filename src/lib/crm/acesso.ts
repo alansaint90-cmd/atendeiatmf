@@ -10,7 +10,7 @@ export async function atorCrm(tx: TransacaoSql, sessao: SessaoAtiva, minimo: Pap
     WHERE id=${sessao.userId} AND enabled=true AND is_deleted=false FOR SHARE`));
   if (!usuario || !PAPEIS.includes(usuario.papel)) throw new ErroDeNegocio("Sessão indisponível.");
   const ator = { userId: sessao.userId, papel: usuario.papel };
-  exigirPermissao(ator, minimo); return ator;
+  await exigirPermissao(ator, minimo, tx); return ator;
 }
 export function escopoFunil(ator: SessaoAtiva, campo: SQL) {
   return ator.papel === "super_admin" || ator.papel === "admin" ? sql`true` : sql`EXISTS (
