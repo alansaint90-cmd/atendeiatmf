@@ -27,10 +27,13 @@ export async function lerSessao(banco: TransacaoSql, token: string): Promise<Ide
   return registro && PAPEIS.includes(registro.papel) ? registro : null;
 }
 
-export async function criarSessao(tx: TransacaoSql, usuario: string, token: string) {
+export async function criarSessao(tx: TransacaoSql, usuario: string, token: string, duracaoSegundos = 86400, acao = "login_passkey") {
+  const duracao = Number.isInteger(duracaoSegundos) && duracaoSegundos >= 300 && duracaoSegundos <= 60 * 60 * 24 * 30
+    ? duracaoSegundos
+    : 86400;
   await tx.execute(sql`INSERT INTO atendeia_sessions(user_id,token_hash,expires_at,modified_by)
-    VALUES (${usuario},${hashToken(token)},now()+interval '24 hours',${usuario})`);
-  await auditarIdentidade(tx, usuario, "login_passkey");
+    VALUES (${usuario},${hashToken(token)},now()+(${duracao} * interval '1 second'),${usuario})`);
+  await auditarIdentidade(tx, usuario, acao);
 }
 
 /** Contador compartilhado entre réplicas; sua transação não deve ser revertida pela autenticação. */

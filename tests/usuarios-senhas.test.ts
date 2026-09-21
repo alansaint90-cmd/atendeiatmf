@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { applyMigrations } from "../src/lib/db/migrate";
 import { systemUserId } from "../src/lib/db/bootstrap";
 import { prepararSenha, conferirSenha } from "../src/lib/auth/senhas";
-import { autenticarSenha } from "../src/lib/auth/login-senha";
+import { autenticarESessionarSenha, autenticarSenha } from "../src/lib/auth/login-senha";
 import { criarUsuario, alterarUsuario, listarUsuarios, renovarConvite } from "../src/lib/auth/usuarios";
 import { criarSessao, novoToken, lerSessao, hashToken } from "../src/lib/auth/repositorio";
 import { mudarSenha } from "../src/lib/auth/trocar-senha";
@@ -48,7 +48,10 @@ test("usuários preservam hierarquia, colisão, auditoria e revogação; senha n
     await cliente.query("UPDATE atendeia_users SET enabled=true,password_hash=$1 WHERE id=$2", [preparada.hash,sdr.id]);
     await cliente.query("INSERT INTO atendeia_users_passkeys(user_id,credencial_id,chave_publica,nome,modified_by) VALUES ($1,'simulada','chave','Teste',$1)", [sdr.id]);
     assert.equal(await autenticarSenha(banco, { email: sdr.email, senha }), sdr.id);
-    assert.equal((await cliente.query("SELECT id FROM atendeia_sessions")).rows.length, 0);
+    const sessaoPorSenha = await autenticarESessionarSenha(banco, { email: sdr.email, senha }, true);
+    assert.equal(sessaoPorSenha.usuario.id, sdr.id);
+    assert.equal((await lerSessao(banco, sessaoPorSenha.token))?.userId, sdr.id);
+    assert.equal((await cliente.query("SELECT id FROM atendeia_sessions WHERE is_deleted=false")).rows.length, 1);
     const recusas: string[] = [];
     for (const email of ["inexistente@example.test", sdr.email]) {
       try { await autenticarSenha(banco,{ email, senha: randomBytes(24).toString("hex") }); }

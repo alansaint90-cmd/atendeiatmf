@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 116 |
+| Arquivos TS/TSX | 117 |
 | Tabelas (Drizzle) | 30 |
 | Server Actions (arquivos) | 8 |
-| Rotas de API | 4 |
+| Rotas de API | 5 |
 | Paginas | 4 |
-| Componentes | 15 |
+| Componentes | 14 |
 
 ## Arvore (profundidade 3)
 
@@ -54,7 +54,6 @@ components/
     button.tsx
   usuarios/
     page.tsx
-  admin-access.tsx
   agent-settings.tsx
   marca.tsx
   modal-confirmacao-block.tsx
@@ -95,6 +94,7 @@ lib/
     passkeys-perfil.ts
     passkeys.ts
     permissoes.ts
+    provisionamento-proprietario.ts
     repositorio.ts
     senhas.ts
     sessao.ts
@@ -258,6 +258,7 @@ _(colunas nao detectadas)_
 
 | Rota | Metodos |
 |------|---------|
+| `/api/auth/login` | POST |
 | `/api/auth/passkey` | POST |
 | `/api/settings/agent` | GET |
 | `/api/settings/integrations` | GET, PUT |

@@ -102,6 +102,6 @@
 ## Senhas e equipe (ADR-0008)
 
 - Super administrador gerencia integrações, gerentes e SDRs. Gerente gerencia operação e SDRs. SDR usa atendimento e CRM conforme escopo.
-- Senhas têm 15 a 256 caracteres e hash Argon2id com salt próprio. Passkey verificada completa o login; passkey sem senha continua disponível.
+- Senhas têm 15 a 256 caracteres e hash Argon2id com salt próprio. O login principal usa e-mail e senha; passkey verificada permanece disponível como fator adicional e para contas que já a cadastraram.
 - Primeiro acesso é por convite de uso único de 15 minutos. Ninguém escolhe a senha de outra pessoa.
 - Trocas de senha/fator e alterações de conta encerram sessões. Reiniciar acesso invalida fatores e emite novo convite. Proprietários não são alterados pela API comum.

@@ -17,8 +17,9 @@ tags, follow-ups e agendamentos exigem gerente. CRM preserva escopos de funil.
 Senha usa Argon2id nativo do Node >=24.7, salt aleatório, memória de 19 MiB,
 duas passagens e paralelismo 1. São aceitos 15 a 256 caracteres, sem trim.
 Consulta HIBP transmite apenas prefixo SHA-1; indisponibilidade avisa sem bloquear.
-Login por senha exige também passkey com verificação do usuário. A alternativa
-de passkey verificada permanece disponível para contas existentes e recuperação.
+Login por senha cria a sessão individual após conferir o hash Argon2id. A passkey
+verificada permanece disponível como fator adicional no perfil e como alternativa
+de acesso para contas existentes; o primeiro acesso continua cadastrando senha e passkey.
 Não há senha padrão nem cadastro público. Convite de uso único expira em 15 minutos.
 
 Troca de senha, alteração de usuário e alteração de passkeys revogam sessões.
