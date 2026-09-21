@@ -19,7 +19,8 @@ duas passagens e paralelismo 1. São aceitos 15 a 256 caracteres, sem trim.
 Consulta HIBP transmite apenas prefixo SHA-1; indisponibilidade avisa sem bloquear.
 Login por senha cria a sessão individual após conferir o hash Argon2id. A passkey
 verificada permanece disponível como fator adicional no perfil e como alternativa
-de acesso para contas existentes; o primeiro acesso continua cadastrando senha e passkey.
+de acesso para contas existentes; no primeiro acesso o convite define a senha e
+abre a sessão sem solicitar o cadastro de uma chave no navegador.
 Não há senha padrão nem cadastro público. Convite de uso único expira em 15 minutos.
 
 Troca de senha, alteração de usuário e alteração de passkeys revogam sessões.
@@ -42,7 +43,7 @@ terminal do serviço. Ela não roda automaticamente no entrypoint Docker.
 Configurar PROVISIONAR_NOME, PROVISIONAR_EMAIL, PROVISIONAR_ARQUIVO (fora do checkout),
 DATABASE_URL e AUTH_ORIGIN. Executar `pnpm exec tsx scripts/provisionar-proprietario.ts`.
 O convite fica somente no arquivo privado, nunca nos logs. Abrir /entrar e escolher
-Primeiro acesso; usuário define a senha e registra a passkey em origem HTTPS.
+Primeiro acesso; usuário define a senha em origem HTTPS e entra imediatamente.
 Se a execução falhar, o arquivo de convite parcial é removido. Para identificar a
 etapa sem expor dados do banco, adicione PROVISIONAR_DIAGNOSTICO=true à execução.
 PROVISIONAR_REINICIAR_PROPRIETARIO=true só reemite convite quando o proprietário

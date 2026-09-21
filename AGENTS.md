@@ -198,7 +198,7 @@ Não ativar AUTH_LOGIN_ENABLED em produção antes de fechar a régua de seguran
 login e conta. Migrações 0003/0004 são aditivas; testes usam banco descartável.
 
 ADR-0008 substitui o acesso humano por token: senha Argon2id cria a sessão individual;
-passkey verificada permanece disponível como fator adicional no perfil e no primeiro acesso. ExigirPermissao é assíncrona e requer await;
+passkey verificada permanece disponível como fator adicional no perfil. ExigirPermissao é assíncrona e requer await;
 tests/guardas-actions.test.ts fiscaliza a regra. admin representa Gerente e operador
 representa SDR, preservando o schema. Super administrador só por provisionamento
 manual; gerente administra apenas SDRs. Suspensão, troca de senha ou fator revogam

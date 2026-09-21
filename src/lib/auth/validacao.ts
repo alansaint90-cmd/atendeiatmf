@@ -19,6 +19,7 @@ export const entradaAuth = z.discriminatedUnion("acao", [
   z.strictObject({ acao: z.literal("iniciar_login") }),
   z.strictObject({ acao: z.literal("iniciar_senha"), email: z.email().max(254), senha: senhaEntrada }),
   z.strictObject({ acao: z.literal("iniciar_registro"), convite: z.string().regex(/^[A-Za-z0-9_-]{43}$/), senha: novaSenha }),
+  z.strictObject({ acao: z.literal("concluir_registro_senha"), convite: z.string().regex(/^[A-Za-z0-9_-]{43}$/), senha: novaSenha }),
   z.strictObject({ acao: z.literal("concluir_login"), resposta: loginResposta }),
   z.strictObject({ acao: z.literal("concluir_registro"), resposta: registroResposta }),
 ]);

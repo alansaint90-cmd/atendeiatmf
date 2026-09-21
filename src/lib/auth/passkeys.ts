@@ -47,6 +47,35 @@ export async function iniciarRegistro(banco: BancoSql, convite: string, origem?:
   return { options, token: await guardarDesafio(banco, options.challenge, "registro", usuario.id, usuario.convite), aviso: preparada.aviso };
 }
 
+/** Conclui o primeiro acesso somente com senha, sem solicitar ou salvar passkey. */
+export async function concluirRegistroSenha(banco: BancoSql, convite: string, senha: string) {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(convite)) throw recusaLogin();
+  await limitarAuth(banco, "registro:senha", 30);
+  await limitarAuth(banco, `convite:${hashToken(convite)}`, 5);
+  const preparada = await prepararSenha(senha);
+  const sessao = novoToken();
+  await banco.transaction(async tx => {
+    const [usuario] = linhas<{ id: string; convite: string }>(await tx.execute(sql`
+      SELECT u.id,c.id AS convite FROM atendeia_users_convites c
+      JOIN atendeia_users u ON c.user_id=u.id
+      WHERE c.token_hash=${hashToken(convite)} AND c.is_deleted=false AND c.usado_em IS NULL
+        AND c.expira_em>now() AND u.is_deleted=false AND u.enabled=false
+      FOR UPDATE OF c,u
+    `));
+    if (!usuario) throw recusaLogin();
+    const usados = linhas(await tx.execute(sql`UPDATE atendeia_users_convites SET usado_em=now(),updated_at=now()
+      WHERE id=${usuario.convite} AND is_deleted=false AND usado_em IS NULL AND expira_em>now() RETURNING id`));
+    if (!usados.length) throw recusaLogin();
+    const ativado = linhas(await tx.execute(sql`UPDATE atendeia_users SET password_hash=${preparada.hash},enabled=true,
+      updated_at=now(),version=version+1,modified_by=${usuario.id}
+      WHERE id=${usuario.id} AND enabled=false AND is_deleted=false RETURNING id`));
+    if (!ativado.length) throw recusaLogin();
+    await auditarIdentidade(tx, usuario.id, "senha_inicial_definida");
+    await criarSessao(tx, usuario.id, sessao, 86400, "login_primeiro_acesso");
+  });
+  return { sessao, aviso: preparada.aviso };
+}
+
 export async function concluirRegistro(banco: BancoSql, token: string, resposta: RegistrationResponseJSON, origem?: string) {
   const config = configuracaoPasskey(origem);
   await limitarAuth(banco, "registro:conclusao", 30);

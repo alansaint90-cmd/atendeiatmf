@@ -10,7 +10,7 @@ import { entradaAuth } from "@/lib/auth/validacao";
 import { autenticarSenha } from "@/lib/auth/login-senha";
 import { exigirSessao } from "@/lib/auth/sessao";
 import { iniciarFator, concluirFator } from "@/lib/auth/passkeys-perfil";
-import { configuracaoPasskey, iniciarLogin, iniciarRegistro, concluirLogin, concluirRegistro } from "@/lib/auth/passkeys";
+import { configuracaoPasskey, iniciarLogin, iniciarRegistro, concluirLogin, concluirRegistro, concluirRegistroSenha } from "@/lib/auth/passkeys";
 import { nomeCookieDesafio, nomeCookieSessao, opcoesCookie } from "@/lib/auth/cookies";
 
 export const runtime = "nodejs";
@@ -48,6 +48,11 @@ async function autenticar(request: Request) {
       await concluirFator(db(), sessao, token, entrada.resposta);
       jar.set(nomeCookieSessao(), "", opcoesCookie(0));
       return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (entrada.acao === "concluir_registro_senha") {
+      const resultado = await concluirRegistroSenha(db(), entrada.convite, entrada.senha);
+      jar.set(nomeCookieSessao(), resultado.sessao, opcoesCookie(86400));
+      return NextResponse.json({ ok: true, aviso: resultado.aviso }, { headers: { "Cache-Control": "no-store" } });
     }
     if (entrada.acao === "iniciar_login" || entrada.acao === "iniciar_registro" || entrada.acao === "iniciar_senha") {
       const usuario = entrada.acao === "iniciar_senha" ? await autenticarSenha(db(), { email: entrada.email, senha: entrada.senha }) : undefined;

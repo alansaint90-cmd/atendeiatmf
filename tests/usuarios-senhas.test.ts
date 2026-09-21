@@ -29,7 +29,7 @@ test("Argon2id usa salt único, preserva espaços e consulta vazamentos sem envi
   await assert.rejects(prepararSenha("x".repeat(257), hibpVazio));
 });
 
-test("usuários preservam hierarquia, colisão, auditoria e revogação; senha não cria sessão antes do fator", async () => {
+test("usuários preservam hierarquia, colisão, auditoria e revogação; senha cria sessão individual", async () => {
   const cliente = new PGlite(); const banco = drizzle(cliente);
   try {
     await applyMigrations(banco);

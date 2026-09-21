@@ -70,7 +70,7 @@ export async function alterarUsuario(banco: BancoSql, sessao: SessaoAtiva, entra
     if (!alvo || alvo.version !== dados.version) throw new ErroDeNegocio("Usuário alterado. Recarregue a lista.");
     permitir(ator, alvo.papel, dados.papel, alvo.id);
     if (dados.ativo && (alvo.pendente || !linhas(await tx.execute(sql`SELECT id FROM atendeia_users_passkeys WHERE user_id=${alvo.id} AND is_deleted=false`)).length)) {
-      throw new ErroDeNegocio("O usuário precisa concluir o primeiro acesso com senha e passkey.");
+      throw new ErroDeNegocio("O usuário precisa concluir o primeiro acesso e definir uma senha.");
     }
     await auditar(tx, ator.userId, alvo.id, "usuario_alterado", dados.motivo, { papel: alvo.papel, ativo: alvo.ativo }, { papel: dados.papel, ativo: dados.ativo });
     await tx.execute(sql`UPDATE atendeia_users SET name=${dados.nome},email=${dados.email},role=${dados.papel},enabled=${dados.ativo},
