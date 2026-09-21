@@ -19,7 +19,7 @@ export function Workspace({ papel }: { papel: Papel }) {
   const [route, setRoute] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const gestor = papel === "admin" || papel === "super_admin";
-  const menu = nav.filter(([id]) => id === "settings" ? papel === "super_admin" : ["team", "followups", "tags", "agendamentos", "chatbot", "flows", "campaigns"].includes(id) ? gestor : true);
+  const menu = nav.filter(([id]) => id === "settings" ? gestor : ["team", "followups", "tags", "agendamentos", "chatbot", "flows", "campaigns"].includes(id) ? gestor : true);
   return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""}`}><aside className="sidebar"><Marca /><nav>{menu.map(([id, label, ico]) => <button key={id} className={route === id ? "active" : ""} data-route={id} aria-label={label} aria-current={route === id ? "page" : undefined} onClick={() => setRoute(id)}><span dangerouslySetInnerHTML={{ __html: icon(ico) }} /><span className="nav-label">{label}</span></button>)}</nav><div className="account"><strong>{nomesPapeis[papel]}</strong><Link href="/perfil">Meu perfil e sessões</Link></div></aside>
     <section className="workspace"><header className="topbar"><button className="icon-button" aria-label="Alternar menu" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>☰</button><strong>{nav.find(item => item[0] === route)?.[1]}</strong><div className="top-actions"><span className="badge">Dados protegidos</span></div></header>
       <main className="content">
@@ -30,7 +30,7 @@ export function Workspace({ papel }: { papel: Papel }) {
         <div hidden={route !== "tags"}><TagsPage ativo={route === "tags"} /></div>
         <div hidden={route !== "agendamentos"}><AgendamentosPage ativoNaTela={route === "agendamentos"} /></div></>}
         {gestor && route === "team" && <UsuariosPage papel={papel} />}
-        {papel === "super_admin" && route === "settings" && <Settings />}
+        {gestor && route === "settings" && <Settings podeEditar={papel === "super_admin"} />}
         <div hidden={!["dashboard", "contacts", "inbox"].includes(route)}><OperacaoPage rota={route} /></div>
         {!["dashboard", "contacts", "inbox", "team"].includes(route) && demoViews[route] && <div className="page-stack demo-view" dangerouslySetInnerHTML={{ __html: demoViews[route]() }} />}
       </main>

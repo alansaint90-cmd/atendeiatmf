@@ -10,7 +10,7 @@ function unavailable() {
 }
 
 export async function GET() {
-  const acesso = await administradorHttp();
+  const acesso = await administradorHttp("admin");
   if (acesso.erro) return json({ error: "Acesso não autorizado." }, acesso.erro);
   try {
     const result = await readSettings();

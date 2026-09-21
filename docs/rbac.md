@@ -81,7 +81,7 @@ A matriz operacional vigente substitui os exemplos genéricos acima:
 | --- | --- |
 | Dashboard, contatos e caixa de entrada | operador (SDR) |
 | Tags, follow-ups e agendamentos | admin (Gerente) |
-| Integrações e estado do agente | super_admin (Super administrador) |
+| Integrações e estado do agente | admin (consulta), super_admin (alteração) |
 | Equipe | admin, somente SDRs; super_admin, gerentes e SDRs |
 | Perfil, senha e passkeys próprias | visualizador |
 

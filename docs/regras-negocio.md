@@ -6,7 +6,7 @@
 - Atraso: inteiro entre 0 e 3600 segundos. Temperatura: entre 0 e 1. Contexto: até 200 mil caracteres.
 - Toda leitura e gravação passa pela validação centralizada. Dados inválidos não são substituídos automaticamente.
 - Uma gravação é recusada se outra aba alterou os dados desde a leitura. O usuário deve recarregar antes de tentar novamente. Essa checagem local não substitui transações no futuro backend.
-- O painel exige sessão individual. A administração de integrações e do agente exige super administrador. Respostas por IA dependem da ativação explícita no servidor e nas configurações.
+- O painel exige sessão individual. Gerentes podem consultar integrações e o estado do agente; alterações de integrações e do agente exigem super administrador. Respostas por IA dependem da ativação explícita no servidor e nas configurações.
 
 ## Credenciais de integrações
 
