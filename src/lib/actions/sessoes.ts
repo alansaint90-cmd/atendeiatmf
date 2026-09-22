@@ -29,3 +29,19 @@ export async function encerrarMinhaSessao(entrada: unknown) {
     if (atual) cookie.set(nomeCookieSessao(), "", opcoesCookie(0)); return { atual };
   });
 }
+
+export async function sairDoSistema() {
+  return executar(async () => {
+    const sessao = await exigirSessao();
+    await exigirPermissao(sessao, "visualizador");
+    const cookie = await cookies();
+    await db().transaction(async tx => {
+      const itens = await tx.execute(sql`UPDATE atendeia_sessions SET is_deleted=true,deleted_at=now(),updated_at=now(),modified_by=${sessao.userId}
+        WHERE id=${sessao.sessionId} AND user_id=${sessao.userId} AND is_deleted=false RETURNING id`);
+      if (!itens.length) throw new ErroDeNegocio("Sessão indisponível.");
+      await auditarIdentidade(tx, sessao.userId, "sessao_encerrada", sessao.sessionId);
+    });
+    cookie.set(nomeCookieSessao(), "", opcoesCookie(0));
+    return { atual: true };
+  });
+}

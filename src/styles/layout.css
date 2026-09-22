@@ -51,9 +51,42 @@
   gap: 4px;
 }
 
-.account span {
-  color: var(--muted);
-  font-size: 14px;
+.account button {
+  width: 100%;
+  justify-content: center;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.account button:disabled { opacity: 0.6; cursor: wait; }
+.account p { color: var(--red); font-size: 13px; margin: 4px 0 0; }
+
+.user-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1b2a33;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e9e5ff;
+  color: #5142c5;
+  font-size: 13px;
+}
+
+.user-name { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .user-name { max-width: 110px; }
 }
 
 .workspace {

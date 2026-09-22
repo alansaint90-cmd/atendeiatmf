@@ -2,12 +2,11 @@ import { cookies } from "next/headers";
 import { ErroDeNegocio } from "@/lib/acao";
 import { db } from "@/lib/db/client";
 import { ensureDatabase } from "@/lib/db/migrate";
-import { lerSessao } from "./repositorio";
+import { lerSessao, type Identidade } from "./repositorio";
 import { nomeCookieSessao } from "./cookies";
-import type { SessaoAtiva } from "./permissoes";
 
 /** Sessao com papel e `ativo` lidos do BANCO a cada requisicao — nunca do token. */
-export async function obterSessao(): Promise<SessaoAtiva | null> {
+export async function obterSessao(): Promise<Identidade | null> {
   if (process.env.AUTH_LOGIN_ENABLED !== "true") return null;
   const token = (await cookies()).get(nomeCookieSessao())?.value;
   if (!token) return null;
@@ -16,7 +15,7 @@ export async function obterSessao(): Promise<SessaoAtiva | null> {
 }
 
 /** Portao de toda Server Action: sem sessao valida, nada roda. */
-export async function exigirSessao(): Promise<SessaoAtiva> {
+export async function exigirSessao(): Promise<Identidade> {
   const sessao = await obterSessao();
   if (!sessao) throw new ErroDeNegocio("Sessao expirada. Entre novamente.");
   return sessao;
