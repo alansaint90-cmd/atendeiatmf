@@ -1,4 +1,4 @@
-.page-stack { display: grid; gap: 22px; min-width: 0; }
+.page-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; min-width: 0; }
 [hidden] { display: none !important; }
 .bot-transfer-fields { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
 .form-panel textarea { width: 100%; line-height: 1.65; }

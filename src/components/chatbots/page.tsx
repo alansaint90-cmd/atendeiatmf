@@ -69,7 +69,7 @@ export function ChatbotsPage() {
       setEditor({ registro: null, bot: { ...structuredClone(chatbotExample), id: crypto.randomUUID(), identifier: "", persona: "", mission: "", context: "", personalities: ["Profissional"] } });
     }}>+ Novo chatbot de IA</button></section>
     <article className="panel"><h2>Seus assistentes</h2><p className="bot-local-note">Configurações compartilhadas e salvas no servidor. O chatbot vinculado à Evolution controla o atendimento.</p>
-      {itens.length ? <div className="table"><table><thead><tr><th>Identificador</th><th>Persona</th><th>Personalidade</th><th>Ações</th></tr></thead><tbody>{itens.map(item => <tr key={item.id}><td>{item.configuracao.identifier}</td><td>{item.configuracao.persona}</td><td>{item.configuracao.personalities.join(" · ")}</td><td><button className="secondary" data-edit-bot={item.id} onClick={() => {
+      {itens.length ? <div className="table chatbot-table"><table><thead><tr><th>Identificador</th><th>Persona</th><th>Personalidade</th><th>Ações</th></tr></thead><tbody>{itens.map(item => <tr key={item.id}><td data-label="Identificador">{item.configuracao.identifier}</td><td data-label="Persona">{item.configuracao.persona}</td><td data-label="Personalidade">{item.configuracao.personalities.join(" · ")}</td><td data-label="Ações"><button className="secondary" data-edit-bot={item.id} onClick={() => {
         if (!discard()) return; setDirty(false); setContext(selecionado?.configuracao.context ?? ""); setError(""); setEditor({ bot: item.configuracao, registro: item });
       }}>Configurar</button></td></tr>)}</tbody></table></div> : <p>Nenhum chatbot cadastrado. Crie o primeiro assistente.</p>}
     </article>

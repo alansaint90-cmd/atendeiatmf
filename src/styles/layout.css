@@ -1,7 +1,7 @@
 .shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 282px 1fr;
+  grid-template-columns: 282px minmax(0, 1fr);
 }
 
 .sidebar {
@@ -126,6 +126,7 @@
 .content {
   padding: 22px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
 }
 
