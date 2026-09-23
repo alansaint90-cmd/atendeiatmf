@@ -164,15 +164,13 @@ small {
   gap: 14px;
 }
 
-.form-card form,
-.form-card details {
+.form-card form {
   display: grid;
   gap: 8px;
   min-width: 0;
 }
 
-.form-card form > button,
-.form-card details > button {
+.form-card form > button {
   justify-self: start;
 }
 

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
-import { FormularioPasskey } from "../src/app/entrar/_components/formulario";
+import { FormularioLogin } from "../src/app/entrar/_components/formulario";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
@@ -14,7 +14,7 @@ function preencherLogin() {
 
 test("mostra e oculta a senha sem enviar o formulário", () => {
   const fetchMock = vi.spyOn(globalThis, "fetch");
-  render(<FormularioPasskey />);
+  render(<FormularioLogin />);
   const campo = screen.getByLabelText("Senha", { exact: true });
   expect(campo).toHaveAttribute("type", "password");
   fireEvent.click(screen.getByRole("button", { name: "Mostrar senha" }));
@@ -30,25 +30,21 @@ test.each([
   [503, "O serviço está temporariamente indisponível. Tente novamente em instantes."],
 ])("mostra a mensagem adequada ao erro HTTP %i", async (status, mensagem) => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status } as Response);
-  render(<FormularioPasskey />);
+  render(<FormularioLogin />);
   preencherLogin();
   expect(await screen.findByRole("alert")).toHaveTextContent(mensagem);
-  expect(screen.queryByText(/Verifique o código do convite/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/convite/i)).not.toBeInTheDocument();
 });
 
 test("explica falha de conexão sem exibir detalhes internos", async () => {
   vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
-  render(<FormularioPasskey />);
+  render(<FormularioLogin />);
   preencherLogin();
   expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
 });
 
-test("mostra erro de convite apenas no primeiro acesso", async () => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 401 } as Response);
-  render(<FormularioPasskey />);
-  fireEvent.click(screen.getByText("Primeiro acesso com convite"));
-  fireEvent.change(screen.getByLabelText("Convite"), { target: { value: "x".repeat(43) } });
-  fireEvent.change(screen.getByLabelText("Defina sua senha"), { target: { value: "frase longa exclusiva" } });
-  fireEvent.click(screen.getByRole("button", { name: "Criar senha e entrar" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Convite inválido, expirado ou já utilizado.");
+test("não mostra convite nem retorno ao painel", () => {
+  render(<FormularioLogin />);
+  expect(screen.queryByText(/primeiro acesso com convite/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/voltar ao painel/i)).not.toBeInTheDocument();
 });
