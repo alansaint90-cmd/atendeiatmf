@@ -18,6 +18,10 @@
 .followup-step { border-top: 1px solid #e1e8ed; padding: 20px 0; }
 .followup-step h2 { font-size: 16px; }
 .followup-step > label { margin-bottom: 16px; }
+.followup-save-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 16px -24px -24px; padding: 14px 24px; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; background: var(--surface); box-shadow: 0 -8px 24px #10202b0d; }
+.followup-save-bar > span { min-width: 0; color: var(--muted); font-size: 13px; }
+.followup-save-bar > .error-message { color: #a42128; }
+.followup-save-bar > button { flex: 0 0 auto; }
 .feature-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .tag-search { width: min(100%, 420px); }
 .tag-editor { border: 1px solid #b6ddce; border-radius: 8px; padding: 18px; display: grid; gap: 14px; margin-bottom: 24px; }
@@ -35,4 +39,4 @@
 .agenda-incerto, .agenda-erro { background: #fff0e6; color: #88420b; }
 .agenda-pendente { background: #eaf2ff; color: #215aa0; }
 .feature-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 22px; font-size: 13px; }
-@media (max-width: 720px) { .followup-grid, .followup-grid.three, .admin-access { grid-template-columns: 1fr; } .feature-pagination { flex-wrap: wrap; } .sidebar { min-width: 0; } }
+@media (max-width: 720px) { .followup-grid, .followup-grid.three, .admin-access { grid-template-columns: 1fr; } .feature-pagination { flex-wrap: wrap; } .sidebar { min-width: 0; } .followup-save-bar { flex-wrap: wrap; margin: 16px -16px -16px; padding: 12px 16px; } .followup-save-bar > button { width: 100%; } }

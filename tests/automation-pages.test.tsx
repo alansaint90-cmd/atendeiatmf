@@ -1,8 +1,8 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, act } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, act, waitFor } from "@testing-library/react";
 import { TagsPage } from "@/components/tags/page";
 import { FollowupsPage } from "@/components/followups/page";
-import { defaultFollowup } from "@/lib/followups/schema";
+import { defaultFollowup, followupSchema } from "@/lib/followups/schema";
 import { carregarTags, salvarTag, excluirTag } from "@/lib/actions/tags";
 import { carregarFollowups, salvarFollowups } from "@/lib/actions/followups";
 
@@ -35,6 +35,33 @@ test("follow-up carrega três mensagens desligadas e valida ativação", async (
   fireEvent.click(screen.getByText("Salvar follow-ups"));
   expect(screen.getByRole("alert")).toHaveTextContent("ative ao menos uma mensagem");
   expect(salvarFollowups).not.toHaveBeenCalled();
+});
+test("follow-up preserva ajustes ao trocar de aba e recarrega o que foi salvo", async () => {
+  let persisted = structuredClone(defaultFollowup);
+  vi.mocked(carregarFollowups).mockImplementation(async () => ({ ok: true, dados: { config: structuredClone(persisted), version: 1, instance: "teste" } }));
+  vi.mocked(salvarFollowups).mockImplementation(async input => {
+    persisted = followupSchema.parse(input);
+    return { ok: true, dados: { config: structuredClone(persisted), version: 2, instance: "teste" } };
+  });
+  const view = render(<FollowupsPage />);
+  const field = await screen.findByLabelText("Mensagem 1");
+  fireEvent.change(field, { target: { value: "Mensagem ajustada para o cliente" } });
+  expect(screen.getByText("Alterações não salvas")).toBeInTheDocument();
+  view.rerender(<FollowupsPage ativo={false} />);
+  view.rerender(<FollowupsPage ativo />);
+  expect(screen.getByLabelText("Mensagem 1")).toHaveValue("Mensagem ajustada para o cliente");
+  expect(carregarFollowups).toHaveBeenCalledTimes(1);
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByRole("button", { name: "Salvar follow-ups" }));
+  for (let i = 0; i < 3; i++) await act(() => vi.advanceTimersByTimeAsync(1000));
+  expect(screen.getByRole("button", { name: "Confirmar" })).not.toBeDisabled();
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirmar" })); });
+  expect(salvarFollowups).toHaveBeenCalledTimes(1);
+  vi.useRealTimers();
+  await waitFor(() => expect(screen.getByText("Follow-ups salvos no servidor.")).toBeInTheDocument());
+  view.unmount();
+  render(<FollowupsPage />);
+  expect(await screen.findByLabelText("Mensagem 1")).toHaveValue("Mensagem ajustada para o cliente");
 });
 test("erro administrativo é exibido sem abrir os campos protegidos", async () => {
   vi.mocked(carregarTags).mockResolvedValue({ ok: false, erro: "Token inválido" });
