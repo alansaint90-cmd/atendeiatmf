@@ -7,6 +7,8 @@ import { agentConfigSchema, type AgentConfig } from "../src/lib/agent/config";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
 import { transcribeAudio } from "../src/lib/agent/audio";
 import { ProviderError } from "../src/lib/agent/providers";
+import { montarInstrucoesDoAgente } from "../src/lib/chatbots/prompt-servidor";
+import { chatbotExample } from "../src/lib/chatbots/defaults";
 
 const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "Atenda com o contexto cadastrado.",
   OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "gpt-4.1-mini", EVOLUTION_API_KEY: "teste",
@@ -191,6 +193,17 @@ test("configuração exige ativação explícita, prompt, modelo e credenciais",
   assert.equal(agentConfigSchema.safeParse(config).success, true);
   for (const field of ["AI_ENABLED", "AI_SYSTEM_PROMPT", "OPENAI_MODEL", "OPENAI_API_KEY", "EVOLUTION_API_KEY"])
     assert.equal(agentConfigSchema.safeParse({ ...config, [field]: "" }).success, false);
+});
+
+test("prompt do chatbot tem prioridade explícita sobre o contexto geral", () => {
+  const instrucoes = montarInstrucoesDoAgente("A empresa atende em horário comercial.", {
+    ...chatbotExample, context: "Apresente-se como Thaís e siga este roteiro.", mission: "Atender os clientes do TMF.",
+  });
+  assert.ok(instrucoes.includes("CONTEXTO GERAL DA OPERAÇÃO"));
+  assert.ok(instrucoes.includes("A empresa atende em horário comercial."));
+  assert.ok(instrucoes.includes("Apresente-se como Thaís e siga este roteiro."));
+  assert.ok(instrucoes.includes("estas instruções têm prioridade"));
+  assert.ok(instrucoes.endsWith("Em caso de conflito, siga a configuração do chatbot."));
 });
 
 test("OpenAI recebe contexto e histórico separados, sem salvar resposta no provedor", async () => {

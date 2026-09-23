@@ -1,19 +1,16 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { AgentSettings } from "@/components/agent-settings";
-import { chatbotExample } from "@/lib/chatbots/defaults";
-import { storageKey } from "@/lib/chatbots/repository";
 
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); });
-test("importa o contexto editado sem ativar respostas automaticamente", () => {
-  localStorage.setItem(storageKey, JSON.stringify([{ ...chatbotExample, context: "Contexto do cliente" }]));
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+test("explica que o contexto geral não substitui as instruções do chatbot", () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ workerEnabled: false, enabled: false, queued: 0 })));
   const change = vi.fn();
   render(<AgentSettings values={{}} disabled={false} onChange={change} />);
   expect(screen.getByLabelText("Respostas automáticas")).toHaveValue("false");
-  fireEvent.click(screen.getByText("Buscar contextos dos chatbots deste navegador"));
-  fireEvent.change(screen.getByLabelText("Copiar contexto de"), { target: { value: chatbotExample.id } });
-  expect(change).toHaveBeenCalledWith("AI_SYSTEM_PROMPT", expect.stringContaining("Contexto do cliente"));
-  expect(change).not.toHaveBeenCalledWith("AI_ENABLED", "true");
+  expect(screen.getByText(/instruções configuradas em Chatbot IA têm prioridade/)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Contexto geral do agente"), { target: { value: "Informações da empresa" } });
+  expect(change).toHaveBeenCalledWith("AI_SYSTEM_PROMPT", "Informações da empresa");
 });
 test("diagnóstico é consultado automaticamente pela sessão e exibe erro", async () => {
   const fetchMock = vi.fn().mockResolvedValue(Response.json({ error: "Redis indisponível" }, { status: 503 }));

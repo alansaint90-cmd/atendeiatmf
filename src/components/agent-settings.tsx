@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { loadChatbots, errorMessage } from "@/lib/chatbots/repository";
-import type { Chatbot } from "@/lib/chatbots/schema";
+import { errorMessage } from "@/lib/chatbots/repository";
 
 interface AgentSettingsProps {
   values: Record<string, string>;
@@ -10,7 +9,6 @@ interface AgentSettingsProps {
 }
 
 export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps) {
-  const [bots, setBots] = useState<Chatbot[]>([]);
   const [error, setError] = useState("");
   const [diagnostic, setDiagnostic] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,18 +32,8 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
       <option value="false">Desativadas</option><option value="true">Ativadas</option>
     </select></label>
     <label>Contexto geral do agente<textarea rows={14} maxLength={200000} value={values.AI_SYSTEM_PROMPT ?? ""}
-      onChange={event => onChange("AI_SYSTEM_PROMPT", event.target.value)} placeholder="Escreva o prompt de atendimento que será usado no WhatsApp." /></label>
-    <small>Este é o contexto usado no servidor. Alterações nos chatbots locais precisam ser copiadas novamente e salvas aqui. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
-    <button type="button" className="secondary" onClick={() => {
-      try { setBots(loadChatbots(localStorage).bots); setError(""); }
-      catch (error) { setError(errorMessage(error)); }
-    }}>Buscar contextos dos chatbots deste navegador</button>
-    {bots.length > 0 ? <label>Copiar contexto de<select defaultValue="" onChange={event => {
-      const bot = bots.find(item => item.id === event.target.value);
-      if (bot) onChange("AI_SYSTEM_PROMPT", [`Nome do assistente: ${bot.persona}`, `Estilo: ${bot.personalities.join(", ")}`,
-        `Missão: ${bot.mission}`, bot.context, `Quando não souber: ${bot.fallback}`].join("\n\n"));
-    }}><option value="">Selecione um chatbot</option>{bots.map(bot => <option key={bot.id} value={bot.id}>{bot.identifier}</option>)}</select></label>
-      : <small>Nenhum contexto local carregado. Você também pode escrever o prompt acima.</small>}
+      onChange={event => onChange("AI_SYSTEM_PROMPT", event.target.value)} placeholder="Escreva informações gerais da empresa e do atendimento." /></label>
+    <small>Este texto serve como contexto geral. As instruções configuradas em Chatbot IA têm prioridade e são seguidas pelo agente nas próximas mensagens. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
     {loading && <p role="status">Consultando agente e fila…</p>}
     {diagnostic && <p role="status">{diagnostic}</p>}{error && <p role="alert">{error}</p>}
   </fieldset>;

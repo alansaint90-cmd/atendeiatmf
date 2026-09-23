@@ -10,8 +10,10 @@ Não funciona como worker persistente em hospedagem serverless.
 
 Mantemos a configuração administrativa existente no PostgreSQL, com criptografia,
 autenticação e versão. AI_SYSTEM_PROMPT é editável e salvo nesse mesmo repositório;
-o navegador pode importar uma cópia do contexto de um chatbot local. Não criamos
-um segundo cadastro ou migração de tabelas para esta etapa.
+ele representa o contexto geral da operação. Chatbots são compartilhados no PostgreSQL
+e o chatbot vinculado ao canal Evolution fornece as instruções prioritárias: persona,
+missão, prompt de atendimento, fallback, transferência e fluxos. O worker recompõe a
+configuração a cada mensagem; uma alteração salva passa a valer nas mensagens seguintes.
 
 Entrega e histórico recente ficam no Redis dedicado. Consumer group com consumidor
 fixo e lease global recuperam eventos pendentes; scripts Lua verificam posse antes

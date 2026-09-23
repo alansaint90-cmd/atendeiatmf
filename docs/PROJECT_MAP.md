@@ -6,9 +6,9 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 117 |
+| Arquivos TS/TSX | 120 |
 | Tabelas (Drizzle) | 30 |
-| Server Actions (arquivos) | 8 |
+| Server Actions (arquivos) | 9 |
 | Rotas de API | 5 |
 | Paginas | 4 |
 | Componentes | 14 |
@@ -62,6 +62,7 @@ components/
 lib/
   actions/
     agendamentos.ts
+    chatbots.ts
     crm.ts
     followups.ts
     operacao.ts
@@ -103,9 +104,11 @@ lib/
     validacao.ts
   chatbots/
     defaults.ts
+    prompt-servidor.ts
     prompt.ts
     repository.ts
     schema.ts
+    server-repository.ts
   crm/
     acesso.ts
     cadastros.ts
@@ -267,11 +270,12 @@ _(colunas nao detectadas)_
 ## Server Actions
 
 - `src/lib/actions/agendamentos.ts`: `carregarAgendamentos()`, `gravarAgendamento()`, `cancelarEnvioAgendado()`
+- `src/lib/actions/chatbots.ts`: `carregarChatbots()`, `salvarChatbot()`
 - `src/lib/actions/crm.ts`: `carregarCrm()`, `adicionarFunil()`, `adicionarMotivo()`, `modificarMotivo()`, `salvarAcessosFunis()`, `adicionarOportunidade()`, `fecharNegocio()`, `moverNegocio()`
 - `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
 - `src/lib/actions/operacao.ts`: `carregarOperacao()`
 - `src/lib/actions/seguranca.ts`: `trocarMinhaSenha()`, `minhasPasskeys()`, `removerMinhaPasskey()`
-- `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`
+- `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`, `sairDoSistema()`
 - `src/lib/actions/tags.ts`: `carregarTags()`, `salvarTag()`, `excluirTag()`
 - `src/lib/actions/usuarios.ts`: `carregarUsuarios()`, `convidarUsuario()`, `atualizarUsuario()`, `reiniciarAcessoUsuario()`
 

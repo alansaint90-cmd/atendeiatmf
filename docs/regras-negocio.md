@@ -1,5 +1,8 @@
 # Regras do protótipo
 
+- O contexto geral salvo em Configurações fornece informações comuns da operação. O chatbot vinculado à instância Evolution fornece persona, missão, prompt de atendimento, fallback, transferência e fluxos; em conflito, a configuração do chatbot tem prioridade. Alterações salvas por gerente ou super administrador valem para as próximas mensagens processadas.
+- `carregarChatbots` e `salvarChatbot` exigem sessão de gerente ou superior, usam o PostgreSQL compartilhado e vinculam o chatbot salvo à instância Evolution configurada. `sairDoSistema` encerra e audita a sessão atual antes de apagar o cookie.
+
 - Configurações de chatbot pertencem ao navegador e à origem onde foram salvas; não são compartilhadas com outros usuários.
 - Identificadores de chatbot são obrigatórios e únicos, sem distinção entre maiúsculas e minúsculas.
 - Cada chatbot permite até três personalidades distintas e até 50 fluxos com nome e descrição preenchidos.

@@ -1,30 +1,34 @@
-import { afterEach, expect, test } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { ChatbotsPage } from "@/components/chatbots/page";
 import { Settings } from "@/components/settings";
 import { chatbotExample } from "@/lib/chatbots/defaults";
-import { storageKey } from "@/lib/chatbots/repository";
+const actions = vi.hoisted(() => ({ carregar: vi.fn(), salvar: vi.fn() }));
+vi.mock("@/lib/actions/chatbots", () => ({ carregarChatbots: actions.carregar, salvarChatbot: actions.salvar }));
 
-afterEach(() => { cleanup(); localStorage.clear(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-test("contexto persistido carrega e continua editável após a hidratação", () => {
-  localStorage.setItem(storageKey, JSON.stringify([{ ...chatbotExample, context: "Atendimento personalizado" }]));
+test("prompt do servidor carrega, continua editável e volta ao servidor", async () => {
+  const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Atendimento personalizado" }, versao: 0 };
+  actions.carregar.mockResolvedValue({ ok: true, dados: [registro] });
+  actions.salvar.mockResolvedValue({ ok: true, dados: { ...registro, configuracao: { ...registro.configuracao, context: "Contexto atualizado" }, versao: 1 } });
   expect(renderToString(<ChatbotsPage />)).toContain("Carregando chatbots");
   render(<ChatbotsPage />);
-  const field = screen.getByLabelText("Prompt de atendimento");
+  const field = await screen.findByLabelText("Prompt de atendimento");
   expect(field).toHaveValue("Atendimento personalizado");
   fireEvent.change(field, { target: { value: "Contexto atualizado" } });
-  fireEvent.click(screen.getByRole("button", { name: "Salvar contexto geral" }));
-  expect(JSON.parse(localStorage.getItem(storageKey)!)[0].context).toBe("Contexto atualizado");
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(actions.salvar).toHaveBeenCalledWith(expect.objectContaining({
+    id: registro.id, versao: 0, configuracao: expect.objectContaining({ context: "Contexto atualizado" }),
+  })));
+  expect(await screen.findByRole("status")).toHaveTextContent("agente usará estas instruções");
 });
 
-test("dados inválidos continuam preservados e exibem erro", () => {
-  localStorage.setItem(storageKey, "inválido");
+test("falha ao consultar servidor exibe erro e permite nova tentativa posteriormente", async () => {
+  actions.carregar.mockResolvedValue({ ok: false, erro: "Não foi possível carregar os chatbots." });
   render(<ChatbotsPage />);
-  expect(screen.getByRole("alert")).toHaveTextContent("Os dados salvos são inválidos");
-  expect(localStorage.getItem(storageKey)).toBe("inválido");
-  expect(screen.getByRole("button", { name: /Novo chatbot/ })).toBeDisabled();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar os chatbots");
 });
 
 test("URL de webhook usa a origem do navegador somente no cliente", () => {

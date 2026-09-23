@@ -14,6 +14,9 @@ import { parseFollowup } from "../followups/schema";
 import { followupStore } from "../followups/queue";
 import { processFollowup } from "../followups/processor";
 import { executarAgendamentos } from "../agendamentos/worker";
+import { chatbotDaInstancia } from "../chatbots/server-repository";
+import { montarInstrucoesDoAgente } from "../chatbots/prompt-servidor";
+import { db } from "../db/client";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -22,7 +25,11 @@ function report(status: string) {
   if (lastLog !== status) { console.info(`Atende AI agente: ${status}`); lastLog = status; }
 }
 
-export async function runAgentTick(dependencies = { settings: effectiveSettings, generate: generateReply, send: sendReply }) {
+const dependenciasPadrao = { settings: effectiveSettings, generate: generateReply, send: sendReply,
+  chatbot: (instancia: string) => chatbotDaInstancia(db(), instancia) };
+export async function runAgentTick(substituicoes: Partial<typeof dependenciasPadrao> = {}) {
+  const dependencies = { ...dependenciasPadrao, ...substituicoes,
+    chatbot: substituicoes.chatbot ?? (Object.keys(substituicoes).length ? async () => null : dependenciasPadrao.chatbot) };
   const settings = await dependencies.settings();
   if (!settings.REDIS_URL) { report("Redis não configurado"); return; }
   const client = agentRedis(settings.REDIS_URL);
@@ -30,7 +37,10 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
   try {
     await client.connect();
     if (!await client.set(agentKeys.lock, token, "PX", 120000, "NX")) return;
-    const config = agentConfigSchema.safeParse(settings);
+    const configBase = agentConfigSchema.safeParse(settings);
+    const chatbot = configBase.success ? await dependencies.chatbot(configBase.data.EVOLUTION_INSTANCE_NAME) : null;
+    const config = configBase.success ? agentConfigSchema.safeParse({ ...configBase.data,
+      AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(configBase.data.AI_SYSTEM_PROMPT, chatbot) }) : configBase;
     const status = settings.AI_ENABLED !== "true" ? "desativado" : config.success ? "ativo" : "configuracao_incompleta";
     const previous = await client.get(agentKeys.heartbeat);
     const last = previous ? JSON.parse(previous) as { lastResult?: string; lastCode?: string; lastAt?: string } : {};
@@ -62,7 +72,10 @@ export async function runAgentTick(dependencies = { settings: effectiveSettings,
         result = await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
           enabled: async () => {
-            const current = agentConfigSchema.safeParse(await dependencies.settings());
+            const currentBase = agentConfigSchema.safeParse(await dependencies.settings());
+            const currentBot = currentBase.success ? await dependencies.chatbot(currentBase.data.EVOLUTION_INSTANCE_NAME) : null;
+            const current = currentBase.success ? agentConfigSchema.safeParse({ ...currentBase.data,
+              AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(currentBase.data.AI_SYSTEM_PROMPT, currentBot) }) : currentBase;
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
               && await client.get(agentKeys.lock) === token;
           },
