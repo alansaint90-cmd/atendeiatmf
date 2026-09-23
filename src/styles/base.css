@@ -164,6 +164,54 @@ small {
   gap: 14px;
 }
 
+.form-card form,
+.form-card details {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.form-card form > button,
+.form-card details > button {
+  justify-self: start;
+}
+
+.campo-senha {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.campo-senha-controle {
+  position: relative;
+  min-width: 0;
+}
+
+.campo-senha-controle input {
+  width: 100%;
+  padding-right: 52px;
+}
+
+.campo-senha-olho {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.campo-senha-olho svg {
+  width: 22px;
+  height: 22px;
+}
+
 label {
   display: grid;
   gap: 6px;
