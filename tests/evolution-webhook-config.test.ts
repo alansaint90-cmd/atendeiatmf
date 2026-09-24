@@ -42,7 +42,20 @@ test("sincronização recusa configuração incompleta e não confirma cabeçalh
     if (calls === 2) return Response.json({ ok: true });
     return Response.json({ url: `${origin}/api/webhooks/evolution`, events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"], headers: null });
   };
-  await assert.rejects(sincronizarWebhookEvolution({ ...values, EVOLUTION_WEBHOOK_SECRET: "" }, origin, request), ErroWebhookEvolution);
+  await assert.rejects(sincronizarWebhookEvolution({ ...values, EVOLUTION_WEBHOOK_SECRET: "" }, origin, request), erro => {
+    assert.ok(erro instanceof ErroWebhookEvolution);
+    assert.match(erro.message, /segredo do webhook/);
+    assert.doesNotMatch(erro.message, /segredo-webhook-de-teste/);
+    return true;
+  });
+  await assert.rejects(sincronizarWebhookEvolution({ EVOLUTION_INSTANCE_NAME: "thaistmf01" }, origin, request), erro => {
+    assert.ok(erro instanceof ErroWebhookEvolution);
+    assert.match(erro.message, /URL base da Evolution/);
+    assert.match(erro.message, /chave de API da Evolution/);
+    assert.match(erro.message, /segredo do webhook/);
+    assert.doesNotMatch(erro.message, /nome exato da instância/);
+    return true;
+  });
   assert.equal(calls, 0);
   await assert.rejects(sincronizarWebhookEvolution(values, origin, request), /não confirmou/);
   assert.equal(calls, 3);

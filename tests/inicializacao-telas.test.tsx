@@ -34,5 +34,5 @@ test("falha ao consultar servidor exibe erro e permite nova tentativa posteriorm
 test("URL de webhook usa a origem do navegador somente no cliente", () => {
   expect(renderToString(<Settings />)).not.toContain(`${window.location.origin}/api/webhooks/evolution`);
   render(<Settings />);
-  expect(screen.getByLabelText("URL de recebimento")).toHaveValue(`${window.location.origin}/api/webhooks/evolution`);
+  expect(screen.getByLabelText("URL de recebimento do Atende AI")).toHaveValue(`${window.location.origin}/api/webhooks/evolution`);
 });

@@ -7,6 +7,12 @@ const configuracaoSchema = settingsSchema.pick({
   EVOLUTION_INSTANCE_NAME: true,
   EVOLUTION_WEBHOOK_SECRET: true,
 }).required();
+const rotulosConfiguracao: Record<keyof z.infer<typeof configuracaoSchema>, string> = {
+  EVOLUTION_API_URL: "URL base da Evolution",
+  EVOLUTION_API_KEY: "chave de API da Evolution",
+  EVOLUTION_INSTANCE_NAME: "nome exato da instância",
+  EVOLUTION_WEBHOOK_SECRET: "segredo do webhook",
+};
 const webhookSchema = z.object({
   url: z.string(),
   events: z.array(z.string().regex(/^[A-Z_]+$/)).max(100),
@@ -35,7 +41,11 @@ async function consultar(url: string, key: string, request: typeof fetch): Promi
 
 export async function sincronizarWebhookEvolution(values: unknown, origin: string, request: typeof fetch = fetch): Promise<void> {
   const parsed = configuracaoSchema.safeParse(values);
-  if (!parsed.success) throw new ErroWebhookEvolution("Preencha URL, chave, instância e segredo da Evolution antes de sincronizar.");
+  if (!parsed.success) {
+    const campos = [...new Set(parsed.error.issues.map(issue =>
+      rotulosConfiguracao[issue.path[0] as keyof typeof rotulosConfiguracao] ?? "configuração da Evolution"))];
+    throw new ErroWebhookEvolution(`Confira em Configurações: ${campos.join(", ")}. Salve antes de sincronizar.`);
+  }
   const config = parsed.data;
   let app: URL;
   try { app = new URL(origin); }
