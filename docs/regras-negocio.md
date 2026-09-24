@@ -37,6 +37,7 @@
 ## Recepção de eventos Evolution
 
 - `POST /api/webhooks/evolution` autentica o serviço pelo header `x-webhook-secret`, comparado com `EVOLUTION_WEBHOOK_SECRET` (mínimo de 32 caracteres).
+- O super administrador pode usar `POST /api/settings/evolution-webhook` para sincronizar o webhook da instância configurada com a Evolution: a aplicação mantém os eventos existentes, inclui os três eventos aceitos, define a URL do `AUTH_ORIGIN`, desliga By Events/Base64 e envia `x-webhook-secret` como cabeçalho personalizado. A operação só confirma sucesso após consultar novamente a Evolution e verificar URL, eventos e cabeçalho; nunca exibe a chave.
 - Aceita apenas a instância definida em `EVOLUTION_INSTANCE_NAME` e os eventos `MESSAGES_UPSERT`, `MESSAGES_UPDATE` e `CONNECTION_UPDATE`.
 - Exige JSON, com no máximo 1 MiB; rejeita envelopes inválidos e remove campos extras do envelope, incluindo a chave de API da Evolution.
 - Retorna 202 apenas após gravação no stream Redis `atendeia:{evolution}:events`. Cada registro contém data de recebimento e origem. Redis indisponível ou fila cheia resultam em 503, sem alegar recebimento.

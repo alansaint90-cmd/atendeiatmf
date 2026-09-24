@@ -8,6 +8,12 @@ no processo Node persistente já usado pelo EasyPanel. Ele não roda durante bui
 nem inicia sem ATENDEIA_WORKER_ENABLED=true. AI_ENABLED permite pausar os envios.
 Não funciona como worker persistente em hospedagem serverless.
 
+A Evolution 2.3.7 da instalação pode entregar eventos sem o cabeçalho secreto e
+receber 401. O painel oferece sincronização explícita do webhook da instância pela
+API da Evolution, com `x-webhook-secret` em `headers`. Preserva outros eventos
+assinados, desliga By Events/Base64 e confirma o resultado por nova consulta. Não
+aceitamos `apikey` do corpo como autenticação: segredo de máquina só em cabeçalho.
+
 Mantemos a configuração administrativa existente no PostgreSQL, com criptografia,
 autenticação e versão. AI_SYSTEM_PROMPT é editável e salvo nesse mesmo repositório;
 ele representa o contexto geral da operação. Chatbots são compartilhados no PostgreSQL

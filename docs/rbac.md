@@ -82,6 +82,7 @@ A matriz operacional vigente substitui os exemplos genéricos acima:
 | Dashboard, contatos e caixa de entrada | operador (SDR) |
 | Tags, follow-ups e agendamentos | admin (Gerente) |
 | Integrações e estado do agente | admin (consulta), super_admin (alteração) |
+| Sincronizar webhook na Evolution | super_admin |
 | Equipe | admin, somente SDRs; super_admin, gerentes e SDRs |
 | Perfil, senha e passkeys próprias | visualizador |
 

@@ -1,6 +1,7 @@
 import { administradorHttp } from "@/lib/auth/acesso-http";
 import { environmentSettings, readSettings, saveSettings, SettingsConflict, AgentSettingsIncomplete } from "@/lib/settings/repository";
 import { saveSettingsSchema, settingsStatus } from "@/lib/settings/schema";
+import { origemHttpPermitida } from "@/lib/auth/origem-http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,14 +22,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   const acesso = await administradorHttp();
   if (acesso.erro) return json({ error: "Acesso não autorizado." }, acesso.erro);
-  const origin = request.headers.get("origin");
-  // Host is preserved by the reverse proxy even when Next's internal URL uses localhost.
-  if (!origin || origin !== process.env.AUTH_ORIGIN) return json({ error: "Origem não permitida." }, 403);
-  if (origin) {
-    try {
-      if (new URL(origin).host !== (request.headers.get("host") ?? new URL(request.url).host)) return json({ error: "Origem não permitida." }, 403);
-    } catch { return json({ error: "Origem não permitida." }, 403); }
-  }
+  if (!origemHttpPermitida(request)) return json({ error: "Origem não permitida." }, 403);
   if (request.headers.get("content-type")?.split(";")[0] !== "application/json") return json({ error: "Envie JSON." }, 415);
   if (Number(request.headers.get("content-length")) > 1048576) return json({ error: "Conteúdo muito grande." }, 413);
   let input: unknown;

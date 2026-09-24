@@ -20,6 +20,7 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [confirmarWebhook, setConfirmarWebhook] = useState(false);
   const hydrated = useHydrated();
   const webhook = hydrated ? `${window.location.origin}/api/webhooks/evolution` : "";
   const carregar = useCallback(async () => {
@@ -50,8 +51,19 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Falha de conexão."); }
     finally { setBusy(false); }
   }
+  async function sincronizarWebhook() {
+    setBusy(true); setMessage(""); setError("");
+    try {
+      const response = await fetch("/api/settings/evolution-webhook", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Falha ao sincronizar o webhook.");
+      setMessage("Webhook confirmado na Evolution. Envie uma nova mensagem para testar o agente.");
+      setConfirmarWebhook(false);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Falha de conexão."); }
+    finally { setBusy(false); }
+  }
   return <><section className="page-head"><div><h1>Configurações de integrações</h1><p>{podeEditar ? "Credenciais criptografadas e salvas no servidor." : "Consulta da operação. Alterações de credenciais são exclusivas do Super administrador."}</p></div></section>
-    <section className="settings-grid"><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Configure esta URL na Evolution com By Events desligado. Envie o segredo no cabeçalho <code>x-webhook-secret</code>.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small></article></section>
+    <section className="settings-grid"><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento<input readOnly value={webhook} /></label><p>Sincronize o webhook da instância com o cabeçalho <code>x-webhook-secret</code>. A instância configurada precisa ser exatamente a mesma da Evolution.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small>{podeEditar && <button type="button" disabled={busy || !status} onClick={() => setConfirmarWebhook(true)}>Sincronizar webhook na Evolution</button>}</article></section>
     <p role="status" aria-live="polite">{message}</p>
     {error && <p role="alert">{error}</p>}
     {!status && !error && <p role="status">{busy ? "Carregando configurações…" : "Aguardando a consulta das configurações."}</p>}
@@ -64,5 +76,8 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
         mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto e áudio no WhatsApp usando o contexto salvo. Alterar o segredo exige atualizar também a Evolution."
         carregando={busy} onConfirmar={() => void salvar()} onCancelar={() => setConfirm(false)} textoConfirmar="Confirmar e salvar" />
     </form>}
+    <ModalConfirmacaoBlock aberto={confirmarWebhook} titulo="Sincronizar webhook na Evolution"
+      mensagem="A Evolution passará a enviar os eventos desta instância ao Atende AI com o segredo configurado. Confirme que a URL, a chave, a instância e o segredo já foram salvos."
+      carregando={busy} onConfirmar={() => void sincronizarWebhook()} onCancelar={() => setConfirmarWebhook(false)} textoConfirmar="Confirmar sincronização" />
   </>;
 }
