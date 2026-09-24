@@ -74,3 +74,23 @@ test("falha na consulta identifica a etapa sem expor detalhes do banco", async (
     assert.doesNotMatch(avisos.join(" "), /segredo/);
   } finally { console.error = registrar; }
 });
+
+test("painel informa o SQLSTATE da causa interna de uma falha na etapa P04", async () => {
+  let consultas = 0;
+  const banco = { transaction: async (trabalho: (tx: { execute: () => Promise<unknown> }) => Promise<unknown>) =>
+    trabalho({ execute: async () => {
+      consultas++;
+      if (consultas === 1) return [];
+      if (consultas === 2) return [{ id: crypto.randomUUID(), nome: "canal" }];
+      if (consultas === 3) return [{ abertas: 0, pendentes: 0, ia: 0, humano: 0 }];
+      throw Object.assign(new Error("Consulta protegida"), { cause: Object.assign(new Error("detalhe privado"), { code: "42703" }) });
+    } }) } as unknown as BancoSql;
+  const registrar = console.error;
+  const avisos: string[] = [];
+  console.error = (...partes: unknown[]) => { avisos.push(partes.join(" ")); };
+  try {
+    await assert.rejects(consultarPainel(banco, filtro()), /etapa P04, código 42703/);
+    assert.match(avisos.join(" "), /P04; SQLSTATE 42703/);
+    assert.doesNotMatch(avisos.join(" "), /detalhe privado/);
+  } finally { console.error = registrar; }
+});

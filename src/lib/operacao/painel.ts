@@ -20,6 +20,16 @@ export interface PainelOperacional {
   evolucao: PontoPainel[]; atualizadoEm: string;
 }
 
+function codigoSql(erro: unknown): string {
+  let atual: unknown = erro;
+  for (let nivel = 0; nivel < 4; nivel++) {
+    if (typeof atual !== "object" || atual === null) break;
+    if ("code" in atual && typeof atual.code === "string" && /^[A-Z0-9]{5}$/.test(atual.code)) return atual.code;
+    atual = "cause" in atual ? atual.cause : undefined;
+  }
+  return "indisponível";
+}
+
 export async function consultarPainel(banco: BancoSql, entrada: unknown): Promise<PainelOperacional> {
   const filtro = filtroPainelSchema.parse(entrada);
   const inicio = new Date(filtro.inicio), fim = new Date(filtro.fim);
@@ -88,8 +98,7 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
       canais, contatos, evolucao, atualizadoEm: new Date().toISOString() };
   }); } catch (erro) {
     if (erro instanceof ErroDeNegocio) throw erro;
-    const codigo = typeof erro === "object" && erro !== null && "code" in erro &&
-      typeof erro.code === "string" && /^[A-Z0-9]{5}$/.test(erro.code) ? erro.code : "indisponível";
+    const codigo = codigoSql(erro);
     console.error(`Atende AI: consulta do painel falhou na etapa ${etapa}; SQLSTATE ${codigo}.`);
     throw new ErroDeNegocio(`Não foi possível consultar os indicadores (etapa ${etapa}, código ${codigo}). Tente novamente.`);
   }
