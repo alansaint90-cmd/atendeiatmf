@@ -207,3 +207,5 @@ sessões. Nenhum teste de autenticação usa banco de produção.
 Configurações, integrações, estado do agente e contexto geral do orquestrador são
 exclusivos do super administrador. Gerente ou superior configura o prompt do chatbot
 SDR em Chatbot IA; esse prompt permanece prioritário nas respostas ao contato.
+Não embutir roteiros comerciais ou catálogos de produtos no modelo inicial do chatbot.
+Dados antigos do navegador não podem ser importados automaticamente para o servidor.

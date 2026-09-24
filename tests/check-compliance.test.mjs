@@ -93,6 +93,8 @@ const CASOS = {
   "src/acento-ok.tsx": "export const T = () => <p>Automações</p>;",
   "src/app/api/settings/integrations/route.ts": "export async function GET() { const acesso = await administradorHttp(\"admin\"); return acesso; }",
   "src/app/api/settings/agent/route.ts": "export async function GET() { const acesso = await administradorHttp(); return acesso; }",
+  "src/lib/chatbots/defaults.ts": "export const chatbotExample = { context: 'Roteiro antigo' };",
+  "src/components/chatbots/page.tsx": "export const importar = () => localStorage.getItem('antigo');",
 };
 
 const dir = mkdtempSync(join(tmpdir(), "compliance-"));
@@ -149,6 +151,8 @@ try {
     ["acento escrito direto passa", passa("acento-ok.tsx")],
     ["configurações não aceitam leitura de gerente", reprova("settings/integrations/route.ts", "config-super-admin")],
     ["leitura de configurações por super administrador passa", passa("settings/agent/route.ts")],
+    ["modelo inicial com roteiro comercial reprova", reprova("chatbots/defaults.ts", "prompt-legado")],
+    ["importação automática do navegador reprova", reprova("chatbots/page.tsx", "prompt-legado")],
 
     ["primitivo de 600 linhas em components/ui passa", passa("components/ui/grande.tsx")],
     ["arquivo de 600 linhas fora de ui reprova", reprova("components/comum/grande.tsx", "arquivo-grande")],

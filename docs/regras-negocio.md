@@ -1,6 +1,7 @@
 # Regras do protótipo
 
 - O contexto geral do orquestrador, salvo em Configurações somente pelo super administrador, fornece informações comuns da operação. O chatbot SDR vinculado à instância Evolution fornece persona, missão, prompt de atendimento, fallback, transferência e fluxos; em conflito, a configuração do chatbot tem prioridade. Alterações do chatbot salvas por gerente ou super administrador valem para as próximas mensagens processadas.
+- O aplicativo não fornece catálogo de produtos nem roteiro comercial embutido. Um navegador com dados antigos não importa prompts para o servidor automaticamente; somente um gerente ou super administrador salva instruções explicitamente em Chatbot IA.
 - `carregarChatbots` e `salvarChatbot` exigem sessão de gerente ou superior, usam o PostgreSQL compartilhado e vinculam o chatbot salvo à instância Evolution configurada. `sairDoSistema` encerra e audita a sessão atual antes de apagar o cookie.
 
 - Configurações de chatbot são compartilhadas no PostgreSQL com os usuários autorizados; salvar o prompt atualiza também o chatbot vinculado à instância Evolution.

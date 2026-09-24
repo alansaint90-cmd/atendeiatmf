@@ -23,6 +23,7 @@
  *   [ERRO]  segredo               — chaves de API, tokens, chaves privadas
  *   [ERRO]  texto-cru             — mojibake, ou escape \u00XX em .tsx/.jsx
  *   [ERRO]  config-super-admin    — leitura de Configurações exige super administrador
+ *   [ERRO]  prompt-legado         — não importar roteiro comercial antigo automaticamente
  *   [AVISO] query-sem-filtro      — select/findMany sem filtro de is_deleted
  *   [AVISO] cascade               — onDelete: 'cascade' (preferir restrict)
  *   [AVISO] onupdate-updated-at   — $onUpdate em updated_at envelhece a trava
@@ -378,6 +379,15 @@ function analyzeFile(file) {
       findings.push({ level: "error", id: "config-super-admin", file: rel, line: 1,
         msg: "A leitura de Configurações deve exigir super administrador via administradorHttp()." });
     }
+  }
+
+  if (rel === "src/lib/chatbots/defaults.ts" && !/context\s*:\s*["']{2}/.test(content)) {
+    findings.push({ level: "error", id: "prompt-legado", file: rel, line: 1,
+      msg: "O modelo inicial do chatbot não pode trazer um roteiro comercial embutido." });
+  }
+  if (rel === "src/components/chatbots/page.tsx" && /\b(?:localStorage|loadChatbots|storageKey)\b/.test(content)) {
+    findings.push({ level: "error", id: "prompt-legado", file: rel, line: 1,
+      msg: "A página não pode importar prompts antigos do navegador automaticamente." });
   }
 
   return findings;

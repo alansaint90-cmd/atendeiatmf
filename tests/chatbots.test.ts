@@ -8,6 +8,10 @@ function memoryStorage(value: string | null = null) {
   if (value !== null) data.set(storageKey, value);
   return { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); } };
 }
+test("modelo inicial não injeta produtos ou mentorias no prompt", () => {
+  assert.equal(chatbotExample.context, "");
+  assert.equal(loadChatbots(memoryStorage()).bots[0].context, "");
+});
 test("preserva prompt editado ao salvar e recarregar dados anteriores", () => {
   const bot = { ...structuredClone(chatbotExample), context: "Meu texto\n<exemplo> & emojis ⚽", contextRevision: "antiga" };
   const storage = memoryStorage(JSON.stringify([bot]));

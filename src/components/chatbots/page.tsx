@@ -4,7 +4,6 @@ import { carregarChatbots, salvarChatbot } from "@/lib/actions/chatbots";
 import { chatbotExample } from "@/lib/chatbots/defaults";
 import type { ChatbotPersistido } from "@/lib/chatbots/server-repository";
 import { type Chatbot } from "@/lib/chatbots/schema";
-import { loadChatbots, storageKey } from "@/lib/chatbots/repository";
 import { ChatbotEditor } from "./editor";
 
 export function ChatbotsPage() {
@@ -19,19 +18,10 @@ export function ChatbotsPage() {
 
   useEffect(() => {
     let ativo = true;
-    void carregarChatbots().then(async resultado => {
+    void carregarChatbots().then(resultado => {
       if (!ativo) return;
       if (!resultado.ok) { setError(resultado.erro); setItens([]); return; }
-      let dados = resultado.dados;
-      if (!dados.length && localStorage.getItem(storageKey)) {
-        try {
-          const legado = loadChatbots(localStorage).bots[0];
-          if (legado) {
-            const migrado = await salvarChatbot({ id: null, versao: null, configuracao: legado });
-            if (migrado.ok) { dados = [migrado.dados]; setMessage("Chatbot deste navegador migrado e salvo no servidor."); }
-          }
-        } catch { setError("Não foi possível migrar o chatbot salvo neste navegador."); }
-      }
+      const dados = resultado.dados;
       setItens(dados);
       const primeiro = dados[0];
       if (primeiro) { setSelected(primeiro.id); setContext(primeiro.configuracao.context); }

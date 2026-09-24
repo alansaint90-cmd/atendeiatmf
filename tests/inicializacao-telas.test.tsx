@@ -7,7 +7,16 @@ import { chatbotExample } from "@/lib/chatbots/defaults";
 const actions = vi.hoisted(() => ({ carregar: vi.fn(), salvar: vi.fn() }));
 vi.mock("@/lib/actions/chatbots", () => ({ carregarChatbots: actions.carregar, salvarChatbot: actions.salvar }));
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+
+test("não importa silenciosamente prompt antigo do navegador para o servidor", async () => {
+  localStorage.setItem("atendeia.chatbots.v1", JSON.stringify([{ ...chatbotExample, context: "Mentoria em grupo legada" }]));
+  actions.carregar.mockResolvedValue({ ok: true, dados: [] });
+  render(<ChatbotsPage />);
+  expect(await screen.findByText("Nenhum chatbot cadastrado. Crie o primeiro assistente.")).toBeInTheDocument();
+  expect(actions.salvar).not.toHaveBeenCalled();
+  expect(screen.queryByText(/Mentoria em grupo legada/)).not.toBeInTheDocument();
+});
 
 test("prompt do servidor carrega, continua editável e volta ao servidor", async () => {
   const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Atendimento personalizado" }, versao: 0 };
