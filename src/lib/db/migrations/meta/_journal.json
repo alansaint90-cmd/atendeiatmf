@@ -50,6 +50,13 @@
       "when": 1789663171285,
       "tag": "0006_familiar_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790245494959,
+      "tag": "0007_slim_ulik",
+      "breakpoints": true
     }
   ]
 }

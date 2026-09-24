@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { sairDoSistema } from "@/lib/actions/sessoes";
@@ -8,10 +9,11 @@ import { sairDoSistema } from "@/lib/actions/sessoes";
 interface ContaMenuProps {
   nome: string;
   email: string;
+  foto?: string | null;
   aoAbrirAssinatura: () => void;
 }
 
-export function ContaMenu({ nome, email, aoAbrirAssinatura }: ContaMenuProps) {
+export function ContaMenu({ nome, email, foto, aoAbrirAssinatura }: ContaMenuProps) {
   const router = useRouter();
   const raiz = useRef<HTMLDivElement>(null);
   const [aberto, setAberto] = useState(false);
@@ -58,7 +60,7 @@ export function ContaMenu({ nome, email, aoAbrirAssinatura }: ContaMenuProps) {
       <button type="button" role="menuitem" disabled={saindo} onClick={sair}>{saindo ? "Saindo..." : "Sair"}</button>
     </div>}
     <div className="account-identity">
-      <span className="account-avatar" aria-hidden="true">{iniciais}</span>
+      <span className="account-avatar" aria-hidden="true">{foto ? <Image unoptimized src={foto} alt="" width={38} height={38} /> : iniciais}</span>
       <span className="account-details"><strong title={nome}>{nome}</strong><small title={email}>{email}</small></span>
       <button className="account-trigger" type="button" aria-label="Abrir opções da conta" aria-haspopup="menu" aria-expanded={aberto} onClick={() => setAberto(!aberto)}>⋮</button>
     </div>

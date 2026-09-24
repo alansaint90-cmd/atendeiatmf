@@ -14,6 +14,7 @@ const timestamps = () => ({
 });
 export const users = pgTable("atendeia_users", {
   id: uuid("id").primaryKey().defaultRandom(), name: text("name").notNull(), email: text("email"),
+  phone: text("phone"), avatarData: text("avatar_data"),
   passwordHash: text("password_hash"), role: text("role").notNull().default("visualizador"),
   enabled: boolean("enabled").notNull().default(false),
   ...timestamps(), modifiedBy: uuid("modified_by").notNull().references((): AnyPgColumn => users.id, { onDelete: "restrict" }),

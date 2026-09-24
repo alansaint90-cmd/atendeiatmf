@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   outputFileTracingIncludes: { "/*": ["./src/lib/db/migrations/**/*"] },
   async headers() {
     return [{ source: "/:path*", headers: [

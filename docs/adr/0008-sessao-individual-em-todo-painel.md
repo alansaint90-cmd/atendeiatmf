@@ -60,5 +60,14 @@ Actions de usuários: carregarUsuarios, convidarUsuario, atualizarUsuario,
 reiniciarAcessoUsuario. Actions de perfil: trocarMinhaSenha, minhasPasskeys,
 removerMinhaPasskey. O perfil também permite encerrar sessões próprias.
 
+O perfil passa a compartilhar a navegação lateral do painel. Nome, celular e foto
+do próprio usuário são editáveis com versão e auditoria na mesma transação.
+As actions `carregarMeuPerfil` e `salvarMeuPerfil` exigem sessão individual e
+permissão mínima de visualizador.
+O e-mail de login e o papel permanecem fora dessa edição. Foto JPG/PNG até 2 MiB
+fica na coluna aditiva `avatar_data` do usuário; a trilha registra apenas o nome
+do campo, nunca o conteúdo da imagem. A assinatura tem página própria no painel;
+até haver integração de cobrança, exibe o estado indisponível sem simular dados.
+
 Testes usam banco descartável e provedores simulados; não enviam WhatsApp real.
 O scanner de actions exige sessão e await na guarda de permissão, incluindo aliases.
