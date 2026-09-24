@@ -7,7 +7,7 @@ import { chatbotExample } from "@/lib/chatbots/defaults";
 const actions = vi.hoisted(() => ({ carregar: vi.fn(), salvar: vi.fn() }));
 vi.mock("@/lib/actions/chatbots", () => ({ carregarChatbots: actions.carregar, salvarChatbot: actions.salvar }));
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
 test("prompt do servidor carrega, continua editável e volta ao servidor", async () => {
   const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Atendimento personalizado" }, versao: 0 };
@@ -35,4 +35,20 @@ test("URL de webhook usa a origem do navegador somente no cliente", () => {
   expect(renderToString(<Settings />)).not.toContain(`${window.location.origin}/api/webhooks/evolution`);
   render(<Settings />);
   expect(screen.getByLabelText("URL de recebimento do Atende AI")).toHaveValue(`${window.location.origin}/api/webhooks/evolution`);
+});
+
+test("erro ao sincronizar fecha a confirmação e mostra a resposta do servidor", async () => {
+  const requisicao = vi.fn(async (_entrada: RequestInfo | URL, inicio?: RequestInit) =>
+    inicio?.method === "POST"
+      ? Response.json({ error: "Confira em Configurações: segredo do webhook. Salve antes de sincronizar." }, { status: 503 })
+      : Response.json({ version: 0, configured: {}, values: {} }));
+  vi.stubGlobal("fetch", requisicao);
+  render(<Settings />);
+  fireEvent.click(await screen.findByRole("button", { name: "Sincronizar webhook na Evolution" }));
+  const confirmar = screen.getByRole("button", { name: "Confirmar sincronização" });
+  await waitFor(() => expect(confirmar).toBeEnabled(), { timeout: 5000 });
+  fireEvent.click(confirmar);
+  expect(await screen.findByRole("alert")).toHaveTextContent("segredo do webhook");
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  expect(requisicao).toHaveBeenCalledWith("/api/settings/evolution-webhook", { method: "POST" });
 });

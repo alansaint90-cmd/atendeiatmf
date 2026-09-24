@@ -58,12 +58,11 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Falha ao sincronizar o webhook.");
       setMessage("Webhook confirmado na Evolution. Envie uma nova mensagem para testar o agente.");
-      setConfirmarWebhook(false);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Falha de conexão."); }
-    finally { setBusy(false); }
+    finally { setConfirmarWebhook(false); setBusy(false); }
   }
   return <><section className="page-head"><div><h1>Configurações de integrações</h1><p>{podeEditar ? "Credenciais criptografadas e salvas no servidor." : "Consulta da operação. Alterações de credenciais são exclusivas do Super administrador."}</p></div></section>
-    <section className="settings-grid"><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento do Atende AI<input readOnly value={webhook} /></label><p>Antes de sincronizar, salve abaixo a URL base da Evolution, a chave de API, o nome exato da instância e o segredo do webhook. Esta URL de recebimento é diferente da URL base da Evolution.</p><p>A sincronização envia o cabeçalho <code>x-webhook-secret</code> para a instância configurada.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small>{podeEditar && <button type="button" disabled={busy || !status} onClick={() => setConfirmarWebhook(true)}>Sincronizar webhook na Evolution</button>}</article></section>
+    <section className="settings-grid"><article className="panel form-panel"><h2>Webhook da Evolution</h2><label>URL de recebimento do Atende AI<input readOnly value={webhook} /></label><p>Antes de sincronizar, salve abaixo a URL base da Evolution, a chave de API, o nome exato da instância e o segredo do webhook. Esta URL de recebimento é diferente da URL base da Evolution.</p><p>A sincronização envia o cabeçalho <code>x-webhook-secret</code> para a instância configurada.</p><small>Para responder, habilite o processador no servidor e configure o agente abaixo.</small>{podeEditar && <button type="button" disabled={busy || !status} onClick={() => { setError(""); setMessage(""); setConfirmarWebhook(true); }}>Sincronizar webhook na Evolution</button>}</article></section>
     <p role="status" aria-live="polite">{message}</p>
     {error && <p role="alert">{error}</p>}
     {!status && !error && <p role="status">{busy ? "Carregando configurações…" : "Aguardando a consulta das configurações."}</p>}
