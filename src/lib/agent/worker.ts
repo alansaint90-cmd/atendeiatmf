@@ -3,7 +3,7 @@ import { z } from "zod";
 import { effectiveSettings } from "../settings/repository";
 import { evolutionEventSchema } from "../evolution/schema";
 import { streamKey } from "../evolution/queue";
-import { agentConfigSchema } from "./config";
+import { configurarAgente } from "./config";
 import { incomingMessage, digest } from "./message";
 import { generateReply, sendReply } from "./providers";
 import { transcribeAudio } from "./audio";
@@ -15,7 +15,6 @@ import { followupStore } from "../followups/queue";
 import { processFollowup } from "../followups/processor";
 import { executarAgendamentos } from "../agendamentos/worker";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
-import { montarInstrucoesDoAgente } from "../chatbots/prompt-servidor";
 import { db } from "../db/client";
 import { registrarEnvioIa } from "../operacao/atribuir-ia";
 
@@ -38,10 +37,8 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
   try {
     await client.connect();
     if (!await client.set(agentKeys.lock, token, "PX", 120000, "NX")) return;
-    const configBase = agentConfigSchema.safeParse(settings);
-    const chatbot = configBase.success ? await dependencies.chatbot(configBase.data.EVOLUTION_INSTANCE_NAME) : null;
-    const config = configBase.success ? agentConfigSchema.safeParse({ ...configBase.data,
-      AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(configBase.data.AI_SYSTEM_PROMPT, chatbot) }) : configBase;
+    const chatbot = settings.EVOLUTION_INSTANCE_NAME ? await dependencies.chatbot(settings.EVOLUTION_INSTANCE_NAME) : null;
+    const config = configurarAgente(settings, chatbot);
     const status = settings.AI_ENABLED !== "true" ? "desativado" : config.success ? "ativo" : "configuracao_incompleta";
     const previous = await client.get(agentKeys.heartbeat);
     const last = previous ? JSON.parse(previous) as { lastResult?: string; lastCode?: string; lastAt?: string } : {};
@@ -73,10 +70,10 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         result = await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
           enabled: async () => {
-            const currentBase = agentConfigSchema.safeParse(await dependencies.settings());
-            const currentBot = currentBase.success ? await dependencies.chatbot(currentBase.data.EVOLUTION_INSTANCE_NAME) : null;
-            const current = currentBase.success ? agentConfigSchema.safeParse({ ...currentBase.data,
-              AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(currentBase.data.AI_SYSTEM_PROMPT, currentBot) }) : currentBase;
+            const currentSettings = await dependencies.settings();
+            const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
+              ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
+            const current = configurarAgente(currentSettings, currentBot);
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
               && await client.get(agentKeys.lock) === token;
           },
@@ -104,7 +101,10 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       await processFollowup(job, followupConfig, {
         save: followups.save, finish: result => followups.finish(job, result),
         enabled: async () => {
-          const current = agentConfigSchema.safeParse(await dependencies.settings());
+          const currentSettings = await dependencies.settings();
+          const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
+            ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
+          const current = configurarAgente(currentSettings, currentBot);
           return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
             && followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME
             && await client.get(agentKeys.lock) === token && await client.xlen(streamKey) === 0;

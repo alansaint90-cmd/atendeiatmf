@@ -15,11 +15,12 @@ assinados, desliga By Events/Base64 e confirma o resultado por nova consulta. N�
 aceitamos `apikey` do corpo como autenticação: segredo de máquina só em cabeçalho.
 
 Mantemos a configuração administrativa existente no PostgreSQL, com criptografia,
-autenticação e versão. AI_SYSTEM_PROMPT é editável e salvo nesse mesmo repositório;
-ele representa o contexto geral da operação. Chatbots são compartilhados no PostgreSQL
-e o chatbot vinculado ao canal Evolution fornece as instruções prioritárias: persona,
-missão, prompt de atendimento, fallback, transferência e fluxos. O worker recompõe a
-configuração a cada mensagem; uma alteração salva passa a valer nas mensagens seguintes.
+autenticação e versão. O campo legado AI_SYSTEM_PROMPT permanece legível para não
+invalidar dados já salvos, mas não é editável nem enviado ao provedor. Chatbots são
+compartilhados no PostgreSQL e o chatbot vinculado ao canal Evolution fornece todas
+as instruções: persona, missão, prompt de atendimento, fallback, transferência e
+fluxos. Sem chatbot com prompt, o worker não responde. Ele recompõe a configuração
+a cada mensagem; uma alteração salva passa a valer nas mensagens seguintes.
 
 Entrega e histórico recente ficam no Redis dedicado. Consumer group com consumidor
 fixo e lease global recuperam eventos pendentes; scripts Lua verificam posse antes

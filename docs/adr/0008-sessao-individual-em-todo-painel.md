@@ -11,8 +11,9 @@ demonstrativa que conceda acesso. Credenciais de máquina e criptografia permane
 Preservar os papéis existentes no banco: super_admin é Super administrador, admin
 é Gerente e operador é SDR. Gerente administra somente SDRs; super administrador
 administra gerentes e SDRs. Nenhuma API pública cria, rebaixa ou suspende proprietários.
-Configurações de integrações, inclusive consulta e contexto geral do orquestrador,
-exigem super administrador. O gerente configura o prompt do chatbot SDR em Chatbot IA.
+Configurações de integrações, inclusive consulta, exigem super administrador.
+O contexto geral legado do orquestrador não é exibido nem usado nas respostas.
+O gerente configura o prompt do chatbot SDR em Chatbot IA.
 Operação exige SDR;
 tags, follow-ups e agendamentos exigem gerente. CRM preserva escopos de funil.
 

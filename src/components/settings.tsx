@@ -72,7 +72,7 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
       <small>Campos vazios mantêm o valor atual. As configurações salvas prevalecem sobre as variáveis de ambiente. Redis deve começar com redis:// ou rediss://.</small>
       {podeEditar && <button className="primary" disabled={busy || confirm}>Salvar configurações</button>}
       <ModalConfirmacaoBlock aberto={confirm} titulo="Salvar configurações do agente"
-        mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto e áudio no WhatsApp usando o contexto salvo. Alterar o segredo exige atualizar também a Evolution."
+        mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto e áudio no WhatsApp usando o prompt salvo em Chatbot IA. Alterar o segredo exige atualizar também a Evolution."
         carregando={busy} onConfirmar={() => void salvar()} onCancelar={() => setConfirm(false)} textoConfirmar="Confirmar e salvar" />
     </form>}
     <ModalConfirmacaoBlock aberto={confirmarWebhook} titulo="Sincronizar webhook na Evolution"

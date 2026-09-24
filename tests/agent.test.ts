@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { incomingMessage } from "../src/lib/agent/message";
 import { processMessage, type DeliveryState, type ProcessingPort } from "../src/lib/agent/processor";
 import { generateReply, sendReply, type Turn } from "../src/lib/agent/providers";
-import { agentConfigSchema, type AgentConfig } from "../src/lib/agent/config";
+import { agentBaseConfigSchema, agentConfigSchema, configurarAgente, type AgentConfig } from "../src/lib/agent/config";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
 import { transcribeAudio } from "../src/lib/agent/audio";
 import { ProviderError } from "../src/lib/agent/providers";
@@ -189,21 +189,30 @@ test("desativação durante geração impede envio", async () => {
   assert.equal(f.sends(), 0);
 });
 
-test("configuração exige ativação explícita, prompt, modelo e credenciais", () => {
+test("configuração exige ativação explícita, chatbot, modelo e credenciais", () => {
   assert.equal(agentConfigSchema.safeParse(config).success, true);
+  assert.equal(agentBaseConfigSchema.safeParse({ ...config, AI_SYSTEM_PROMPT: undefined }).success, true);
   for (const field of ["AI_ENABLED", "AI_SYSTEM_PROMPT", "OPENAI_MODEL", "OPENAI_API_KEY", "EVOLUTION_API_KEY"])
     assert.equal(agentConfigSchema.safeParse({ ...config, [field]: "" }).success, false);
 });
 
-test("prompt do chatbot tem prioridade explícita sobre o contexto geral", () => {
-  const instrucoes = montarInstrucoesDoAgente("A empresa atende em horário comercial.", {
+test("somente o prompt do chatbot compõe as instruções; sem ele o agente não responde", () => {
+  const bot = {
     ...chatbotExample, context: "Apresente-se como Thaís e siga este roteiro.", mission: "Atender os clientes do TMF.",
-  });
-  assert.ok(instrucoes.includes("CONTEXTO GERAL DA OPERAÇÃO"));
-  assert.ok(instrucoes.includes("A empresa atende em horário comercial."));
+  };
+  const instrucoes = montarInstrucoesDoAgente(bot);
+  assert.equal(montarInstrucoesDoAgente(null), "");
+  assert.equal(montarInstrucoesDoAgente(chatbotExample), "");
+  assert.ok(!instrucoes.includes("CONTEXTO GERAL DA OPERAÇÃO"));
   assert.ok(instrucoes.includes("Apresente-se como Thaís e siga este roteiro."));
-  assert.ok(instrucoes.includes("estas instruções têm prioridade"));
-  assert.ok(instrucoes.endsWith("Em caso de conflito, siga a configuração do chatbot."));
+  assert.ok(instrucoes.includes("CONFIGURAÇÃO DO CHATBOT SDR"));
+  assert.equal(configurarAgente({ ...config, AI_SYSTEM_PROMPT: "CONTEXTO LEGADO" }, null).success, false);
+  const compilado = configurarAgente({ ...config, AI_SYSTEM_PROMPT: "CONTEXTO LEGADO" }, bot);
+  assert.equal(compilado.success, true);
+  if (compilado.success) {
+    assert.ok(compilado.data.AI_SYSTEM_PROMPT.includes(bot.context));
+    assert.ok(!compilado.data.AI_SYSTEM_PROMPT.includes("CONTEXTO LEGADO"));
+  }
 });
 
 test("OpenAI recebe contexto e histórico separados, sem salvar resposta no provedor", async () => {

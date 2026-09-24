@@ -24,6 +24,7 @@
  *   [ERRO]  texto-cru             — mojibake, ou escape \u00XX em .tsx/.jsx
  *   [ERRO]  config-super-admin    — leitura de Configurações exige super administrador
  *   [ERRO]  prompt-legado         — não importar roteiro comercial antigo automaticamente
+ *   [ERRO]  orquestrador-legado   — contexto geral não entra nas respostas nem na tela
  *   [AVISO] query-sem-filtro      — select/findMany sem filtro de is_deleted
  *   [AVISO] cascade               — onDelete: 'cascade' (preferir restrict)
  *   [AVISO] onupdate-updated-at   — $onUpdate em updated_at envelhece a trava
@@ -388,6 +389,14 @@ function analyzeFile(file) {
   if (rel === "src/components/chatbots/page.tsx" && /\b(?:localStorage|loadChatbots|storageKey)\b/.test(content)) {
     findings.push({ level: "error", id: "prompt-legado", file: rel, line: 1,
       msg: "A página não pode importar prompts antigos do navegador automaticamente." });
+  }
+  if (rel === "src/lib/chatbots/prompt-servidor.ts" && /\b(?:contextoGeral|AI_SYSTEM_PROMPT)\b/.test(content)) {
+    findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
+      msg: "O contexto geral legado não pode compor as instruções do chatbot." });
+  }
+  if (rel === "src/components/agent-settings.tsx" && /\bAI_SYSTEM_PROMPT\b/.test(content)) {
+    findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
+      msg: "Configurações não pode exibir nem editar o prompt legado do orquestrador." });
   }
 
   return findings;

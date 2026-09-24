@@ -204,8 +204,9 @@ representa SDR, preservando o schema. Super administrador só por provisionament
 manual; gerente administra apenas SDRs. Suspensão, troca de senha ou fator revogam
 sessões. Nenhum teste de autenticação usa banco de produção.
 
-Configurações, integrações, estado do agente e contexto geral do orquestrador são
-exclusivos do super administrador. Gerente ou superior configura o prompt do chatbot
-SDR em Chatbot IA; esse prompt permanece prioritário nas respostas ao contato.
+Configurações, integrações e estado do agente são exclusivos do super administrador.
+Gerente ou superior configura o prompt do chatbot SDR em Chatbot IA; apenas esse
+chatbot vinculado à instância fornece instruções para respostas. AI_SYSTEM_PROMPT
+legado pode ser lido para compatibilidade, mas não é exibido, editado nem usado.
 Não embutir roteiros comerciais ou catálogos de produtos no modelo inicial do chatbot.
 Dados antigos do navegador não podem ser importados automaticamente para o servidor.

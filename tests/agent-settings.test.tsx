@@ -1,16 +1,16 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { AgentSettings } from "@/components/agent-settings";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-test("explica que o contexto geral não substitui as instruções do chatbot", () => {
+test("não exibe prompt de orquestrador e aponta para o chatbot SDR", () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ workerEnabled: false, enabled: false, queued: 0 })));
   const change = vi.fn();
   render(<AgentSettings values={{}} disabled={false} onChange={change} />);
   expect(screen.getByLabelText("Respostas automáticas")).toHaveValue("false");
-  expect(screen.getByText(/prompt do chatbot SDR.*tem prioridade/)).toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText("Contexto geral do orquestrador"), { target: { value: "Informações da empresa" } });
-  expect(change).toHaveBeenCalledWith("AI_SYSTEM_PROMPT", "Informações da empresa");
+  expect(screen.getByText(/respostas usam somente o prompt do chatbot SDR/)).toBeInTheDocument();
+  expect(screen.queryByLabelText("Contexto geral do orquestrador")).not.toBeInTheDocument();
+  expect(change).not.toHaveBeenCalled();
 });
 test("diagnóstico é consultado automaticamente pela sessão e exibe erro", async () => {
   const fetchMock = vi.fn().mockResolvedValue(Response.json({ error: "Redis indisponível" }, { status: 503 }));

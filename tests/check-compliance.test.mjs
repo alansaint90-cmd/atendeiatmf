@@ -95,6 +95,8 @@ const CASOS = {
   "src/app/api/settings/agent/route.ts": "export async function GET() { const acesso = await administradorHttp(); return acesso; }",
   "src/lib/chatbots/defaults.ts": "export const chatbotExample = { context: 'Roteiro antigo' };",
   "src/components/chatbots/page.tsx": "export const importar = () => localStorage.getItem('antigo');",
+  "src/lib/chatbots/prompt-servidor.ts": "export const montar = (contextoGeral) => contextoGeral;",
+  "src/components/agent-settings.tsx": "export const T = () => <textarea name='AI_SYSTEM_PROMPT' />;",
 };
 
 const dir = mkdtempSync(join(tmpdir(), "compliance-"));
@@ -153,6 +155,8 @@ try {
     ["leitura de configurações por super administrador passa", passa("settings/agent/route.ts")],
     ["modelo inicial com roteiro comercial reprova", reprova("chatbots/defaults.ts", "prompt-legado")],
     ["importação automática do navegador reprova", reprova("chatbots/page.tsx", "prompt-legado")],
+    ["orquestrador no prompt do chatbot reprova", reprova("chatbots/prompt-servidor.ts", "orquestrador-legado")],
+    ["orquestrador na tela de configurações reprova", reprova("agent-settings.tsx", "orquestrador-legado")],
 
     ["primitivo de 600 linhas em components/ui passa", passa("components/ui/grande.tsx")],
     ["arquivo de 600 linhas fora de ui reprova", reprova("components/comum/grande.tsx", "arquivo-grande")],

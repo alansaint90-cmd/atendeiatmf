@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { seal, unseal } from "../src/lib/settings/security";
-import { settingsSchema, settingsStatus } from "../src/lib/settings/schema";
+import { saveSettingsSchema, settingsSchema, settingsStatus } from "../src/lib/settings/schema";
 
 test("criptografia aleatória autentica dados e não permite chave incorreta", () => {
   const key = randomBytes(32).toString("base64");
@@ -29,6 +29,15 @@ test("resposta ao navegador omite todas as credenciais", () => {
     assert.ok(!JSON.stringify(status).includes(values[key]));
   }
   assert.equal(status.values.OPENAI_MODEL, "model-example");
+});
+
+test("contexto legado é lido sem reaparecer na tela nem aceitar nova gravação", () => {
+  const legado = "Informação antiga do orquestrador";
+  assert.equal(settingsSchema.safeParse({ AI_SYSTEM_PROMPT: legado }).success, true);
+  const status = settingsStatus({ AI_SYSTEM_PROMPT: legado }, 1);
+  assert.equal(JSON.stringify(status).includes(legado), false);
+  assert.equal("AI_SYSTEM_PROMPT" in status.configured, false);
+  assert.equal(saveSettingsSchema.safeParse({ version: 1, values: { AI_SYSTEM_PROMPT: legado } }).success, false);
 });
 
 test("configurações rejeitam protocolo Redis inválido e segredos curtos", () => {

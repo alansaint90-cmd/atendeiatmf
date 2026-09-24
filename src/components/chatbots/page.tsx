@@ -69,7 +69,7 @@ export function ChatbotsPage() {
     {!!itens.length && <form className="panel form-panel" onSubmit={async event => {
       event.preventDefault(); if (selecionado) await persistir({ ...selecionado.configuracao, context }, selecionado);
     }}>
-      <h2>Prompt de atendimento do SDR</h2><p>Estas instruções têm prioridade sobre o contexto geral do orquestrador salvo em Configurações.</p>
+      <h2>Prompt de atendimento do SDR</h2><p>Estas são as instruções usadas pelo agente para responder no WhatsApp.</p>
       <label>Chatbot<select name="contextBot" value={selected} onChange={event => {
         if (!discard()) return; const proximo = itens.find(item => item.id === event.target.value); setSelected(event.target.value); setContext(proximo?.configuracao.context ?? ""); setDirty(false); setMessage("");
       }}>{itens.map(item => <option key={item.id} value={item.id}>{item.configuracao.identifier}</option>)}</select></label>
