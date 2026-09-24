@@ -22,7 +22,7 @@ test("sincronização envia cabeçalho secreto, preserva eventos e confirma leit
         events: ["CONTACTS_UPDATE", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
         headers: { "X-Existing": "valor", "x-webhook-secret": values.EVOLUTION_WEBHOOK_SECRET } });
   };
-  await sincronizarWebhookEvolution(values, origin, request);
+  await sincronizarWebhookEvolution({ ...values, REDIS_URL: "redis://localhost:6379", AI_ENABLED: "false" }, origin, request);
   assert.equal(calls.length, 3);
   assert.match(calls[1].url, /\/webhook\/set\/thais%20tmf$/);
   assert.equal(new Headers(calls[1].init.headers).get("apikey"), values.EVOLUTION_API_KEY);

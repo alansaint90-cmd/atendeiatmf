@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { settingsSchema } from "../settings/schema";
 
-const configuracaoSchema = settingsSchema.pick({
-  EVOLUTION_API_URL: true,
-  EVOLUTION_API_KEY: true,
-  EVOLUTION_INSTANCE_NAME: true,
-  EVOLUTION_WEBHOOK_SECRET: true,
+const configuracaoSchema = z.object({
+  EVOLUTION_API_URL: settingsSchema.shape.EVOLUTION_API_URL,
+  EVOLUTION_API_KEY: settingsSchema.shape.EVOLUTION_API_KEY,
+  EVOLUTION_INSTANCE_NAME: settingsSchema.shape.EVOLUTION_INSTANCE_NAME,
+  EVOLUTION_WEBHOOK_SECRET: settingsSchema.shape.EVOLUTION_WEBHOOK_SECRET,
 }).required();
 const rotulosConfiguracao: Record<keyof z.infer<typeof configuracaoSchema>, string> = {
   EVOLUTION_API_URL: "URL base da Evolution",
