@@ -17,12 +17,19 @@ test("meu cadastro mantém menu lateral e as opções da conta", () => {
   render(<PerfilPainel papel="admin" nome="Wellington Junior" email="wellington@exemplo.com"><h1>Meu cadastro</h1></PerfilPainel>);
   expect(screen.getByRole("navigation", { name: "Menu principal" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Configurações" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Chatbot IA" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Meu cadastro" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Abrir opções da conta" }));
   fireEvent.click(screen.getByRole("menuitem", { name: "Minha assinatura" }));
   expect(navegar).toHaveBeenCalledWith("/?view=plans");
   fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
   expect(navegar).toHaveBeenCalledWith("/?view=dashboard");
+});
+
+test("super administrador encontra Configurações no menu", () => {
+  render(<PerfilPainel papel="super_admin" nome="Allan" email="allan@exemplo.com"><h1>Meu cadastro</h1></PerfilPainel>);
+  expect(screen.getByRole("button", { name: "Configurações" })).toBeInTheDocument();
 });
 
 test("redefinição de senha recusa confirmação diferente antes de chamar o servidor", () => {

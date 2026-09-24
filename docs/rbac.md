@@ -35,7 +35,7 @@ antes de virar codigo.
 | Categorias | visualizador | admin | admin | admin |
 | Relatorios | visualizador | admin | super_admin | super_admin |
 | Usuarios | operador | admin | admin | admin |
-| Configuracoes | admin | super_admin | admin | super_admin |
+| Configuracoes | super_admin | super_admin | super_admin | super_admin |
 | Auditoria | admin | — (so o sistema grava) | nunca | nunca |
 | Painel de problemas | super_admin | — | — | — |
 | Tags (ADR-0008) | admin | admin | admin | admin |
@@ -81,7 +81,8 @@ A matriz operacional vigente substitui os exemplos genéricos acima:
 | --- | --- |
 | Dashboard, contatos e caixa de entrada | operador (SDR) |
 | Tags, follow-ups e agendamentos | admin (Gerente) |
-| Integrações e estado do agente | admin (consulta), super_admin (alteração) |
+| Configurações, integrações e estado do agente | super_admin |
+| Chatbot IA e prompt do SDR | admin (Gerente) |
 | Sincronizar webhook na Evolution | super_admin |
 | Equipe | admin, somente SDRs; super_admin, gerentes e SDRs |
 | Perfil, senha e passkeys próprias | visualizador |

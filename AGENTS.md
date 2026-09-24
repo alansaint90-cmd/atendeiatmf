@@ -203,3 +203,7 @@ tests/guardas-actions.test.ts fiscaliza a regra. admin representa Gerente e oper
 representa SDR, preservando o schema. Super administrador só por provisionamento
 manual; gerente administra apenas SDRs. Suspensão, troca de senha ou fator revogam
 sessões. Nenhum teste de autenticação usa banco de produção.
+
+Configurações, integrações, estado do agente e contexto geral do orquestrador são
+exclusivos do super administrador. Gerente ou superior configura o prompt do chatbot
+SDR em Chatbot IA; esse prompt permanece prioritário nas respostas ao contato.

@@ -31,9 +31,9 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
     <label>Respostas automáticas<select value={values.AI_ENABLED || "false"} onChange={event => onChange("AI_ENABLED", event.target.value)}>
       <option value="false">Desativadas</option><option value="true">Ativadas</option>
     </select></label>
-    <label>Contexto geral do agente<textarea rows={14} maxLength={200000} value={values.AI_SYSTEM_PROMPT ?? ""}
+    <label>Contexto geral do orquestrador<textarea rows={14} maxLength={200000} value={values.AI_SYSTEM_PROMPT ?? ""}
       onChange={event => onChange("AI_SYSTEM_PROMPT", event.target.value)} placeholder="Escreva informações gerais da empresa e do atendimento." /></label>
-    <small>Este texto serve como contexto geral. As instruções configuradas em Chatbot IA têm prioridade e são seguidas pelo agente nas próximas mensagens. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
+    <small>Este contexto orienta a operação. O prompt do chatbot SDR, configurado pelo gerente em Chatbot IA, tem prioridade nas respostas ao contato. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
     {loading && <p role="status">Consultando agente e fila…</p>}
     {diagnostic && <p role="status">{diagnostic}</p>}{error && <p role="alert">{error}</p>}
   </fieldset>;

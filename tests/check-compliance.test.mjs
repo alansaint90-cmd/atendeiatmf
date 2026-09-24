@@ -91,6 +91,8 @@ const CASOS = {
   "src/mojibake.ts": `export const titulo = "Automa${String.fromCharCode(0xc3, 0xa7)}${String.fromCharCode(0xc3, 0xb5)}es";`,
   "src/escape.tsx": "export const T = () => <p>Automa" + "\\" + "u00e7" + "oes</p>;",
   "src/acento-ok.tsx": "export const T = () => <p>Automações</p>;",
+  "src/app/api/settings/integrations/route.ts": "export async function GET() { const acesso = await administradorHttp(\"admin\"); return acesso; }",
+  "src/app/api/settings/agent/route.ts": "export async function GET() { const acesso = await administradorHttp(); return acesso; }",
 };
 
 const dir = mkdtempSync(join(tmpdir(), "compliance-"));
@@ -145,6 +147,8 @@ try {
     ["mojibake reprova", reprova("mojibake.ts", "texto-cru")],
     ["escape unicode em .tsx reprova", reprova("escape.tsx", "texto-cru")],
     ["acento escrito direto passa", passa("acento-ok.tsx")],
+    ["configurações não aceitam leitura de gerente", reprova("settings/integrations/route.ts", "config-super-admin")],
+    ["leitura de configurações por super administrador passa", passa("settings/agent/route.ts")],
 
     ["primitivo de 600 linhas em components/ui passa", passa("components/ui/grande.tsx")],
     ["arquivo de 600 linhas fora de ui reprova", reprova("components/comum/grande.tsx", "arquivo-grande")],

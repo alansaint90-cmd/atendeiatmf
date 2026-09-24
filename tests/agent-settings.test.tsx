@@ -8,8 +8,8 @@ test("explica que o contexto geral não substitui as instruções do chatbot", (
   const change = vi.fn();
   render(<AgentSettings values={{}} disabled={false} onChange={change} />);
   expect(screen.getByLabelText("Respostas automáticas")).toHaveValue("false");
-  expect(screen.getByText(/instruções configuradas em Chatbot IA têm prioridade/)).toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText("Contexto geral do agente"), { target: { value: "Informações da empresa" } });
+  expect(screen.getByText(/prompt do chatbot SDR.*tem prioridade/)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Contexto geral do orquestrador"), { target: { value: "Informações da empresa" } });
   expect(change).toHaveBeenCalledWith("AI_SYSTEM_PROMPT", "Informações da empresa");
 });
 test("diagnóstico é consultado automaticamente pela sessão e exibe erro", async () => {

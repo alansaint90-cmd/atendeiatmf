@@ -22,6 +22,7 @@
  *   [ERRO]  fk-sem-ondelete       — .references(() => x.id) sem onDelete explicito
  *   [ERRO]  segredo               — chaves de API, tokens, chaves privadas
  *   [ERRO]  texto-cru             — mojibake, ou escape \u00XX em .tsx/.jsx
+ *   [ERRO]  config-super-admin    — leitura de Configurações exige super administrador
  *   [AVISO] query-sem-filtro      — select/findMany sem filtro de is_deleted
  *   [AVISO] cascade               — onDelete: 'cascade' (preferir restrict)
  *   [AVISO] onupdate-updated-at   — $onUpdate em updated_at envelhece a trava
@@ -369,6 +370,14 @@ function analyzeFile(file) {
   if (CODE_EXT.has(ext)) {
     checkDrizzleTables(content, rel, findings);
     checkSoftDeleteFilter(content, rel, findings);
+  }
+
+  if (["src/app/api/settings/integrations/route.ts", "src/app/api/settings/agent/route.ts"].includes(rel)) {
+    const get = content.match(/export\s+async\s+function\s+GET\s*\([^)]*\)\s*\{([\s\S]*?)(?=\nexport\s+(?:async\s+)?function\s+|$)/)?.[1] ?? "";
+    if (!/await\s+administradorHttp\s*\(\s*\)/.test(get)) {
+      findings.push({ level: "error", id: "config-super-admin", file: rel, line: 1,
+        msg: "A leitura de Configurações deve exigir super administrador via administradorHttp()." });
+    }
   }
 
   return findings;

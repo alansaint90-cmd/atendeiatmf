@@ -26,7 +26,7 @@ export function Workspace({ papel, nome, email, foto, rotaInicial = "dashboard" 
         <div hidden={route !== "tags"}><TagsPage ativo={route === "tags"} /></div>
         <div hidden={route !== "agendamentos"}><AgendamentosPage ativoNaTela={route === "agendamentos"} /></div></>}
         {gestor && route === "team" && <UsuariosPage papel={papel} />}
-        {gestor && route === "settings" && <Settings podeEditar={papel === "super_admin"} />}
+        {papel === "super_admin" && route === "settings" && <Settings />}
         {route === "plans" && <AssinaturaPage />}
         <div hidden={!["dashboard", "contacts", "inbox"].includes(route)}><OperacaoPage rota={route} /></div>
         {!["dashboard", "contacts", "inbox", "team", "plans"].includes(route) && demoViews[route] && <div className="page-stack demo-view" dangerouslySetInnerHTML={{ __html: demoViews[route]() }} />}

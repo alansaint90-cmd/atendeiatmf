@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const json = (body: object, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function GET() {
-  const acesso = await administradorHttp("admin");
+  const acesso = await administradorHttp();
   if (acesso.erro) return json({ error: "Acesso não autorizado." }, acesso.erro);
   let client: ReturnType<typeof agentRedis> | undefined;
   try {

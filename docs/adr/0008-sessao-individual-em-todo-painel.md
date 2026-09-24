@@ -11,8 +11,9 @@ demonstrativa que conceda acesso. Credenciais de máquina e criptografia permane
 Preservar os papéis existentes no banco: super_admin é Super administrador, admin
 é Gerente e operador é SDR. Gerente administra somente SDRs; super administrador
 administra gerentes e SDRs. Nenhuma API pública cria, rebaixa ou suspende proprietários.
-Configurações de integrações ficam disponíveis para consulta do gerente, mas
-alterações de credenciais e do agente exigem super administrador. Operação exige SDR;
+Configurações de integrações, inclusive consulta e contexto geral do orquestrador,
+exigem super administrador. O gerente configura o prompt do chatbot SDR em Chatbot IA.
+Operação exige SDR;
 tags, follow-ups e agendamentos exigem gerente. CRM preserva escopos de funil.
 
 Senha usa Argon2id nativo do Node >=24.7, salt aleatório, memória de 19 MiB,

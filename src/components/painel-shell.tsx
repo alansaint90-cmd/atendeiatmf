@@ -7,6 +7,7 @@ import { nav } from "@/lib/demo/data";
 import { icon } from "@/lib/demo/icons";
 import { ContaMenu } from "./conta-menu";
 import { Marca } from "./marca";
+import { podeAcessarRotaPainel } from "@/lib/auth/rotas-painel";
 
 interface PainelShellProps {
   papel: Papel;
@@ -21,8 +22,7 @@ interface PainelShellProps {
 
 export function PainelShell({ papel, nome, email, foto, rota, titulo, aoNavegar, children }: PainelShellProps) {
   const [recolhido, setRecolhido] = useState(false);
-  const gestor = papel === "admin" || papel === "super_admin";
-  const menu = nav.filter(([id]) => id === "settings" ? gestor : ["team", "followups", "tags", "agendamentos", "chatbot", "flows", "campaigns"].includes(id) ? gestor : true);
+  const menu = nav.filter(([id]) => podeAcessarRotaPainel(papel, id));
 
   return <div className={`shell ${recolhido ? "sidebar-collapsed" : ""}`}>
     <aside className="sidebar"><Marca /><nav aria-label="Menu principal">

@@ -1,15 +1,15 @@
 # Regras do protótipo
 
-- O contexto geral salvo em Configurações fornece informações comuns da operação. O chatbot vinculado à instância Evolution fornece persona, missão, prompt de atendimento, fallback, transferência e fluxos; em conflito, a configuração do chatbot tem prioridade. Alterações salvas por gerente ou super administrador valem para as próximas mensagens processadas.
+- O contexto geral do orquestrador, salvo em Configurações somente pelo super administrador, fornece informações comuns da operação. O chatbot SDR vinculado à instância Evolution fornece persona, missão, prompt de atendimento, fallback, transferência e fluxos; em conflito, a configuração do chatbot tem prioridade. Alterações do chatbot salvas por gerente ou super administrador valem para as próximas mensagens processadas.
 - `carregarChatbots` e `salvarChatbot` exigem sessão de gerente ou superior, usam o PostgreSQL compartilhado e vinculam o chatbot salvo à instância Evolution configurada. `sairDoSistema` encerra e audita a sessão atual antes de apagar o cookie.
 
-- Configurações de chatbot pertencem ao navegador e à origem onde foram salvas; não são compartilhadas com outros usuários.
+- Configurações de chatbot são compartilhadas no PostgreSQL com os usuários autorizados; salvar o prompt atualiza também o chatbot vinculado à instância Evolution.
 - Identificadores de chatbot são obrigatórios e únicos, sem distinção entre maiúsculas e minúsculas.
 - Cada chatbot permite até três personalidades distintas e até 50 fluxos com nome e descrição preenchidos.
 - Atraso: inteiro entre 0 e 3600 segundos. Temperatura: entre 0 e 1. Contexto: até 200 mil caracteres.
 - Toda leitura e gravação passa pela validação centralizada. Dados inválidos não são substituídos automaticamente.
-- Uma gravação é recusada se outra aba alterou os dados desde a leitura. O usuário deve recarregar antes de tentar novamente. Essa checagem local não substitui transações no futuro backend.
-- O painel exige sessão individual. Gerentes podem consultar integrações e o estado do agente; alterações de integrações e do agente exigem super administrador. Respostas por IA dependem da ativação explícita no servidor e nas configurações.
+- Uma gravação é recusada se outro usuário ou aba alterou os dados desde a leitura. A versão é conferida na transação do banco; o usuário deve recarregar antes de tentar novamente.
+- O painel exige sessão individual. A página Configurações, a consulta de integrações e o estado do agente são exclusivos do super administrador; o gerente configura o chatbot SDR em Chatbot IA. Respostas por IA dependem da ativação explícita no servidor e nas configurações.
 
 ## Credenciais de integrações
 
