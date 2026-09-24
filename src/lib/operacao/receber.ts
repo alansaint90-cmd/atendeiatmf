@@ -15,6 +15,7 @@ export async function receberOperacao(banco: BancoSql, evento: EvolutionEvent) {
   if (!mensagens.length) return;
   await banco.transaction(async tx => {
     for (const mensagem of mensagens) {
+      if (mensagem.saida) await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${mensagem.instancia} || ':' || ${mensagem.provedorId}, 0))`);
       const recibo = linhas<{ id: string }>(await tx.execute(sql`INSERT INTO atendeia_webhook_recebimentos(identidade,modified_by)
         VALUES (${mensagem.identidade},${systemUserId}) ON CONFLICT DO NOTHING RETURNING id`));
       if (!recibo.length) continue;
@@ -40,9 +41,11 @@ export async function receberOperacao(banco: BancoSql, evento: EvolutionEvent) {
       conversa = linhas(await tx.execute(sql`SELECT id,version FROM atendeia_conversations WHERE channel_id=${canal[0].id}
         AND remote_jid=${mensagem.jid} AND status<>'closed' AND is_deleted=false FOR UPDATE`));
       if (!conversa[0]) throw new Error("Conversa alterada durante o recebimento.");
+      const envioIa = mensagem.saida && linhas<{ id: string }>(await tx.execute(sql`SELECT id FROM atendeia_envios_ia
+        WHERE instance_name=${mensagem.instancia} AND provider_message_id=${mensagem.provedorId} AND is_deleted=false LIMIT 1`)).length > 0;
       const registro = linhas<{ id: string }>(await tx.execute(sql`INSERT INTO atendeia_messages
         (conversation_id,provider_message_id,direction,sender_type,content,message_type,delivery_status,sent_at,modified_by)
-        VALUES (${conversa[0].id},${mensagem.provedorId},${mensagem.saida ? "outbound" : "inbound"},${mensagem.saida ? "system" : "contact"},
+        VALUES (${conversa[0].id},${mensagem.provedorId},${mensagem.saida ? "outbound" : "inbound"},${mensagem.saida ? envioIa ? "bot" : "system" : "contact"},
           ${mensagem.conteudo},${mensagem.tipo},${mensagem.saida ? "sent" : "received"},${mensagem.instante}::timestamptz,${systemUserId}) RETURNING id`));
       await auditar(tx, "mensagem", registro[0].id, ["content", "direction", "provider_message_id"]);
       const atualizada = linhas(await tx.execute(sql`UPDATE atendeia_conversations SET last_message_at=greatest(last_message_at,${mensagem.instante}::timestamptz),

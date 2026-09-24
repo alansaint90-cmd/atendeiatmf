@@ -17,6 +17,7 @@ import { executarAgendamentos } from "../agendamentos/worker";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
 import { montarInstrucoesDoAgente } from "../chatbots/prompt-servidor";
 import { db } from "../db/client";
+import { registrarEnvioIa } from "../operacao/atribuir-ia";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -82,6 +83,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         });
         const state = await store.read();
         if (state?.status === "enviada" && state.providerId) {
+          await registrarEnvioIa(db(), config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
           await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
           if (followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME && state.configHash === digest(JSON.stringify(config.data))) {
             await followups.schedule(message, followupConfig);

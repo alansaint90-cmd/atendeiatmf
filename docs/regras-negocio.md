@@ -98,10 +98,10 @@
 - Não são inseridos nem exibidos números, contatos, conversas ou membros de equipe fictícios. Registros reais existentes são preservados; não há limpeza física do banco.
 - O webhook autenticado registra mensagens individuais, contatos e canais antes da fila Redis. Falha de banco ou fila retorna 503 para permitir retentativa. Recibo único por instância/ID impede recontar mensagens, mesmo após encerrar a conversa.
 - O histórico recebe texto, legenda ou marcador de mídia, sem guardar binários, URLs privadas ou segredos do envelope. Mensagens enviadas dependem do eco messages.upsert/fromMe da Evolution; não é realizada importação automática dos eventos antigos do Redis.
-- Conversas abertas contam status diferente de closed; pendentes são as não encerradas marcadas pending ou cuja última mensagem é recebida. Qualificados contam lead_status=qualificado, sem inferir qualificação pela simples chegada de uma mensagem.
-- Taxa de resposta é a porcentagem de conversas com entrada que possuem uma saída posterior confirmada no histórico; zero se nenhuma recebeu mensagens. Não representa SLA nem taxa de leitura.
-- Volume soma mensagens recebidas e enviadas nos últimos sete dias em UTC. Todas as métricas excluem registros com exclusão lógica e não dependem do limite de linhas exibidas.
-- Carregar dados atualiza o snapshot. Ausência de acesso ou falha de consulta exibe mensagem, nunca métricas zeradas enganosas. Listas vazias só aparecem após consulta autorizada bem-sucedida.
+- Conversas abertas contam status diferente de closed; pendentes são as não encerradas marcadas pending ou cuja última mensagem é recebida.
+- O dashboard mostra conversas atendidas por IA somente quando o ID do envio confirmado pelo agente corresponde ao eco da Evolution. O cartão de atendimento humano conta mensagens de autoria `agent` comprovada no histórico. Envios genéricos `system` não são atribuídos automaticamente a uma pessoa; uma conversa pode ter ambos os tipos de atendimento.
+- O filtro do dashboard escolhe canal e período (hoje, 7 dias, 30 dias, 3 meses ou intervalo personalizado até 366 dias), usando o fuso do navegador e início inclusivo/fim exclusivo. Os cartões superiores mostram o total geral; os indicadores inferiores e o gráfico mostram novas conversas e conversas atendidas por dia no período escolhido. Últimos contatos mostra atividade no período. Exclusão lógica é respeitada em todas as contagens.
+- A action `carregarPainel` consulta um snapshot autorizado. Ausência de acesso ou falha de consulta exibe mensagem, nunca métricas zeradas enganosas. Listas vazias só aparecem após consulta autorizada bem-sucedida.
 
 ## Senhas e equipe (ADR-0008)
 

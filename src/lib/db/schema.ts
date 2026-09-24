@@ -115,6 +115,12 @@ export const messages = pgTable("atendeia_messages", {
   check("atendeia_message_delivery", sql`${t.deliveryStatus} IN ('received', 'queued', 'sent', 'delivered', 'read', 'failed')`),
 ]);
 
+export const aiDeliveries = pgTable("atendeia_envios_ia", {
+  id: id(), instanceName: text("instance_name").notNull(), providerMessageId: text("provider_message_id").notNull(),
+  ...colunasAuditoria,
+  modified_by: uuid("modified_by").notNull().references(() => users.id, { onDelete: "restrict", onUpdate: "restrict" }),
+}, t => [uniqueIndex("atendeia_envios_ia_identidade").on(t.instanceName, t.providerMessageId).where(sql`${t.is_deleted}=false`)]);
+
 export const campaigns = pgTable("atendeia_campaigns", {
   id: id(), name: text("name").notNull(), channelId: uuid("channel_id").notNull().references(() => channels.id, { onDelete: "restrict" }),
   content: text("content").notNull(), status: text("status").notNull().default("draft"),

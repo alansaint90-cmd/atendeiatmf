@@ -1,18 +1,25 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { OperacaoPage } from "@/components/operacao/page";
 import { carregarOperacao } from "@/lib/actions/operacao";
+import { carregarPainel } from "@/lib/actions/painel";
 vi.mock("@/lib/actions/operacao", () => ({ carregarOperacao: vi.fn() }));
+vi.mock("@/lib/actions/painel", () => ({ carregarPainel: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
-const vazio = { abertas: 0, pendentes: 0, qualificados: 0, taxaResposta: 0, totalContatos: 0, contatos: [], conversas: [], volume: [], atualizadoEm: "2026-09-17T10:00:00.000Z" };
+const painelVazio = { abertas: 0, pendentes: 0, atendimentoIa: 0, atendimentoHumano: 0,
+  novas: 0, atendidasIa: 0, atendidasHumano: 0, canais: [], contatos: [], evolucao: [], atualizadoEm: "2026-09-17T10:00:00.000Z" };
 
-test("painel sem autenticação não inventa métricas e vazio autorizado mostra zero", async () => {
-  vi.mocked(carregarOperacao).mockResolvedValue({ ok: true, dados: vazio });
+test("dashboard autorizado sem dados mostra zeros reais e permite trocar o período", async () => {
+  vi.mocked(carregarPainel).mockResolvedValue({ ok: true, dados: painelVazio });
   render(<OperacaoPage rota="dashboard" />);
-  expect(await screen.findByText("0%")).toBeInTheDocument();
-  expect(carregarOperacao).toHaveBeenCalledTimes(1);
-  expect(screen.getAllByText("0")).toHaveLength(3);
-  expect(screen.getByText(/Nenhum contato cadastrado/)).toBeInTheDocument();
+  expect(await screen.findByText("Nenhum contato com atividade no período.")).toBeInTheDocument();
+  expect(carregarPainel).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByText("Atendimento com IA").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Atendimento humano").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Leads qualificados")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Hoje" }));
+  expect(await screen.findByText("Nenhum contato com atividade no período.")).toBeInTheDocument();
+  expect(carregarPainel).toHaveBeenCalledTimes(2);
 });
 
 test("falha de consulta não vira banco vazio e sessão recusada remove dados anteriores", async () => {
@@ -20,4 +27,11 @@ test("falha de consulta não vira banco vazio e sessão recusada remove dados an
   render(<OperacaoPage rota="contacts" />);
   expect(await screen.findByRole("alert")).toHaveTextContent("Acesso recusado.");
   expect(screen.queryByText(/0 contatos cadastrados/)).not.toBeInTheDocument();
+});
+
+test("falha do painel não mostra zeros como dados consultados", async () => {
+  vi.mocked(carregarPainel).mockResolvedValue({ ok: false, erro: "Acesso recusado." });
+  render(<OperacaoPage rota="dashboard" />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Acesso recusado.");
+  expect(screen.queryByLabelText("Resumo geral")).not.toBeInTheDocument();
 });

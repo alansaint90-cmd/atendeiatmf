@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 120 |
-| Tabelas (Drizzle) | 30 |
-| Server Actions (arquivos) | 9 |
-| Rotas de API | 5 |
+| Arquivos TS/TSX | 135 |
+| Tabelas (Drizzle) | 31 |
+| Server Actions (arquivos) | 11 |
+| Rotas de API | 6 |
 | Paginas | 4 |
-| Componentes | 14 |
+| Componentes | 18 |
 
 ## Arvore (profundidade 3)
 
@@ -40,6 +40,8 @@ app/
 components/
   agendamentos/
     page.tsx
+  assinatura/
+    page.tsx
   chatbots/
     editor.tsx
     page.tsx
@@ -47,6 +49,7 @@ components/
     page.tsx
   operacao/
     page.tsx
+    painel.tsx
   tags/
     page.tsx
   ui/
@@ -55,8 +58,10 @@ components/
   usuarios/
     page.tsx
   agent-settings.tsx
+  conta-menu.tsx
   marca.tsx
   modal-confirmacao-block.tsx
+  painel-shell.tsx
   settings.tsx
   workspace.tsx
 lib/
@@ -66,6 +71,8 @@ lib/
     crm.ts
     followups.ts
     operacao.ts
+    painel.ts
+    perfil.ts
     seguranca.ts
     sessoes.ts
     tags.ts
@@ -91,6 +98,7 @@ lib/
     cookies.ts
     desafios.ts
     login-senha.ts
+    origem-http.ts
     papeis.ts
     passkeys-perfil.ts
     passkeys.ts
@@ -130,6 +138,7 @@ lib/
     icons.ts
     views.ts
   evolution/
+    configurar-webhook.ts
     queue.ts
     schema.ts
     webhook.ts
@@ -139,9 +148,13 @@ lib/
     schedule.ts
     schema.ts
   operacao/
+    atribuir-ia.ts
     consultas.ts
     evento.ts
+    painel.ts
     receber.ts
+  perfil/
+    servico.ts
   settings/
     access.ts
     repository.ts
@@ -151,16 +164,20 @@ lib/
     repository.ts
     schema.ts
   validators/
+    perfil.ts
   acao.ts
   use-hydrated.ts
   utils.ts
 styles/
   automation.css
   base.css
+  conta-menu.css
   features.css
   improvements.css
   layout.css
   marca.css
+  painel-operacional.css
+  perfil.css
   ui.css
 instrumentation.ts
 ```
@@ -207,7 +224,7 @@ instrumentation.ts
 `id`, `nome`, `email`, `papel`, `ativo`
 
 ### `atendeia_users` — src/lib/db/schema.ts
-`id`, `passwordHash`, `enabled`
+`id`, `phone`, `passwordHash`, `enabled`
 
 ### `atendeia_webhook_recebimentos` — src/lib/db/schema.ts
 `id`, `modified_by`
@@ -248,6 +265,9 @@ _(colunas nao detectadas)_
 ### `atendeia_messages` — src/lib/db/schema.ts
 `id`, `providerMessageId`, `senderType`, `messageType`, `sentAt`
 
+### `atendeia_envios_ia` — src/lib/db/schema.ts
+`id`, `modified_by`
+
 ### `atendeia_campaigns` — src/lib/db/schema.ts
 `id`, `content`, `scheduledAt`
 
@@ -264,6 +284,7 @@ _(colunas nao detectadas)_
 | `/api/auth/login` | POST |
 | `/api/auth/passkey` | POST |
 | `/api/settings/agent` | GET |
+| `/api/settings/evolution-webhook` | POST |
 | `/api/settings/integrations` | GET, PUT |
 | `/api/webhooks/evolution` | POST |
 
@@ -274,6 +295,8 @@ _(colunas nao detectadas)_
 - `src/lib/actions/crm.ts`: `carregarCrm()`, `adicionarFunil()`, `adicionarMotivo()`, `modificarMotivo()`, `salvarAcessosFunis()`, `adicionarOportunidade()`, `fecharNegocio()`, `moverNegocio()`
 - `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
 - `src/lib/actions/operacao.ts`: `carregarOperacao()`
+- `src/lib/actions/painel.ts`: `carregarPainel()`
+- `src/lib/actions/perfil.ts`: `carregarMeuPerfil()`, `salvarMeuPerfil()`
 - `src/lib/actions/seguranca.ts`: `trocarMinhaSenha()`, `minhasPasskeys()`, `removerMinhaPasskey()`
 - `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`, `sairDoSistema()`
 - `src/lib/actions/tags.ts`: `carregarTags()`, `salvarTag()`, `excluirTag()`
