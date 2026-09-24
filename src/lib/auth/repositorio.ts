@@ -8,7 +8,7 @@ import { contextoAuth } from "./contexto";
 
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const novoToken = () => randomBytes(32).toString("base64url");
-export interface Identidade { userId: string; papel: Papel; nome: string; sessionId: string }
+export interface Identidade { userId: string; papel: Papel; nome: string; email: string; sessionId: string }
 
 export async function auditarIdentidade(tx: TransacaoSql, ator: string, acao: string, objeto = ator) {
   await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields,details)
@@ -23,7 +23,7 @@ export async function lerSessao(banco: TransacaoSql, token: string): Promise<Ide
     FROM atendeia_users u WHERE s.user_id=u.id AND s.token_hash=${hashToken(token)}
     AND s.is_deleted=false AND u.is_deleted=false AND u.enabled=true
     AND s.expires_at>now() AND s.updated_at>now()-interval '1 hour'
-    RETURNING u.id AS "userId",u.role AS papel,u.name AS nome,s.id AS "sessionId"`));
+    RETURNING u.id AS "userId",u.role AS papel,u.name AS nome,u.email AS email,s.id AS "sessionId"`));
   return registro && PAPEIS.includes(registro.papel) ? registro : null;
 }
 
