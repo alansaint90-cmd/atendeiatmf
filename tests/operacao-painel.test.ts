@@ -6,6 +6,7 @@ import { applyMigrations } from "../src/lib/db/migrate";
 import { receberOperacao } from "../src/lib/operacao/receber";
 import { registrarEnvioIa } from "../src/lib/operacao/atribuir-ia";
 import { consultarPainel } from "../src/lib/operacao/painel";
+import type { BancoSql } from "../src/lib/db/porta";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
 
 function evento(instancia: string, id: string, saida: boolean, telefone: string): EvolutionEvent {
@@ -55,4 +56,21 @@ test("painel filtra período e canal sem atribuir envio genérico à IA ou human
     await assert.rejects(consultarPainel(banco, { ...filtro(), inicio: filtro().fim }), /início anterior/);
     assert.equal((await cliente.query("SELECT id FROM atendeia_audit_logs WHERE action='mensagem_identificada_ia'")).rows.length, 1);
   } finally { await cliente.close(); }
+});
+
+test("falha na consulta identifica a etapa sem expor detalhes do banco", async () => {
+  const banco = { transaction: async (trabalho: (tx: { execute: () => Promise<never> }) => Promise<unknown>) =>
+    trabalho({ execute: async () => { throw Object.assign(new Error("DATABASE_URL=segredo"), { code: "42P01" }); } }) } as unknown as BancoSql;
+  const registrar = console.error;
+  const avisos: string[] = [];
+  console.error = (...partes: unknown[]) => { avisos.push(partes.join(" ")); };
+  try {
+    await assert.rejects(consultarPainel(banco, filtro()), erro => {
+      assert.match(String(erro), /etapa P01/);
+      assert.doesNotMatch(String(erro), /segredo/);
+      return true;
+    });
+    assert.match(avisos.join(" "), /P01; SQLSTATE 42P01/);
+    assert.doesNotMatch(avisos.join(" "), /segredo/);
+  } finally { console.error = registrar; }
 });

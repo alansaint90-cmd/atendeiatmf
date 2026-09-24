@@ -29,12 +29,15 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
   try { new Intl.DateTimeFormat("pt-BR", { timeZone: filtro.fuso }); }
   catch { throw new ErroDeNegocio("Fuso horário inválido."); }
 
-  return banco.transaction(async tx => {
+  let etapa = "P01";
+  try { return await banco.transaction(async tx => {
     await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`);
     const canal = filtro.canalId ? sql`ch.id=${filtro.canalId}` : sql`true`;
+    etapa = "P02";
     const canais = linhas<{ id: string; nome: string }>(await tx.execute(sql`SELECT id,name nome FROM atendeia_channels
       WHERE is_deleted=false ORDER BY name,id`));
     if (filtro.canalId && !canais.some(item => item.id === filtro.canalId)) throw new ErroDeNegocio("Canal indisponível.");
+    etapa = "P03";
     const [geral] = linhas<{ abertas: number; pendentes: number; ia: number; humano: number }>(await tx.execute(sql`
       SELECT count(*) FILTER (WHERE c.status<>'closed')::int abertas,
         count(*) FILTER (WHERE c.status<>'closed' AND (c.status='pending' OR ultimo.direction='inbound'))::int pendentes,
@@ -44,6 +47,7 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
       LEFT JOIN LATERAL (SELECT direction FROM atendeia_messages m WHERE m.conversation_id=c.id AND m.is_deleted=false
         ORDER BY sent_at DESC,created_at DESC,id DESC LIMIT 1) ultimo ON true
       WHERE c.is_deleted=false AND p.is_deleted=false AND ch.is_deleted=false`));
+    etapa = "P04";
     const [periodo] = linhas<{ novas: number; ia: number; humano: number }>(await tx.execute(sql`
       SELECT count(*) FILTER (WHERE c.created_at>=${inicio} AND c.created_at<${fim})::int novas,
         count(*) FILTER (WHERE EXISTS(SELECT 1 FROM atendeia_messages m WHERE m.conversation_id=c.id AND m.is_deleted=false
@@ -52,6 +56,7 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
           AND m.direction='outbound' AND m.sender_type='agent' AND m.sent_at>=${inicio} AND m.sent_at<${fim}))::int humano
       FROM atendeia_conversations c JOIN atendeia_contacts p ON p.id=c.contact_id JOIN atendeia_channels ch ON ch.id=c.channel_id
       WHERE c.is_deleted=false AND p.is_deleted=false AND ch.is_deleted=false AND ${canal}`));
+    etapa = "P05";
     const evolucao = linhas<PontoPainel>(await tx.execute(sql`
       WITH dias AS (SELECT dia::date FROM generate_series(
         (${inicio}::timestamptz AT TIME ZONE ${filtro.fuso})::date,
@@ -71,6 +76,7 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
       SELECT to_char(d.dia,'YYYY-MM-DD') dia,coalesce(c.total,0)::int conversas,
         coalesce(s.ia,0)::int ia,coalesce(s.humano,0)::int humano
       FROM dias d LEFT JOIN criadas c ON c.dia=d.dia LEFT JOIN saidas s ON s.dia=d.dia ORDER BY d.dia`));
+    etapa = "P06";
     const contatos = linhas<{ id: string; nome: string; telefone: string | null }>(await tx.execute(sql`
       SELECT p.id,p.name nome,p.phone telefone FROM atendeia_contacts p
       JOIN atendeia_conversations c ON c.contact_id=p.id JOIN atendeia_channels ch ON ch.id=c.channel_id
@@ -80,5 +86,11 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
     return { abertas: geral.abertas, pendentes: geral.pendentes, atendimentoIa: geral.ia, atendimentoHumano: geral.humano,
       novas: periodo.novas, atendidasIa: periodo.ia, atendidasHumano: periodo.humano,
       canais, contatos, evolucao, atualizadoEm: new Date().toISOString() };
-  });
+  }); } catch (erro) {
+    if (erro instanceof ErroDeNegocio) throw erro;
+    const codigo = typeof erro === "object" && erro !== null && "code" in erro &&
+      typeof erro.code === "string" && /^[A-Z0-9]{5}$/.test(erro.code) ? erro.code : "indisponível";
+    console.error(`Atende AI: consulta do painel falhou na etapa ${etapa}; SQLSTATE ${codigo}.`);
+    throw new ErroDeNegocio(`Não foi possível consultar os indicadores (etapa ${etapa}, código ${codigo}). Tente novamente.`);
+  }
 }
