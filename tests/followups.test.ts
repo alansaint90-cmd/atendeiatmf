@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { defaultFollowup, followupSchema } from "../src/lib/followups/schema";
 import { inWindow, nextDue } from "../src/lib/followups/schedule";
-import { processFollowup, type FollowupJob, type FollowupPort } from "../src/lib/followups/processor";
+import { configuracaoPermiteFollowup, processFollowup, type FollowupJob, type FollowupPort } from "../src/lib/followups/processor";
 import { activity } from "../src/lib/followups/queue";
 import { exigirAdmin } from "../src/lib/settings/access";
 
@@ -45,6 +45,20 @@ test("configuração alterada ou desligada cancela sem enviar", async () => {
     await processFollowup(f.job, f.config, f.port, f.now);
     assert.equal(f.sends.length, 0); assert.deepEqual(f.results, ["cancelado"]);
   }
+});
+test("revalidação antes do envio recusa revisão desatualizada ou desligada", async () => {
+  const f = fixture();
+  let atual = structuredClone(f.config);
+  f.port.enabled = async () => configuracaoPermiteFollowup(f.job, atual);
+  atual = { ...atual, revision: randomUUID() };
+  await processFollowup(f.job, f.config, f.port, f.now);
+  assert.equal(f.sends.length, 0);
+  atual = { ...f.config, enabled: false };
+  await processFollowup(f.job, f.config, f.port, f.now);
+  assert.equal(f.sends.length, 0);
+  atual = f.config;
+  await processFollowup(f.job, f.config, f.port, f.now);
+  assert.equal(f.sends.length, 1);
 });
 test("não repete envio incerto, não antecipa e respeita pausa antes do envio", async () => {
   for (const scenario of ["incerto", "futuro", "pausado"]) {

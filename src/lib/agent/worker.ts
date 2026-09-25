@@ -12,7 +12,7 @@ import { agentRedis, agentKeys, owned } from "./redis";
 import { finishEvent, messageStore } from "./store";
 import { parseFollowup } from "../followups/schema";
 import { followupStore } from "../followups/queue";
-import { processFollowup } from "../followups/processor";
+import { configuracaoPermiteFollowup, processFollowup } from "../followups/processor";
 import { executarAgendamentos } from "../agendamentos/worker";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
 import { db } from "../db/client";
@@ -102,11 +102,13 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         save: followups.save, finish: result => followups.finish(job, result),
         enabled: async () => {
           const currentSettings = await dependencies.settings();
+          const currentFollowup = parseFollowup(currentSettings.FOLLOW_UP_CONFIG);
           const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
             ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
           const current = configurarAgente(currentSettings, currentBot);
           return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
-            && followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME
+            && configuracaoPermiteFollowup(job, currentFollowup)
+            && currentFollowup.instance === config.data.EVOLUTION_INSTANCE_NAME
             && await client.get(agentKeys.lock) === token && await client.xlen(streamKey) === 0;
         },
         send: (number, text) => dependencies.send(config.data, number, text),

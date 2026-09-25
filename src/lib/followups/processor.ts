@@ -12,8 +12,11 @@ export interface FollowupPort {
   send(number: string, text: string): Promise<string>;
   delivered(id: string, text: string): Promise<void>;
 }
+export function configuracaoPermiteFollowup(job: FollowupJob, config: FollowupConfig) {
+  return config.enabled && job.revision === config.revision;
+}
 export async function processFollowup(job: FollowupJob, config: FollowupConfig, port: FollowupPort, now = Date.now()) {
-  if (!config.enabled || job.revision !== config.revision) { await port.finish("cancelado"); return; }
+  if (!configuracaoPermiteFollowup(job, config)) { await port.finish("cancelado"); return; }
   if (job.status === "enviando") { await port.finish("incerto"); return; }
   if (job.due > now) return;
   if (!inWindow(config, now)) {
