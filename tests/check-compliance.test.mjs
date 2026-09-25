@@ -156,6 +156,7 @@ try {
     ["modelo inicial com roteiro comercial reprova", reprova("chatbots/defaults.ts", "prompt-legado")],
     ["importação automática do navegador reprova", reprova("chatbots/page.tsx", "prompt-legado")],
     ["orquestrador no prompt do chatbot reprova", reprova("chatbots/prompt-servidor.ts", "orquestrador-legado")],
+    ["instrução individual ausente reprova", reprova("chatbots/prompt-servidor.ts", "mentoria-individual")],
     ["orquestrador na tela de configurações reprova", reprova("agent-settings.tsx", "orquestrador-legado")],
 
     ["primitivo de 600 linhas em components/ui passa", passa("components/ui/grande.tsx")],

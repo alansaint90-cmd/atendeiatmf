@@ -25,6 +25,7 @@
  *   [ERRO]  config-super-admin    — leitura de Configurações exige super administrador
  *   [ERRO]  prompt-legado         — não importar roteiro comercial antigo automaticamente
  *   [ERRO]  orquestrador-legado   — contexto geral não entra nas respostas nem na tela
+ *   [ERRO]  mentoria-individual   — instruções da Thaís preservam o formato individual
  *   [AVISO] query-sem-filtro      — select/findMany sem filtro de is_deleted
  *   [AVISO] cascade               — onDelete: 'cascade' (preferir restrict)
  *   [AVISO] onupdate-updated-at   — $onUpdate em updated_at envelhece a trava
@@ -393,6 +394,10 @@ function analyzeFile(file) {
   if (rel === "src/lib/chatbots/prompt-servidor.ts" && /\b(?:contextoGeral|AI_SYSTEM_PROMPT)\b/.test(content)) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
       msg: "O contexto geral legado não pode compor as instruções do chatbot." });
+  }
+  if (rel === "src/lib/chatbots/prompt-servidor.ts" && !/exclusivamente individuais/.test(content)) {
+    findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
+      msg: "As instruções da Thaís precisam afirmar que a mentoria com Wellington é individual." });
   }
   if (rel === "src/components/agent-settings.tsx" && /\bAI_SYSTEM_PROMPT\b/.test(content)) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,

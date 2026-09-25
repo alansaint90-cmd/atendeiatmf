@@ -215,6 +215,16 @@ test("somente o prompt do chatbot compõe as instruções; sem ele o agente não
   }
 });
 
+test("orientação antiga sobre mentoria coletiva não chega à Thaís", () => {
+  const bot = { ...chatbotExample, context: `Você atende a equipe de Wellington Junior.\nPrimeiro pergunte:\n"Claro! 😊 Você está buscando um atendimento individual ou uma mentoria em grupo?"\nSe responder individual:\nExplique a sessão.\nO grupo do evento recebe avisos.` };
+  const instrucoes = montarInstrucoesDoAgente(bot);
+  assert.ok(!instrucoes.includes("mentoria em grupo"));
+  assert.ok(instrucoes.includes("exclusivamente individuais"));
+  assert.ok(instrucoes.includes("O grupo do evento recebe avisos."));
+  assert.ok(instrucoes.includes("Sobre o atendimento individual:"));
+  assert.ok(instrucoes.includes("Primeiro explique:"));
+});
+
 test("OpenAI recebe contexto e histórico separados, sem salvar resposta no provedor", async () => {
   const fake: typeof fetch = async (url, init) => {
     assert.equal(url, "https://api.openai.com/v1/responses");

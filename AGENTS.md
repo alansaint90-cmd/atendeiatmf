@@ -181,6 +181,10 @@ O agente de respostas segue ADR-0003. Código em `src/lib/agent/`; ativação ex
 por ATENDEIA_WORKER_ENABLED e AI_ENABLED. Não iniciar testes locais com credenciais
 de produção. Testes de provedores usam mocks. Teste Redis usa apenas serviço local
 descartável no banco 15. Nunca repetir automaticamente entrega incerta.
+Para a Thaís/TMF, atendimento e mentoria com Wellington Junior são exclusivamente
+individuais. Não reintroduzir oferta coletiva no prompt salvo ou nas instruções
+montadas; o grupo de WhatsApp do evento é um assunto distinto. O auditor fiscaliza
+essa regra e a migração 0009 corrige o trecho legado já armazenado.
 
 Follow-ups e tags seguem ADR-0004 e ADR-0008. Actions exigem sessão individual
 e permissão de gerente ou superior. Não aceitar token administrativo como acesso.
