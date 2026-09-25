@@ -38,6 +38,11 @@ limitado a 10 mil resultados. As tabelas operacionais e a caixa de entrada não 
 integradas por esta mudança. Grupos, outras mídias, lotes, fluxos e atendimento humano ficam
 fora da automação de texto inicial. Eventos antigos não geram respostas atrasadas.
 
+O nome fornecido pelo cliente é guardado separadamente no Redis, por conversa, por
+até 100 dias. O agente pede o nome no primeiro contato quando ele não foi informado,
+usa o primeiro nome nas respostas posteriores e substitui marcadores do prompt antes
+do envio. O nome não é inferido do nome de exibição do WhatsApp.
+
 Extensão de áudio (2026-09-20): a seleção também aceita audioMessage individual.
 O adaptador consulta getBase64FromMediaMessage pelo ID, na instância configurada,
 com convertToMp4=false; não baixa URLs fornecidas pelo evento. OGG/Opus segue para

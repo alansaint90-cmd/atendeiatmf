@@ -46,6 +46,8 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
     assert.ok(await client.xlen(agentKeys.archive) >= 2);
     const lease = randomUUID();
     await client.set(agentKeys.lock, lease, "PX", 120000);
+    await messageStore(client, lease, message).rememberName("Alan");
+    assert.equal(await messageStore(client, "sem-posse", message).contactName(), "Alan");
     const followups = followupStore(client, lease);
     const schedule = structuredClone(defaultFollowup);
     schedule.enabled = true; schedule.instance = "teste"; schedule.revision = randomUUID(); schedule.steps[0].enabled = true;
@@ -71,7 +73,8 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
     assert.equal(sends, 1);
   } finally {
     await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive,
-      `atendeia:{evolution}:reply:${message.identity}`, `atendeia:{evolution}:history:${message.conversation}`);
+      `atendeia:{evolution}:reply:${message.identity}`, `atendeia:{evolution}:history:${message.conversation}`,
+      `atendeia:{evolution}:name:${message.conversation}`);
     client.disconnect();
   }
 });

@@ -6,10 +6,19 @@ import type { Turn } from "./providers";
 import { streamKey } from "../evolution/queue";
 
 const retention = 30 * 86400;
+const nameRetention = 100 * 86400;
 export function messageStore(client: Redis, token: string, message: IncomingMessage) {
   const stateKey = `atendeia:{evolution}:reply:${message.identity}`;
   const historyKey = `atendeia:{evolution}:history:${message.conversation}`;
+  const nameKey = `atendeia:{evolution}:name:${message.conversation}`;
   return {
+    async contactName(): Promise<string | null> {
+      return client.get(nameKey);
+    },
+    async rememberName(name: string) {
+      await assertResult(await client.eval(owned + "redis.call('SET', KEYS[2], ARGV[2], 'EX', ARGV[3]); return 1",
+        2, agentKeys.lock, nameKey, token, name, nameRetention));
+    },
     async read(): Promise<DeliveryState | null> {
       const value = await client.get(stateKey);
       return value ? JSON.parse(value) as DeliveryState : null;

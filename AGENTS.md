@@ -185,6 +185,9 @@ Para a Thaís/TMF, atendimento e mentoria com Wellington Junior são exclusivame
 individuais. Não reintroduzir oferta coletiva no prompt salvo ou nas instruções
 montadas; o grupo de WhatsApp do evento é um assunto distinto. O auditor fiscaliza
 essa regra e a migração 0009 corrige o trecho legado já armazenado.
+O agente pergunta o nome no início da conversa, guarda somente o nome informado
+pelo cliente no Redis por até 100 dias e usa o primeiro nome nas respostas seguintes.
+Não enviar marcadores como `[NOME]` ao WhatsApp nem presumir o nome de exibição.
 
 Follow-ups e tags seguem ADR-0004 e ADR-0008. Actions exigem sessão individual
 e permissão de gerente ou superior. Não aceitar token administrativo como acesso.

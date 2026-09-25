@@ -96,6 +96,8 @@ const CASOS = {
   "src/lib/chatbots/defaults.ts": "export const chatbotExample = { context: 'Roteiro antigo' };",
   "src/components/chatbots/page.tsx": "export const importar = () => localStorage.getItem('antigo');",
   "src/lib/chatbots/prompt-servidor.ts": "export const montar = (contextoGeral) => contextoGeral;",
+  "src/lib/agent/processor.ts": "export const processar = (resposta) => enviar(resposta);",
+  "src/lib/agent/store.ts": "export const historico = (cliente) => cliente.lrange('history', 0, -1);",
   "src/components/agent-settings.tsx": "export const T = () => <textarea name='AI_SYSTEM_PROMPT' />;",
 };
 
@@ -157,6 +159,8 @@ try {
     ["importação automática do navegador reprova", reprova("chatbots/page.tsx", "prompt-legado")],
     ["orquestrador no prompt do chatbot reprova", reprova("chatbots/prompt-servidor.ts", "orquestrador-legado")],
     ["instrução individual ausente reprova", reprova("chatbots/prompt-servidor.ts", "mentoria-individual")],
+    ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
+    ["nome sem persistência separada reprova", reprova("agent/store.ts", "nome-cliente")],
     ["orquestrador na tela de configurações reprova", reprova("agent-settings.tsx", "orquestrador-legado")],
 
     ["primitivo de 600 linhas em components/ui passa", passa("components/ui/grande.tsx")],

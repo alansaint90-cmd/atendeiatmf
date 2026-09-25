@@ -2,12 +2,15 @@ import type { AgentConfig } from "./config";
 import type { IncomingMessage } from "./message";
 import { digest } from "./message";
 import { ProviderError, type Turn } from "./providers";
+import { extrairNomeInformado, instrucoesComNome, respostaComNome } from "./nome";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; transcript?: string; code?: string; configHash?: string; providerId?: string }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
   history(): Promise<Turn[]>;
+  contactName?(): Promise<string | null>;
+  rememberName?(name: string): Promise<void>;
   complete(state: DeliveryState, turns: Turn[]): Promise<void>;
   enabled(): Promise<boolean>;
   transcribe?(config: AgentConfig, message: IncomingMessage): Promise<string>;
@@ -44,7 +47,13 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
         await port.write({ status: "gerando", attempts, configHash, transcript });
         if (!await port.enabled()) return "pausada";
       }
-      reply = await port.generate(config, await port.history(), transcript ?? message.text);
+      const historico = await port.history();
+      const informado = extrairNomeInformado(transcript ?? message.text, historico);
+      const nome = informado ?? await port.contactName?.() ?? null;
+      if (informado && port.rememberName) await port.rememberName(informado);
+      const instrucoes = instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0);
+      const gerada = await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, historico, transcript ?? message.text);
+      reply = respostaComNome(gerada, nome);
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
@@ -55,6 +64,10 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     await port.write(state);
   }
   if (!await port.enabled()) return "pausada";
+  if (/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(state.reply!)) {
+    state = { ...state, reply: respostaComNome(state.reply!, await port.contactName?.() ?? null) };
+    await port.write(state);
+  }
   await port.write({ ...state, status: "enviando" });
   try { state.providerId = await port.send(config, message.number, state.reply!); }
   catch (error) {

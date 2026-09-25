@@ -26,6 +26,7 @@
  *   [ERRO]  prompt-legado         — não importar roteiro comercial antigo automaticamente
  *   [ERRO]  orquestrador-legado   — contexto geral não entra nas respostas nem na tela
  *   [ERRO]  mentoria-individual   — instruções da Thaís preservam o formato individual
+ *   [ERRO]  nome-cliente          — resposta substitui marcadores e guarda nome confirmado
  *   [AVISO] query-sem-filtro      — select/findMany sem filtro de is_deleted
  *   [AVISO] cascade               — onDelete: 'cascade' (preferir restrict)
  *   [AVISO] onupdate-updated-at   — $onUpdate em updated_at envelhece a trava
@@ -398,6 +399,14 @@ function analyzeFile(file) {
   if (rel === "src/lib/chatbots/prompt-servidor.ts" && !/exclusivamente individuais/.test(content)) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
       msg: "As instruções da Thaís precisam afirmar que a mentoria com Wellington é individual." });
+  }
+  if (rel === "src/lib/agent/processor.ts" && !/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content)) {
+    findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
+      msg: "O processador deve identificar o nome informado e tratar a resposta antes do envio." });
+  }
+  if (rel === "src/lib/agent/store.ts" && !/\bcontactName\b[\s\S]*\brememberName\b/.test(content)) {
+    findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
+      msg: "O nome confirmado deve sobreviver ao histórico curto da conversa." });
   }
   if (rel === "src/components/agent-settings.tsx" && /\bAI_SYSTEM_PROMPT\b/.test(content)) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,

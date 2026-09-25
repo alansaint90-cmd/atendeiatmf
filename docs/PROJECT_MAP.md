@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 135 |
+| Arquivos TS/TSX | 136 |
 | Tabelas (Drizzle) | 31 |
 | Server Actions (arquivos) | 11 |
 | Rotas de API | 6 |
@@ -85,6 +85,7 @@ lib/
     audio.ts
     config.ts
     message.ts
+    nome.ts
     processor.ts
     providers.ts
     redis.ts
@@ -105,6 +106,7 @@ lib/
     permissoes.ts
     provisionamento-proprietario.ts
     repositorio.ts
+    rotas-painel.ts
     senhas.ts
     sessao.ts
     trocar-senha.ts
@@ -113,7 +115,6 @@ lib/
   chatbots/
     defaults.ts
     prompt-servidor.ts
-    prompt.ts
     repository.ts
     schema.ts
     server-repository.ts

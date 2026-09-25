@@ -9,6 +9,7 @@ import { transcribeAudio } from "../src/lib/agent/audio";
 import { ProviderError } from "../src/lib/agent/providers";
 import { montarInstrucoesDoAgente } from "../src/lib/chatbots/prompt-servidor";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
+import { extrairNomeInformado, respostaComNome } from "../src/lib/agent/nome";
 
 const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "Atenda com o contexto cadastrado.",
   OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "gpt-4.1-mini", EVOLUTION_API_KEY: "teste",
@@ -29,17 +30,64 @@ test("aceita áudio individual recente para transcrição", () => {
 
 function fixture() {
   let state: DeliveryState | null = null;
+  let contactName: string | null = null;
   const turns: Turn[] = [];
+  const sentTexts: string[] = [];
   let sends = 0;
   let generations = 0;
   const port: ProcessingPort = {
     read: async () => state, write: async value => { state = value; }, history: async () => turns,
+    contactName: async () => contactName, rememberName: async name => { contactName = name; },
     complete: async (value, items) => { state = value; turns.push(...items); }, enabled: async () => true,
     generate: async () => { generations++; return "Olá! Como posso ajudar?"; },
-    send: async () => { sends++; return "resposta-1"; },
+    send: async (_config, _number, text) => { sends++; sentTexts.push(text); return "resposta-1"; },
   };
-  return { port, state: () => state, sends: () => sends, generations: () => generations, turns };
+  return { port, state: () => state, sends: () => sends, generations: () => generations, turns, sentTexts,
+    contactName: () => contactName, nextMessage: () => { state = null; } };
 }
+
+test("pergunta o nome no início, substitui marcador e mantém o tratamento após o histórico expirar", async () => {
+  const f = fixture();
+  f.port.generate = async () => "Olá! 😊 Eu sou a Thaís. Como posso ajudar hoje?";
+  assert.equal(await processMessage(message, config, f.port), "enviada");
+  assert.match(f.sentTexts[0], /qual é o seu nome\?/u);
+  f.port.generate = async (agentConfig) => {
+    assert.match(agentConfig.AI_SYSTEM_PROMPT, /Nome confirmado pelo próprio cliente: Alan/u);
+    return "Prazer, [NOME]! 😊 Me conta o que você procura.";
+  };
+  f.nextMessage();
+  const respostaNome = { ...message, identity: "mensagem-2", text: "Alan" };
+  assert.equal(await processMessage(respostaNome, config, f.port), "enviada");
+  assert.equal(f.contactName(), "Alan");
+  assert.match(f.sentTexts[1], /Prazer, Alan!/u);
+  assert.ok(!f.sentTexts[1].includes("[NOME]"));
+  f.turns.splice(0);
+  f.port.generate = async () => "Tudo bem. Posso esclarecer mais algum ponto?";
+  f.nextMessage();
+  const continuacao = { ...message, identity: "mensagem-3", text: "Obrigado" };
+  assert.equal(await processMessage(continuacao, config, f.port), "enviada");
+  assert.match(f.sentTexts[2], /^Alan,/u);
+});
+
+test("não transforma saudação ou interesse em nome e bloqueia marcador em resposta retomada", async () => {
+  const f = fixture();
+  f.turns.push({ role: "assistant", content: "Qual é o seu nome?" });
+  f.port.generate = async () => "Entendo, [NOME]! Posso ajudar.";
+  assert.equal(await processMessage({ ...message, text: "Mentoria em grupo" }, config, f.port), "enviada");
+  assert.equal(f.contactName(), null);
+  assert.ok(!f.sentTexts[0].includes("[NOME]"));
+  assert.match(f.sentTexts[0], /qual é o seu nome\?/u);
+  const retomada = fixture();
+  await retomada.port.write({ status: "gerada", attempts: 1, reply: "Tudo bem, [NOME]!" });
+  assert.equal(await processMessage(message, config, retomada.port), "enviada");
+  assert.ok(!retomada.sentTexts[0].includes("[NOME]"));
+});
+
+test("aceita apresentação explícita e usa o primeiro nome sem expor marcador", () => {
+  assert.equal(extrairNomeInformado("Meu nome é Ana Maria e preciso de ajuda.", []), "Ana Maria");
+  assert.equal(extrairNomeInformado("Obrigado", [{ role: "assistant", content: "Qual é o seu nome?" }]), null);
+  assert.equal(respostaComNome("Entendo, [NOME]!", "Ana Maria"), "Entendo, Ana!");
+});
 
 test("transcreve uma vez, reaproveita após falha de geração e registra a fala no histórico", async () => {
   const f = fixture(); let transcriptions = 0; let generations = 0;
