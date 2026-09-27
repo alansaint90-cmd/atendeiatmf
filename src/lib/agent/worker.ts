@@ -26,6 +26,7 @@ function report(status: string) {
 }
 
 const dependenciasPadrao = { settings: effectiveSettings, generate: generateReply, send: sendReply,
+  registrarEnvio: (instancia: string, id: string) => registrarEnvioIa(db(), instancia, id),
   chatbot: (instancia: string) => chatbotDaInstancia(db(), instancia) };
 export async function runAgentTick(substituicoes: Partial<typeof dependenciasPadrao> = {}) {
   const dependencies = { ...dependenciasPadrao, ...substituicoes,
@@ -80,7 +81,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         });
         const state = await store.read();
         if (state?.status === "enviada" && state.providerId) {
-          await registrarEnvioIa(db(), config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
+          await dependencies.registrarEnvio(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
           await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
           if (followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME && state.configHash === digest(JSON.stringify(config.data))) {
             await followups.schedule(message, followupConfig);

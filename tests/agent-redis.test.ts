@@ -10,6 +10,7 @@ import type { AgentConfig } from "../src/lib/agent/config";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
 import { defaultFollowup } from "../src/lib/followups/schema";
 import { followupStore, followupQueue } from "../src/lib/followups/queue";
+import { chatbotExample } from "../src/lib/chatbots/defaults";
 
 test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio duplicado", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
@@ -25,7 +26,11 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
   messageTimestamp: Math.floor(Date.now() / 1000), message: { conversation: "Oi" } } };
   const message = incomingMessage(event, "teste")!;
   let sends = 0;
-  const dependencies = { settings: async () => config, generate: async () => "Olá", send: async () => { sends++; return "enviado"; } };
+  const registros: string[] = [];
+  const dependencies = { settings: async () => config,
+    chatbot: async () => ({ ...chatbotExample, context: "Atenda o cliente conforme este roteiro de teste." }),
+    registrarEnvio: async (instancia: string, id: string) => { registros.push(`${instancia}:${id}`); },
+    generate: async () => "Olá", send: async () => { sends++; return "enviado"; } };
   try {
     assert.equal(await client.xlen(streamKey), 0, "Fila de testes deve estar vazia.");
     await client.xgroup("CREATE", streamKey, agentKeys.group, "0", "MKSTREAM").catch(error => {
@@ -36,6 +41,7 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
     await client.xreadgroup("GROUP", agentKeys.group, agentKeys.consumer, "COUNT", 1, "STREAMS", streamKey, ">");
     await runAgentTick(dependencies);
     assert.equal(sends, 1);
+    assert.deepEqual(registros, ["teste:enviado"]);
     assert.equal(await client.xlen(streamKey), 0);
     assert.equal((await messageStore(client, "sem-posse", message).read())?.status, "enviada");
     assert.equal((await messageStore(client, "sem-posse", message).history()).length, 2);
