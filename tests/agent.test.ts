@@ -66,7 +66,7 @@ test("pergunta o nome no início, substitui marcador e mantém o tratamento apó
   f.nextMessage();
   const continuacao = { ...message, identity: "mensagem-3", text: "Obrigado" };
   assert.equal(await processMessage(continuacao, config, f.port), "enviada");
-  assert.match(f.sentTexts[2], /^Alan,/u);
+  assert.equal(f.sentTexts[2], "Tudo bem. Posso esclarecer mais algum ponto?");
 });
 
 test("não transforma saudação ou interesse em nome e bloqueia marcador em resposta retomada", async () => {
@@ -87,6 +87,23 @@ test("aceita apresentação explícita e usa o primeiro nome sem expor marcador"
   assert.equal(extrairNomeInformado("Meu nome é Ana Maria e preciso de ajuda.", []), "Ana Maria");
   assert.equal(extrairNomeInformado("Obrigado", [{ role: "assistant", content: "Qual é o seu nome?" }]), null);
   assert.equal(respostaComNome("Entendo, [NOME]!", "Ana Maria"), "Entendo, Ana!");
+});
+
+test("não prefixa a resposta com a persona nem reutiliza seu nome como cliente", async () => {
+  const f = fixture();
+  await f.port.rememberName!("Thaís");
+  f.port.generate = async agentConfig => {
+    assert.doesNotMatch(agentConfig.AI_SYSTEM_PROMPT, /Nome confirmado pelo próprio cliente: Thaís/u);
+    return "Thaís, Oi, Carlos! 😊";
+  };
+  await processMessage(message, { ...config, AI_SYSTEM_PROMPT: "Persona: Thaís (Feminino)\nAtenda conforme o prompt." }, f.port);
+  assert.match(f.sentTexts[0], /^Oi, Carlos!/u);
+  assert.doesNotMatch(f.sentTexts[0], /^Thaís,/u);
+});
+
+test("preserva apresentação da assistente e tratamento natural do cliente", () => {
+  assert.equal(respostaComNome("Oi, Carlos!", "Carlos"), "Oi, Carlos!");
+  assert.equal(respostaComNome("Eu sou a Thaís. Posso ajudar?", "Carlos"), "Eu sou a Thaís. Posso ajudar?");
 });
 
 test("transcreve uma vez, reaproveita após falha de geração e registra a fala no histórico", async () => {

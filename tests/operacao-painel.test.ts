@@ -8,6 +8,8 @@ import { registrarEnvioIa } from "../src/lib/operacao/atribuir-ia";
 import { consultarPainel } from "../src/lib/operacao/painel";
 import type { BancoSql } from "../src/lib/db/porta";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
 
 function evento(instancia: string, id: string, saida: boolean, telefone: string): EvolutionEvent {
   return { event: "messages.upsert", instance: instancia, data: {
@@ -19,6 +21,26 @@ function evento(instancia: string, id: string, saida: boolean, telefone: string)
 function filtro(canalId: string | null = null) {
   return { inicio: new Date(Date.now() - 86400000).toISOString(), fim: new Date(Date.now() + 86400000).toISOString(), fuso: "UTC", canalId };
 }
+
+test("parâmetros de data do painel são strings compatíveis com postgres-js", async () => {
+  const dialect = new PgDialect();
+  let consultas = 0;
+  let instantes = 0;
+  const banco = { transaction: async (trabalho: (tx: { execute: (consulta: SQL) => Promise<unknown> }) => Promise<unknown>) =>
+    trabalho({ execute: async consulta => {
+      const { params } = dialect.sqlToQuery(consulta);
+      for (const parametro of params) {
+        assert.ok(!(parametro instanceof Date), "SQL cru não deve enviar Date ao driver");
+        if (typeof parametro === "string" && /^\d{4}-\d{2}-\d{2}T/u.test(parametro)) instantes++;
+      }
+      consultas++;
+      if (consultas === 3) return [{ abertas: 0, pendentes: 0, ia: 0, humano: 0 }];
+      if (consultas === 4) return [{ novas: 0, ia: 0, humano: 0 }];
+      return [];
+    } }) } as unknown as BancoSql;
+  await consultarPainel(banco, filtro());
+  assert.ok(instantes >= 10, "período, gráfico e contatos devem usar datas serializadas");
+});
 
 test("painel filtra período e canal sem atribuir envio genérico à IA ou humano", async () => {
   const cliente = new PGlite(); const banco = drizzle(cliente);

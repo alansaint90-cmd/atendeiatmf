@@ -41,6 +41,20 @@ export function respostaComNome(resposta: string, nome: string | null): string {
   }
   const tratamento = nome.split(" ")[0];
   const preenchida = resposta.replace(marcadorNome, tratamento).trim();
-  return preenchida.toLocaleLowerCase("pt-BR").includes(tratamento.toLocaleLowerCase("pt-BR"))
-    ? preenchida : `${tratamento}, ${preenchida}`;
+  return preenchida;
+}
+
+export function personaDoAgente(instrucoes: string): string | null {
+  return instrucoes.match(/^Persona:\s*(.+?)\s*\([^\n]*\)$/mu)?.[1]?.trim() ?? null;
+}
+
+export function mesmoNome(nome: string | null, outro: string | null): boolean {
+  const normalizar = (valor: string) => valor.normalize("NFD").replace(/\p{M}/gu, "").trim().toLocaleLowerCase("pt-BR");
+  return !!nome && !!outro && normalizar(nome) === normalizar(outro);
+}
+
+export function removerRotuloDaPersona(resposta: string, persona: string | null): string {
+  if (!persona) return resposta;
+  const rotulo = resposta.match(/^\s*([^,:\n]+)[,:]\s*/u);
+  return rotulo && mesmoNome(rotulo[1], persona) ? resposta.slice(rotulo[0].length) : resposta;
 }

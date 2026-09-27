@@ -59,29 +59,29 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
       WHERE c.is_deleted=false AND p.is_deleted=false AND ch.is_deleted=false`));
     etapa = "P04";
     const [periodo] = linhas<{ novas: number; ia: number; humano: number }>(await tx.execute(sql`
-      SELECT count(*) FILTER (WHERE c.created_at>=${inicio} AND c.created_at<${fim})::int novas,
+      SELECT count(*) FILTER (WHERE c.created_at>=${inicio.toISOString()} AND c.created_at<${fim.toISOString()})::int novas,
         count(*) FILTER (WHERE EXISTS(SELECT 1 FROM atendeia_messages m WHERE m.conversation_id=c.id AND m.is_deleted=false
-          AND m.direction='outbound' AND m.sender_type='bot' AND m.sent_at>=${inicio} AND m.sent_at<${fim}))::int ia,
+          AND m.direction='outbound' AND m.sender_type='bot' AND m.sent_at>=${inicio.toISOString()} AND m.sent_at<${fim.toISOString()}))::int ia,
         count(*) FILTER (WHERE EXISTS(SELECT 1 FROM atendeia_messages m WHERE m.conversation_id=c.id AND m.is_deleted=false
-          AND m.direction='outbound' AND m.sender_type='agent' AND m.sent_at>=${inicio} AND m.sent_at<${fim}))::int humano
+          AND m.direction='outbound' AND m.sender_type='agent' AND m.sent_at>=${inicio.toISOString()} AND m.sent_at<${fim.toISOString()}))::int humano
       FROM atendeia_conversations c JOIN atendeia_contacts p ON p.id=c.contact_id JOIN atendeia_channels ch ON ch.id=c.channel_id
       WHERE c.is_deleted=false AND p.is_deleted=false AND ch.is_deleted=false AND ${canal}`));
     etapa = "P05";
     const evolucao = linhas<PontoPainel>(await tx.execute(sql`
       WITH dias AS (SELECT dia::date FROM generate_series(
-        (${inicio}::timestamptz AT TIME ZONE ${filtro.fuso})::date,
-        ((${fim}::timestamptz - interval '1 millisecond') AT TIME ZONE ${filtro.fuso})::date,
+        (${inicio.toISOString()}::timestamptz AT TIME ZONE ${filtro.fuso})::date,
+        ((${fim.toISOString()}::timestamptz - interval '1 millisecond') AT TIME ZONE ${filtro.fuso})::date,
         interval '1 day') dia),
       base AS (SELECT c.id,c.created_at FROM atendeia_conversations c
         JOIN atendeia_contacts p ON p.id=c.contact_id JOIN atendeia_channels ch ON ch.id=c.channel_id
         WHERE c.is_deleted=false AND p.is_deleted=false AND ch.is_deleted=false AND ${canal}),
       criadas AS (SELECT (created_at AT TIME ZONE ${filtro.fuso})::date dia,count(*)::int total FROM base
-        WHERE created_at>=${inicio} AND created_at<${fim} GROUP BY 1),
+        WHERE created_at>=${inicio.toISOString()} AND created_at<${fim.toISOString()} GROUP BY 1),
       saidas AS (SELECT (m.sent_at AT TIME ZONE ${filtro.fuso})::date dia,
         count(DISTINCT m.conversation_id) FILTER (WHERE m.sender_type='bot')::int ia,
         count(DISTINCT m.conversation_id) FILTER (WHERE m.sender_type='agent')::int humano
         FROM atendeia_messages m JOIN base b ON b.id=m.conversation_id
-        WHERE m.is_deleted=false AND m.direction='outbound' AND m.sent_at>=${inicio} AND m.sent_at<${fim}
+        WHERE m.is_deleted=false AND m.direction='outbound' AND m.sent_at>=${inicio.toISOString()} AND m.sent_at<${fim.toISOString()}
         GROUP BY 1)
       SELECT to_char(d.dia,'YYYY-MM-DD') dia,coalesce(c.total,0)::int conversas,
         coalesce(s.ia,0)::int ia,coalesce(s.humano,0)::int humano
@@ -91,7 +91,7 @@ export async function consultarPainel(banco: BancoSql, entrada: unknown): Promis
       SELECT p.id,p.name nome,p.phone telefone FROM atendeia_contacts p
       JOIN atendeia_conversations c ON c.contact_id=p.id JOIN atendeia_channels ch ON ch.id=c.channel_id
       WHERE p.is_deleted=false AND c.is_deleted=false AND ch.is_deleted=false AND ${canal}
-        AND c.last_message_at>=${inicio} AND c.last_message_at<${fim}
+        AND c.last_message_at>=${inicio.toISOString()} AND c.last_message_at<${fim.toISOString()}
       GROUP BY p.id,p.name,p.phone ORDER BY max(c.last_message_at) DESC,p.id LIMIT 7`));
     return { abertas: geral.abertas, pendentes: geral.pendentes, atendimentoIa: geral.ia, atendimentoHumano: geral.humano,
       novas: periodo.novas, atendidasIa: periodo.ia, atendidasHumano: periodo.humano,

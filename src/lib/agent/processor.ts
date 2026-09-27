@@ -2,7 +2,7 @@ import type { AgentConfig } from "./config";
 import type { IncomingMessage } from "./message";
 import { digest } from "./message";
 import { ProviderError, type Turn } from "./providers";
-import { extrairNomeInformado, instrucoesComNome, respostaComNome } from "./nome";
+import { extrairNomeInformado, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; transcript?: string; code?: string; configHash?: string; providerId?: string }
 export interface ProcessingPort {
@@ -48,12 +48,17 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
         if (!await port.enabled()) return "pausada";
       }
       const historico = await port.history();
-      const informado = extrairNomeInformado(transcript ?? message.text, historico);
-      const nome = informado ?? await port.contactName?.() ?? null;
+      const persona = personaDoAgente(config.AI_SYSTEM_PROMPT);
+      const candidato = extrairNomeInformado(transcript ?? message.text, historico);
+      const apresentacaoExplicita = extrairNomeInformado(transcript ?? message.text, []);
+      const informado = mesmoNome(candidato, persona) && !apresentacaoExplicita ? null : candidato;
+      const salvo = await port.contactName?.() ?? null;
+      const confirmadoNoHistorico = historico.some(turno => turno.role === "user" && mesmoNome(extrairNomeInformado(turno.content, []), salvo));
+      const nome = informado ?? (mesmoNome(salvo, persona) && !confirmadoNoHistorico ? null : salvo);
       if (informado && port.rememberName) await port.rememberName(informado);
-      const instrucoes = instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0);
+      const instrucoes = `${instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0)}\nNão use o nome da assistente como rótulo ou prefixo das mensagens. Preserve a apresentação natural no início da conversa.`;
       const gerada = await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, historico, transcript ?? message.text);
-      reply = respostaComNome(gerada, nome);
+      reply = removerRotuloDaPersona(respostaComNome(gerada, nome), persona);
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
@@ -66,6 +71,11 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   if (!await port.enabled()) return "pausada";
   if (/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(state.reply!)) {
     state = { ...state, reply: respostaComNome(state.reply!, await port.contactName?.() ?? null) };
+    await port.write(state);
+  }
+  const semRotulo = removerRotuloDaPersona(state.reply!, personaDoAgente(config.AI_SYSTEM_PROMPT));
+  if (semRotulo !== state.reply) {
+    state = { ...state, reply: semRotulo };
     await port.write(state);
   }
   await port.write({ ...state, status: "enviando" });
