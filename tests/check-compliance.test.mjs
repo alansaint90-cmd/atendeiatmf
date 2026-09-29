@@ -98,6 +98,8 @@ const CASOS = {
   "src/lib/chatbots/prompt-servidor.ts": "export const montar = (contextoGeral) => contextoGeral;",
   "src/lib/agent/processor.ts": "export const processar = (resposta) => enviar(resposta);",
   "src/lib/agent/store.ts": "export const historico = (cliente) => cliente.lrange('history', 0, -1);",
+  "src/lib/agent/worker.ts": "export const runAgentTick = async () => true;",
+  "src/lib/evolution/queue.ts": "export const enqueueEvolutionEvent = async () => true;",
   "src/components/agent-settings.tsx": "export const T = () => <textarea name='AI_SYSTEM_PROMPT' />;",
 };
 
@@ -161,6 +163,8 @@ try {
     ["instrução individual ausente reprova", reprova("chatbots/prompt-servidor.ts", "mentoria-individual")],
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
     ["nome sem persistência separada reprova", reprova("agent/store.ts", "nome-cliente")],
+    ["worker sem pausa manual reprova", reprova("agent/worker.ts", "pausa-manual")],
+    ["webhook sem registro da pausa reprova", reprova("evolution/queue.ts", "pausa-manual")],
     ["orquestrador na tela de configurações reprova", reprova("agent-settings.tsx", "orquestrador-legado")],
 
     ["primitivo de 600 linhas em components/ui passa", passa("components/ui/grande.tsx")],

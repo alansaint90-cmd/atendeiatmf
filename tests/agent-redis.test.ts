@@ -5,12 +5,13 @@ import { agentRedis, agentKeys } from "../src/lib/agent/redis";
 import { messageStore } from "../src/lib/agent/store";
 import { runAgentTick } from "../src/lib/agent/worker";
 import { incomingMessage } from "../src/lib/agent/message";
-import { streamKey } from "../src/lib/evolution/queue";
+import { enqueueEvolutionEventWithClient, streamKey } from "../src/lib/evolution/queue";
 import type { AgentConfig } from "../src/lib/agent/config";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
 import { defaultFollowup } from "../src/lib/followups/schema";
 import { followupStore, followupQueue } from "../src/lib/followups/queue";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
+import { pausaManualAtiva, pausaManualKey, pausaManualParaEvento } from "../src/lib/agent/pausa";
 
 test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio duplicado", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
@@ -108,6 +109,56 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
     await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive,
       `atendeia:{evolution}:reply:${message.identity}`, `atendeia:{evolution}:history:${message.conversation}`,
       `atendeia:{evolution}:name:${message.conversation}`);
+    client.disconnect();
+  }
+});
+
+test("mensagem humana pausa a IA por cinco minutos da última saída; eco da IA não pausa", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!;
+  const target = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(target.hostname) && target.pathname === "/15");
+  const client = agentRedis(url);
+  await client.connect();
+  const telefone = "5511888777666@s.whatsapp.net";
+  const base = Math.floor(Date.now() / 1000);
+  const evento = (id: string, fromMe: boolean, timestamp = base): EvolutionEvent => ({
+    event: "messages.upsert", instance: "teste", data: { key: { id, fromMe, remoteJid: telefone },
+      messageTimestamp: timestamp, message: { conversation: "Teste de pausa" } },
+  });
+  const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "Teste", OPENAI_API_KEY: "sk-test-only",
+    OPENAI_MODEL: "modelo-teste", EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste",
+    EVOLUTION_INSTANCE_NAME: "teste", REDIS_URL: url };
+  const chatbot = async () => ({ ...chatbotExample, context: "Atenda o cliente." });
+  let gera = 0;
+  let envia = 0;
+  const dependencies = { settings: async () => config, chatbot,
+    registrarEnvio: async () => {}, generate: async () => { gera++; return "Resposta da IA"; },
+    send: async () => { envia++; return `envio-${envia}`; } };
+  const primeira = evento(randomUUID(), true);
+  const pausa = pausaManualParaEvento(primeira);
+  assert.ok(pausa);
+  try {
+    assert.equal(await enqueueEvolutionEventWithClient(client, primeira), "queued");
+    assert.equal(await client.get(pausaManualKey(pausa.conversation)), String(pausa.ate));
+    assert.equal(await enqueueEvolutionEventWithClient(client, primeira), "duplicate");
+    await enqueueEvolutionEventWithClient(client, evento(randomUUID(), true, base + 1));
+    assert.equal(await client.get(pausaManualKey(pausa.conversation)), String(pausa.ate + 1000));
+    await enqueueEvolutionEventWithClient(client, evento(randomUUID(), true, base - 60));
+    assert.equal(await client.get(pausaManualKey(pausa.conversation)), String(pausa.ate + 1000));
+    await enqueueEvolutionEventWithClient(client, evento(randomUUID(), false));
+    for (let i = 0; i < 4; i++) await runAgentTick(dependencies);
+    assert.equal(gera, 0); assert.equal(envia, 0);
+    assert.equal(await client.xlen(streamKey), 0);
+    assert.equal(await pausaManualAtiva(client, pausa.conversation, pausa.ate + 1000), false);
+    await client.del(pausaManualKey(pausa.conversation));
+    await enqueueEvolutionEventWithClient(client, evento(randomUUID(), false));
+    await runAgentTick(dependencies);
+    assert.equal(gera, 1); assert.equal(envia, 1);
+    const eco = evento("envio-1", true);
+    assert.equal(await enqueueEvolutionEventWithClient(client, eco), "queued");
+    assert.equal(await client.get(pausaManualKey(pausa.conversation)), null, "Eco do agente não pausa.");
+  } finally {
+    await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive, pausaManualKey(pausa.conversation));
     client.disconnect();
   }
 });

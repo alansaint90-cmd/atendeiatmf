@@ -17,6 +17,7 @@ import { executarAgendamentos } from "../agendamentos/worker";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
 import { db } from "../db/client";
 import { registrarEnvioIa } from "../operacao/atribuir-ia";
+import { pausaManualAtiva } from "./pausa";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -68,7 +69,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       let result = "ignorada";
       if (message) {
         const store = messageStore(client, token, message);
-        result = await processMessage(message, config.data, {
+        result = await pausaManualAtiva(client, message.conversation) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
           enabled: async () => {
             const currentSettings = await dependencies.settings();
@@ -76,9 +77,11 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
               ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
             const current = configurarAgente(currentSettings, currentBot);
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
+              && !await pausaManualAtiva(client, message.conversation)
               && await client.get(agentKeys.lock) === token;
           },
         });
+        if (result === "pausada" && await pausaManualAtiva(client, message.conversation)) result = "pausa_manual";
         const state = await store.read();
         if (state?.status === "enviada" && state.providerId) {
           await dependencies.registrarEnvio(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);

@@ -10,6 +10,7 @@ import { ProviderError } from "../src/lib/agent/providers";
 import { montarInstrucoesDoAgente } from "../src/lib/chatbots/prompt-servidor";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { extrairNomeInformado, respostaComNome } from "../src/lib/agent/nome";
+import { pausaManualParaEvento } from "../src/lib/agent/pausa";
 
 const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "Atenda com o contexto cadastrado.",
   OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "gpt-4.1-mini", EVOLUTION_API_KEY: "teste",
@@ -19,6 +20,19 @@ const event: EvolutionEvent = { event: "messages.upsert", instance: "teste", dat
   messageTimestamp: 1700000000, message: { conversation: "Oi" },
 } };
 const message = incomingMessage(event, "teste", 1700000000000)!;
+
+test("somente saída manual individual cria prazo de cinco minutos", () => {
+  const saida: EvolutionEvent = { ...event, data: { key: { id: "mensagem-saida", fromMe: true,
+    remoteJid: "123@lid", remoteJidAlt: "5511999999999@s.whatsapp.net" },
+    messageTimestamp: 1700000000, message: { conversation: "Oi" } } };
+  const pausa = pausaManualParaEvento(saida);
+  assert.ok(pausa);
+  assert.equal(pausa.ate, 1700000000000 + 300000);
+  assert.equal(pausa.conversation, message.conversation);
+  assert.equal(pausaManualParaEvento(event), null);
+  assert.equal(pausaManualParaEvento({ ...saida, data: { key: { id: "grupo", fromMe: true,
+    remoteJid: "grupo@g.us" }, messageTimestamp: 1700000000 } }), null);
+});
 
 test("aceita áudio individual recente para transcrição", () => {
   const audio = incomingMessage({ ...event, data: { ...event.data,

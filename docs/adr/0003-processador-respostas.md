@@ -28,6 +28,16 @@ de mudar checkpoints, confirmar histórico ou arquivar/confirmar a fila. A execu
 serial favorece consistência em instalação pequena; aumentar paralelismo exige
 particionar por conversa e rever a recuperação, não apenas aumentar réplicas.
 
+Saída manual individual `fromMe=true` registra no Redis, junto com a entrada
+autenticada na fila, uma pausa de cinco minutos para aquela conversa. O prazo usa
+o horário do evento e só aumenta com uma saída manual mais recente. O marcador
+do ID de envio da própria IA impede que seu eco seja classificado como humano.
+O worker verifica a pausa antes de gerar e novamente antes de enviar; mensagens
+recebidas durante a pausa são arquivadas sem resposta atrasada. Como em qualquer
+envio externo, o webhook manual e uma geração já em curso podem cruzar-se; a
+verificação imediatamente anterior ao envio reduz essa janela, sem prometer
+cancelamento de chamada externa já iniciada.
+
 Falhas de geração têm até três tentativas. Não repetimos envios com resultado
 incerto, pois a API externa não fornece uma garantia de idempotência comprovada.
 Isso pode exigir intervenção manual após uma queda, mas evita respostas duplicadas.

@@ -408,6 +408,14 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O nome confirmado deve sobreviver ao histórico curto da conversa." });
   }
+  if (rel === "src/lib/agent/worker.ts" && !/\bpausaManualAtiva\b/.test(content)) {
+    findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
+      msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
+  }
+  if (rel === "src/lib/evolution/queue.ts" && !/\bpausaManualParaEvento\b/.test(content)) {
+    findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
+      msg: "O webhook deve registrar a pausa manual junto com o evento autenticado." });
+  }
   if (rel === "src/components/agent-settings.tsx" && /\bAI_SYSTEM_PROMPT\b/.test(content)) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
       msg: "Configurações não pode exibir nem editar o prompt legado do orquestrador." });
