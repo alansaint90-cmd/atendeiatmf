@@ -29,7 +29,7 @@ serial favorece consistência em instalação pequena; aumentar paralelismo exig
 particionar por conversa e rever a recuperação, não apenas aumentar réplicas.
 
 Saída manual individual `fromMe=true` registra no Redis, junto com a entrada
-autenticada na fila, uma pausa de cinco minutos para aquela conversa. O prazo usa
+autenticada na fila, uma pausa de 30 minutos para aquela conversa. O prazo usa
 o horário do evento e só aumenta com uma saída manual mais recente. O marcador
 do ID de envio da própria IA impede que seu eco seja classificado como humano.
 O worker verifica a pausa antes de gerar e novamente antes de enviar; mensagens

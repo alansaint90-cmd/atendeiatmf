@@ -114,7 +114,7 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
   }
 });
 
-test("mensagem humana pausa a IA por cinco minutos da última saída; eco da IA não pausa", { skip: !process.env.TEST_REDIS_URL }, async () => {
+test("mensagem humana pausa a IA por 30 minutos da última saída; eco da IA não pausa", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
   const target = new URL(url);
   assert.ok(["localhost", "127.0.0.1"].includes(target.hostname) && target.pathname === "/15");
@@ -270,7 +270,7 @@ test("saída manual em lote somente com LID pausa o telefone associado e cancela
     assert.equal(await pausaManualAtiva(client, digest(`outro:${telefone}`)), false);
     assert.equal(await client.get(ciclo), null);
     assert.equal(await client.zscore(followupQueue, conversation), null);
-    assert.equal(await pausaManualAtiva(client, conversation, timestamp * 1000 + 300000), false);
+    assert.equal(await pausaManualAtiva(client, conversation, timestamp * 1000 + 1800000), false);
   } finally {
     await client.del(streamKey, ciclo, pausaManualKey(conversation), pausaManualKey(conversaLid),
       `atendeia:{evolution}:contact-alias:${conversation}`, `atendeia:{evolution}:contact-alias:${conversaLid}`);

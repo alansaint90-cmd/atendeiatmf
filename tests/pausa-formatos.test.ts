@@ -20,11 +20,12 @@ test("LID explícito e lotes preservam a pausa sem presumir telefone nem afetar 
   assert.deepEqual(await pausasManuaisParaEvento(client, evento(false, telefone)), []);
   assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`)), true);
   assert.equal(await pausaManualAtiva(client, digest(`outro:${telefone}`)), false);
+  assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`), timestamp * 1000 + 1799999), true);
   const manual = evento(true);
   const lote = await pausasManuaisParaEvento(client, { ...manual, data: [manual.data as Record<string, unknown>] });
   assert.equal(lote.length, 2);
   assert.ok(lote.some(p => p.conversation === digest(`${instance}:${telefone}`)));
-  assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`), timestamp * 1000 + 300000), false);
+  assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`), timestamp * 1000 + 1800000), false);
   assert.deepEqual(await pausasManuaisParaEvento(client, { ...manual, data: {
     key: { id: "grupo", fromMe: true, remoteJid: "123@g.us", remoteJidAlt: telefone }, messageTimestamp: timestamp } }), []);
 });

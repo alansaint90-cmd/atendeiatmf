@@ -4,7 +4,7 @@ import { activity } from "../followups/queue";
 import { z } from "zod";
 import { digest } from "./message";
 
-const cincoMinutos = 5 * 60 * 1000;
+export const duracaoPausaManual = 30 * 60 * 1000;
 export const pausaManualKey = (conversation: string) => `atendeia:{evolution}:manual-pause:${conversation}`;
 const aliasKey = (conversation: string) => `atendeia:{evolution}:contact-alias:${conversation}`;
 const endereco = /^(?:[1-9]\d{6,14}@s\.whatsapp\.net|\d{1,30}@lid)$/;
@@ -32,7 +32,7 @@ export async function pausasManuaisParaEvento(client: Redis, event: EvolutionEve
       if (associado) conversas.push(associado);
     }
     for (const conversation of new Set(conversas)) pausas.push({ conversation,
-      ate: messageTimestamp * 1000 + cincoMinutos,
+      ate: messageTimestamp * 1000 + duracaoPausaManual,
       outgoingKey: `atendeia:{evolution}:outgoing:${digest(`${event.instance}:${key.id}`)}` });
   }
   return pausas;
@@ -41,7 +41,7 @@ export async function pausasManuaisParaEvento(client: Redis, event: EvolutionEve
 export function pausaManualParaEvento(event: EvolutionEvent) {
   const atual = activity(event, event.instance);
   if (!atual?.fromMe) return null;
-  return { conversation: atual.conversation, ate: atual.timestamp * 1000 + cincoMinutos,
+  return { conversation: atual.conversation, ate: atual.timestamp * 1000 + duracaoPausaManual,
     outgoingKey: `atendeia:{evolution}:outgoing:${atual.identity}` };
 }
 

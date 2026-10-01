@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import Redis from "ioredis";
 import type { EvolutionEvent } from "./schema";
-import { pausaManualKey, pausasManuaisParaEvento } from "../agent/pausa";
+import { duracaoPausaManual, pausaManualKey, pausasManuaisParaEvento } from "../agent/pausa";
 
 export const streamKey = "atendeia:{evolution}:events";
 // Atomic deduplication and enqueue. Capacity failures never silently discard data.
@@ -19,7 +19,7 @@ for indice, pausa in ipairs(pausas) do
       redis.call('SET', KEYS[chave], pausa.ate, 'PXAT', pausa.ate)
     end
     local ciclo = redis.call('GET', KEYS[chave + 2])
-    if ciclo and cjson.decode(ciclo).started <= tonumber(pausa.ate) - 300000 then
+    if ciclo and cjson.decode(ciclo).started <= tonumber(pausa.ate) - ${duracaoPausaManual} then
       redis.call('DEL', KEYS[chave + 2])
       redis.call('ZREM', KEYS[chave + 3], pausa.conversation)
     end

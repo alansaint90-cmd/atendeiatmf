@@ -408,7 +408,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O nome confirmado deve sobreviver ao histórico curto da conversa." });
   }
-  if (rel === "src/lib/agent/worker.ts" && !/\bpausaManualAtiva\b/.test(content)) {
+  if ((rel === "src/lib/agent/worker.ts" && !/\bpausaManualAtiva\b/.test(content)) || (rel === "src/lib/agent/pausa.ts" && !/duracaoPausaManual = 30 \* 60 \* 1000/.test(content))) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
   }

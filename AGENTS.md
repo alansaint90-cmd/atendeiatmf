@@ -189,7 +189,7 @@ O agente pergunta o nome no início da conversa, guarda somente o nome informado
 pelo cliente no Redis por até 100 dias e usa o primeiro nome nas respostas seguintes.
 Não enviar marcadores como `[NOME]` ao WhatsApp nem presumir o nome de exibição.
 Mensagem individual `fromMe=true` enviada por humano pausa a resposta da IA por
-cinco minutos desde a última saída manual. Ecos identificados dos envios da própria
+30 minutos desde a última saída manual. Ecos identificados dos envios da própria
 IA não pausam. Mensagens recebidas durante a pausa são arquivadas sem resposta
 automática; a IA volta a atender novas mensagens após o prazo.
 Saídas manuais em lote ou apenas com LID também pausam. A associação LID/telefone
