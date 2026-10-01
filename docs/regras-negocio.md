@@ -42,7 +42,8 @@
 
 - `POST /api/webhooks/evolution` autentica o serviço pelo header `x-webhook-secret`, comparado com `EVOLUTION_WEBHOOK_SECRET` (mínimo de 32 caracteres).
 - O super administrador pode usar `POST /api/settings/evolution-webhook` para sincronizar o webhook da instância configurada com a Evolution: a aplicação mantém os eventos existentes, inclui os três eventos aceitos, define a URL do `AUTH_ORIGIN`, desliga By Events/Base64 e envia `x-webhook-secret` como cabeçalho personalizado. A operação só confirma sucesso após consultar novamente a Evolution e verificar URL, eventos e cabeçalho; nunca exibe a chave.
-- Aceita apenas a instância definida em `EVOLUTION_INSTANCE_NAME` e os eventos `MESSAGES_UPSERT`, `MESSAGES_UPDATE` e `CONNECTION_UPDATE`.
+- Aceita as instâncias `EVOLUTION_INSTANCE_NAME` e, opcionalmente, `EVOLUTION_SECOND_INSTANCE_NAME` da mesma Evolution, e os eventos `MESSAGES_UPSERT`, `MESSAGES_UPDATE` e `CONNECTION_UPDATE`. A sincronização configura e confirma ambos os webhooks; falha parcial identifica o chip sem alegar sucesso completo.
+- Os dois números usam o chatbot da instância principal. Histórico, nome informado, deduplicação, pausa humana e follow-ups são separados por instância e cliente, inclusive quando o telefone do cliente é igual. Texto e áudio usam a instância de origem. O worker mantém a fila serial existente, atendendo eventos dos dois números intercalados.
 - Exige JSON, com no máximo 1 MiB; rejeita envelopes inválidos e remove campos extras do envelope, incluindo a chave de API da Evolution.
 - Retorna 202 apenas após gravação no stream Redis `atendeia:{evolution}:events`. Cada registro contém data de recebimento e origem. Redis indisponível ou fila cheia resultam em 503, sem alegar recebimento.
 - Eventos idênticos são deduplicados por 24 horas; transições de conexão/status sem timestamp não são deduplicadas para não perder ocorrências legítimas.
@@ -71,7 +72,7 @@
 - Tags têm nome único entre registros ativos, cor hexadecimal e busca/paginação. Edição e exclusão lógica conferem versão. Mutação e auditoria são atômicas; excluir preserva contatos e vínculos históricos.
 - Follow-ups são desligados por padrão e atuam no chip Evolution configurado, após uma resposta de IA confirmada. Cada ciclo admite até três textos de até 3.000 caracteres, intervalos de um minuto a 30 dias, dias da semana, janela de horário e fuso.
 - Cada etapa conta o intervalo a partir da resposta anterior. Fora da janela, aguarda o próximo horário permitido. Mensagem individual nova do contato ou do operador cancela a sequência, inclusive mídia. Ecos do próprio agente não cancelam.
-- Qualquer salvamento invalida sequências da configuração anterior. Reativar não recupera sequências antigas. Entrega incerta encerra o ciclo sem retentativa automática. A ativação requer confirmação de três segundos e depende do processador ativo.
+- O painel seleciona cada chip para editar mensagens, intervalos e janelas próprios. `FOLLOW_UP_CONFIG` guarda o principal e `FOLLOW_UP_SECOND_CONFIG` guarda o segundo, com revisões independentes. Salvamento invalida apenas sequências daquele chip. Remover ou renomear uma instância não transfere sequências para outro número. Reativar não recupera sequências antigas. Entrega incerta encerra o ciclo sem retentativa automática. A ativação requer confirmação de três segundos e depende do processador ativo.
 - Os cadastros não implementam associação de tags a contatos, nem transferência humana. A fila de eventos tem prioridade sobre follow-ups; cancelar depende do recebimento do webhook e não interrompe um envio externo já iniciado.
 
 ## Agendamentos individuais

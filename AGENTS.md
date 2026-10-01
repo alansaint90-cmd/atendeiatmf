@@ -216,6 +216,12 @@ manual; gerente administra apenas SDRs. Suspensão, troca de senha ou fator revo
 sessões. Nenhum teste de autenticação usa banco de produção.
 
 Configurações, integrações e estado do agente são exclusivos do super administrador.
+Dois números na mesma Evolution usam EVOLUTION_INSTANCE_NAME e a opcional
+EVOLUTION_SECOND_INSTANCE_NAME. Ambos usam o chatbot da instância principal.
+Webhook aceita somente essas instâncias; resposta e áudio usam a instância recebida.
+Histórico, nome, pausa humana e ciclos de follow-up são isolados por instância e cliente.
+FOLLOW_UP_CONFIG e FOLLOW_UP_SECOND_CONFIG têm revisões independentes; salvar um chip
+não invalida ciclos do outro. Remover/renomear chip não transfere sequências antigas.
 Gerente ou superior configura o prompt do chatbot SDR em Chatbot IA; apenas esse
 chatbot vinculado à instância fornece instruções para respostas. AI_SYSTEM_PROMPT
 legado pode ser lido para compatibilidade, mas não é exibido, editado nem usado.

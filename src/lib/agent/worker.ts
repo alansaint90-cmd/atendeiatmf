@@ -10,7 +10,7 @@ import { transcribeAudio } from "./audio";
 import { processMessage } from "./processor";
 import { agentRedis, agentKeys, owned } from "./redis";
 import { finishEvent, messageStore } from "./store";
-import { parseFollowup } from "../followups/schema";
+import { followupDaInstancia, settingsDaInstancia } from "../evolution/instancias";
 import { followupStore } from "../followups/queue";
 import { configuracaoPermiteFollowup, processFollowup } from "../followups/processor";
 import { executarAgendamentos } from "../agendamentos/worker";
@@ -49,7 +49,6 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
     report(status);
     if (!config.success) return;
     const followups = followupStore(client, token);
-    const followupConfig = parseFollowup(settings.FOLLOW_UP_CONFIG);
     try { await client.xgroup("CREATE", streamKey, agentKeys.group, "0", "MKSTREAM"); }
     catch (error) { if (!(error instanceof Error) || !error.message.includes("BUSYGROUP")) throw error; }
     // Consumidor fixo + lease global recuperam o primeiro pendente antes de ler novos.
@@ -64,10 +63,13 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       let value: unknown;
       try { value = JSON.parse(payload); } catch { value = null; }
       const parsed = evolutionEventSchema.safeParse(value);
-      if (parsed.success) await followups.observe(parsed.data, config.data.EVOLUTION_INSTANCE_NAME);
-      const message = parsed.success ? incomingMessage(parsed.data, config.data.EVOLUTION_INSTANCE_NAME) : null;
+      const instancia = parsed.success ? parsed.data.instance : "";
+      const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
+      const followupConfig = followupDaInstancia(settings, instancia);
+      if (parsed.success && config.success) await followups.observe(parsed.data, instancia);
+      const message = parsed.success && config.success ? incomingMessage(parsed.data, instancia) : null;
       let result = "ignorada";
-      if (message) {
+      if (message && config.success) {
         const store = messageStore(client, token, message);
         result = await pausaManualAtiva(client, message.conversation) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
@@ -75,7 +77,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
             const currentSettings = await dependencies.settings();
             const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
               ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
-            const current = configurarAgente(currentSettings, currentBot);
+            const current = configurarAgente(settingsDaInstancia(currentSettings, instancia), currentBot);
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
               && !await pausaManualAtiva(client, message.conversation)
               && await client.get(agentKeys.lock) === token;
@@ -102,17 +104,22 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
     }
     const job = await followups.due();
     if (job) {
+      const instancia = job.instance ?? settings.EVOLUTION_INSTANCE_NAME ?? "";
+      const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
+      if (!config.success) { await followups.finish(job, "cancelado"); return; }
+      const followupConfig = followupDaInstancia(settings, instancia);
       await processFollowup(job, followupConfig, {
         save: followups.save, finish: result => followups.finish(job, result),
         enabled: async () => {
           const currentSettings = await dependencies.settings();
-          const currentFollowup = parseFollowup(currentSettings.FOLLOW_UP_CONFIG);
+          const currentFollowup = followupDaInstancia(currentSettings, instancia);
           const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
             ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
-          const current = configurarAgente(currentSettings, currentBot);
+          const current = configurarAgente(settingsDaInstancia(currentSettings, instancia), currentBot);
           return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
             && configuracaoPermiteFollowup(job, currentFollowup)
             && currentFollowup.instance === config.data.EVOLUTION_INSTANCE_NAME
+            && !await pausaManualAtiva(client, job.conversation)
             && await client.get(agentKeys.lock) === token && await client.xlen(streamKey) === 0;
         },
         send: (number, text) => dependencies.send(config.data, number, text),

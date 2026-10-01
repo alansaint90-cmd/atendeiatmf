@@ -26,7 +26,7 @@ test("tags carregam, buscam e exigem confirmação antes de salvar", async () =>
   expect(excluirTag).not.toHaveBeenCalled();
 });
 test("follow-up carrega três mensagens desligadas e valida ativação", async () => {
-  vi.mocked(carregarFollowups).mockResolvedValue({ ok: true, dados: { config: structuredClone(defaultFollowup), version: 1, instance: "teste" } });
+  vi.mocked(carregarFollowups).mockResolvedValue({ ok: true, dados: { config: structuredClone(defaultFollowup), version: 1, instance: "teste", instances: ["teste"] } });
   render(<FollowupsPage />);
   expect(await screen.findByLabelText("Chip")).toHaveValue("teste");
   expect(screen.getByLabelText("Follow-ups automáticos desligados")).not.toBeChecked();
@@ -38,7 +38,7 @@ test("follow-up carrega três mensagens desligadas e valida ativação", async (
 });
 test("follow-up preserva ajustes ao trocar de aba e recarrega o que foi salvo", async () => {
   let persisted = structuredClone(defaultFollowup);
-  vi.mocked(carregarFollowups).mockImplementation(async () => ({ ok: true, dados: { config: structuredClone(persisted), version: 1, instance: "teste" } }));
+  vi.mocked(carregarFollowups).mockImplementation(async () => ({ ok: true, dados: { config: structuredClone(persisted), version: 1, instance: "teste", instances: ["teste"] } }));
   vi.mocked(salvarFollowups).mockImplementation(async input => {
     persisted = followupSchema.parse(input);
     return { ok: true, dados: { config: structuredClone(persisted), version: 2, instance: "teste" } };
@@ -68,4 +68,23 @@ test("erro administrativo é exibido sem abrir os campos protegidos", async () =
   render(<TagsPage />);
   expect(await screen.findByRole("alert")).toHaveTextContent("Token inválido");
   expect(screen.queryByText("+ Nova tag")).not.toBeInTheDocument();
+});
+
+test("troca de chip consulta configuração separada e protege alterações pendentes", async () => {
+  vi.mocked(carregarFollowups).mockImplementation(async (instancia = "primeiro") => {
+    const config = structuredClone(defaultFollowup); config.instance = instancia;
+    config.steps[0].text = `Mensagem do ${instancia}`;
+    return { ok: true, dados: { config, version: 2, instance: instancia, instances: ["primeiro", "segundo"] } };
+  });
+  render(<FollowupsPage />);
+  const chip = await screen.findByLabelText("Chip");
+  fireEvent.change(chip, { target: { value: "segundo" } });
+  await waitFor(() => expect(screen.getByLabelText("Mensagem 1")).toHaveValue("Mensagem do segundo"));
+  expect(carregarFollowups).toHaveBeenLastCalledWith("segundo");
+  fireEvent.change(screen.getByLabelText("Mensagem 1"), { target: { value: "Rascunho do segundo" } });
+  expect(chip).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer alterações" }));
+  expect(chip).not.toBeDisabled();
+  fireEvent.change(chip, { target: { value: "primeiro" } });
+  await waitFor(() => expect(screen.getByLabelText("Mensagem 1")).toHaveValue("Mensagem do primeiro"));
 });

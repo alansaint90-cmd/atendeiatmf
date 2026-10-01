@@ -4,6 +4,7 @@ import { settingsSchema, settingNames, type IntegrationSettings } from "./schema
 import { db } from "../db/client";
 import { ensureDatabase } from "../db/migrate";
 import { agentBaseConfigSchema } from "../agent/config";
+import { defaultFollowup } from "../followups/schema";
 
 interface SettingsTransaction { execute(query: SQL): PromiseLike<unknown> }
 interface SettingsDatabase extends SettingsTransaction { transaction<T>(work: (tx: SettingsTransaction) => Promise<T>): Promise<T> }
@@ -30,18 +31,31 @@ export async function readSettings(database: SettingsDatabase = db(), prepare: (
 
 export class SettingsConflict extends Error {}
 export class AgentSettingsIncomplete extends Error {}
+export class InstanciasDuplicadas extends Error {}
 export async function saveSettings(values: IntegrationSettings, version: number, usuario: string,
   database: SettingsDatabase = db(), prepare: () => Promise<void> = ensureDatabase) {
   const current = await readSettings(database, prepare);
   if (current.version !== version) throw new SettingsConflict();
   const merged = settingsSchema.parse({ ...current.values, ...values });
   const effective = { ...environmentSettings(), ...merged };
+  if (effective.EVOLUTION_SECOND_INSTANCE_NAME && effective.EVOLUTION_SECOND_INSTANCE_NAME === effective.EVOLUTION_INSTANCE_NAME) {
+    throw new InstanciasDuplicadas();
+  }
   if (effective.AI_ENABLED === "true" && !agentBaseConfigSchema.safeParse(effective).success) {
     throw new AgentSettingsIncomplete();
   }
+  const alterados = new Set(Object.keys(values));
+  const anterior = { ...environmentSettings(), ...current.values };
+  for (const [nome, campo] of [["EVOLUTION_INSTANCE_NAME", "FOLLOW_UP_CONFIG"],
+    ["EVOLUTION_SECOND_INSTANCE_NAME", "FOLLOW_UP_SECOND_CONFIG"]] as const) {
+    if (values[nome] !== undefined && values[nome] !== anterior[nome] && anterior[campo]) {
+      merged[campo] = JSON.stringify({ ...defaultFollowup, instance: values[nome] });
+      alterados.add(campo);
+    }
+  }
   await database.transaction(async tx => {
     await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields)
-      VALUES (${usuario},'integracoes_alteradas','integracoes',${integrationsAuditId},${JSON.stringify(Object.keys(values))}::jsonb)`);
+      VALUES (${usuario},'integracoes_alteradas','integracoes',${integrationsAuditId},${JSON.stringify([...alterados])}::jsonb)`);
     const actor = rows<{ id: string }>(await tx.execute(sql`SELECT id FROM atendeia_settings_actors
       WHERE id = 'bootstrap-admin' AND role = 'super_admin' AND is_deleted = false`));
     if (!actor.length) throw new Error("Admin unavailable");
@@ -50,7 +64,7 @@ export async function saveSettings(values: IntegrationSettings, version: number,
       WHERE id = 'integrations' AND version = ${version} AND is_deleted = false RETURNING version`));
     if (!updated.length) throw new SettingsConflict();
     await tx.execute(sql`INSERT INTO atendeia_settings_audit (settings_id, version, changed_fields, modified_by)
-      VALUES ('integrations', ${version + 1}, ${Object.keys(values).join(",")}, 'bootstrap-admin')`);
+      VALUES ('integrations', ${version + 1}, ${[...alterados].join(",")}, 'bootstrap-admin')`);
   });
   return { values: merged, version: version + 1 };
 }

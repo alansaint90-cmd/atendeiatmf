@@ -1,7 +1,7 @@
 import { administradorHttp } from "@/lib/auth/acesso-http";
 import { origemHttpPermitida } from "@/lib/auth/origem-http";
 import { effectiveSettings } from "@/lib/settings/repository";
-import { ErroWebhookEvolution, sincronizarWebhookEvolution } from "@/lib/evolution/configurar-webhook";
+import { ErroWebhookEvolution, sincronizarWebhooksConfigurados } from "@/lib/evolution/configurar-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   if (acesso.erro) return json({ error: "Acesso não autorizado." }, acesso.erro);
   if (!origemHttpPermitida(request)) return json({ error: "Origem não permitida." }, 403);
   try {
-    await sincronizarWebhookEvolution(await effectiveSettings(), process.env.AUTH_ORIGIN ?? "");
+    await sincronizarWebhooksConfigurados(await effectiveSettings(), process.env.AUTH_ORIGIN ?? "");
     return json({ ok: true }, 200);
   } catch (error) {
     const mensagem = error instanceof ErroWebhookEvolution ? error.message : "Não foi possível sincronizar o webhook. Confira a conexão com a Evolution.";

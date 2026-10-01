@@ -52,7 +52,7 @@ export function followupStore(client: Redis, token: string) {
       const index = config.steps.findIndex(step => step.enabled);
       if (index < 0) return;
       const now = Date.now();
-      const job: FollowupJob = { conversation: message.conversation, identity: message.identity, number: message.number,
+      const job: FollowupJob = { instance: config.instance, conversation: message.conversation, identity: message.identity, number: message.number,
         started: message.timestamp * 1000, index, due: nextDue(config, now, index), revision: config.revision, status: "aguardando" };
       await guarded(`
         if redis.call('SET', KEYS[4], '1', 'EX', ARGV[4], 'NX') == false then return 1 end

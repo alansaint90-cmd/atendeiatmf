@@ -164,6 +164,7 @@ try {
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
     ["nome sem persistência separada reprova", reprova("agent/store.ts", "nome-cliente")],
     ["worker sem pausa manual reprova", reprova("agent/worker.ts", "pausa-manual")],
+    ["worker sem seleção da instância reprova", reprova("agent/worker.ts", "isolamento-instancias")],
     ["webhook sem registro da pausa reprova", reprova("evolution/queue.ts", "pausa-manual")],
     ["orquestrador na tela de configurações reprova", reprova("agent-settings.tsx", "orquestrador-legado")],
 

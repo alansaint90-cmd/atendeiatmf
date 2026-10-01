@@ -412,6 +412,10 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
   }
+  if (rel === "src/lib/agent/worker.ts" && !/settingsDaInstancia\(settings, instancia\)/.test(content)) {
+    findings.push({ level: "error", id: "isolamento-instancias", file: rel, line: 1,
+      msg: "O worker deve selecionar a instância de origem antes de enviar respostas e follow-ups." });
+  }
   if (rel === "src/lib/evolution/queue.ts" && !/\bpausaManualParaEvento\b/.test(content)) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O webhook deve registrar a pausa manual junto com o evento autenticado." });
@@ -423,10 +427,6 @@ function analyzeFile(file) {
 
   return findings;
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 function main() {
   const args = process.argv.slice(2);
@@ -442,7 +442,6 @@ function main() {
   const scanRoot = existsSync(srcDir) ? srcDir : ROOT;
   const todosOsArquivos = walk(scanRoot, []);
 
-  /** @type {string[]} */
   let files = [];
   if (fileFlag !== -1 && args[fileFlag + 1]) {
     const target = resolve(args[fileFlag + 1]);
@@ -455,7 +454,6 @@ function main() {
   // colunas mora em outro arquivo (`_compartilhado.ts`).
   coletarPacotesDeAuditoria(todosOsArquivos);
 
-  /** @type {Finding[]} */
   let findings = [];
   for (const f of files) findings = findings.concat(analyzeFile(f));
 

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { instanciasConfiguradas } from "./instancias";
 import { evolutionEventSchema, webhookConfigSchema, type EvolutionEvent } from "./schema";
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -44,7 +45,7 @@ export async function receiveEvolutionEvent(request: Request, environment: Recor
 
   const event = evolutionEventSchema.safeParse(raw);
   if (!event.success) return json({ error: "Evento ou conteúdo não suportado." }, 422);
-  if (event.data.instance !== config.data.EVOLUTION_INSTANCE_NAME) return json({ error: "Instância não autorizada." }, 403);
+  if (!instanciasConfiguradas(config.data).includes(event.data.instance)) return json({ error: "Instância não autorizada." }, 403);
   try { await persistir(event.data); }
   catch { return json({ error: "Registro das mensagens indisponível. Tente novamente." }, 503); }
   try {

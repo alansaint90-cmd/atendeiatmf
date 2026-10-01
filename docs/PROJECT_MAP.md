@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 137 |
+| Arquivos TS/TSX | 138 |
 | Tabelas (Drizzle) | 31 |
 | Server Actions (arquivos) | 11 |
 | Rotas de API | 6 |
@@ -141,6 +141,7 @@ lib/
     views.ts
   evolution/
     configurar-webhook.ts
+    instancias.ts
     queue.ts
     schema.ts
     webhook.ts

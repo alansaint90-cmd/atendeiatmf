@@ -2,6 +2,7 @@ import type { FollowupConfig } from "./schema";
 import { inWindow, nextDue } from "./schedule";
 
 export interface FollowupJob {
+  instance?: string; // Ausente apenas nos ciclos anteriores ao suporte a dois números.
   conversation: string; identity: string; number: string; started: number;
   index: number; due: number; revision: string; status: "aguardando" | "enviando";
 }
@@ -13,7 +14,7 @@ export interface FollowupPort {
   delivered(id: string, text: string): Promise<void>;
 }
 export function configuracaoPermiteFollowup(job: FollowupJob, config: FollowupConfig) {
-  return config.enabled && job.revision === config.revision;
+  return config.enabled && job.revision === config.revision && (!job.instance || job.instance === config.instance);
 }
 export async function processFollowup(job: FollowupJob, config: FollowupConfig, port: FollowupPort, now = Date.now()) {
   if (!configuracaoPermiteFollowup(job, config)) { await port.finish("cancelado"); return; }

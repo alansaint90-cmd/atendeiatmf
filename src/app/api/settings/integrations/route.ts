@@ -1,5 +1,5 @@
 import { administradorHttp } from "@/lib/auth/acesso-http";
-import { environmentSettings, readSettings, saveSettings, SettingsConflict, AgentSettingsIncomplete } from "@/lib/settings/repository";
+import { environmentSettings, readSettings, saveSettings, SettingsConflict, AgentSettingsIncomplete, InstanciasDuplicadas } from "@/lib/settings/repository";
 import { saveSettingsSchema, settingsStatus } from "@/lib/settings/schema";
 import { origemHttpPermitida } from "@/lib/auth/origem-http";
 
@@ -48,6 +48,7 @@ export async function PUT(request: Request) {
     const result = await saveSettings(parsed.data.values, parsed.data.version, acesso.sessao.userId);
     return json(settingsStatus({ ...environmentSettings(), ...result.values }, result.version));
   } catch (error) {
+    if (error instanceof InstanciasDuplicadas) return json({ error: "O segundo número precisa de uma instância diferente da principal." }, 422);
     if (error instanceof AgentSettingsIncomplete) return json({ error: "Para ativar, preencha modelo e chave OpenAI, URL/chave/instância Evolution e Redis. Configure também o chatbot em Chatbot IA." }, 422);
     if (error instanceof SettingsConflict) return json({ error: "Outra sessão alterou as configurações. Recarregue antes de salvar." }, 409);
     return unavailable();

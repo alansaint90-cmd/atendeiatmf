@@ -10,6 +10,7 @@ export function FollowupsPage({ ativo = true }: { ativo?: boolean }) {
   const [savedConfig, setSavedConfig] = useState<FollowupConfig | null>(null);
   const [version, setVersion] = useState<number | null>(null);
   const [instance, setInstance] = useState("");
+  const [instances, setInstances] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -20,13 +21,14 @@ export function FollowupsPage({ ativo = true }: { ativo?: boolean }) {
   function step(index: number, value: Partial<FollowupConfig["steps"][number]>) {
     const steps = structuredClone(config.steps); steps[index] = { ...steps[index], ...value }; change({ steps });
   }
-  const load = useCallback(async () => {
+  const load = useCallback(async (instancia?: string) => {
     setBusy(true); setError("");
-    try { const result = await carregarFollowups();
+    try { const result = await carregarFollowups(instancia);
       if (!result.ok) { setError(result.erro); return; }
       const persisted = { ...result.dados.config, instance: result.dados.config.instance || result.dados.instance };
       setConfig(persisted); setSavedConfig(persisted);
       setVersion(result.dados.version); setInstance(result.dados.instance); setMessage("");
+      setInstances(result.dados.instances ?? [result.dados.instance].filter(Boolean));
     } catch { setError("Falha de conexão ao carregar follow-ups."); } finally { setBusy(false); }
   }, []);
   useEffect(() => {
@@ -51,12 +53,13 @@ export function FollowupsPage({ ativo = true }: { ativo?: boolean }) {
       event.preventDefault(); const parsed = followupSchema.safeParse(config);
       if (!parsed.success) { setError(parsed.error.issues[0].message); return; } setError(""); setConfirm(true);
     }}><fieldset disabled={busy || confirm}>
-      <div className="followup-grid"><label>Chip<select value={config.instance} onChange={event => change({ instance: event.target.value })}>
-        <option value="">Selecione um chip</option>{instance && <option value={instance}>{instance}</option>}</select></label>
+      <div className="followup-grid"><label>Chip<select value={config.instance} disabled={dirty} onChange={event => void load(event.target.value)}>
+        <option value="" disabled>Selecione um chip</option>{instances.map(nome => <option key={nome} value={nome}>{nome}</option>)}</select></label>
         <label>Fuso horário<select value={config.timezone} onChange={event => change({ timezone: event.target.value as FollowupConfig["timezone"] })}>
           <option value="America/Sao_Paulo">Brasília / São Paulo</option><option value="America/Manaus">Manaus</option><option value="America/Recife">Recife</option><option value="America/Rio_Branco">Rio Branco</option>
         </select></label></div>
       {!instance && <p role="status">Configure a instância Evolution em Configurações antes de ativar.</p>}
+      {instances.length > 1 && <p>As mensagens e os horários são salvos separadamente para cada chip. {dirty && "Salve ou desfaça as alterações antes de trocar o chip."}</p>}
       <label className="feature-switch"><input type="checkbox" role="switch" checked={config.enabled} onChange={event => change({ enabled: event.target.checked })} /><span>Follow-ups automáticos {config.enabled ? "ligados" : "desligados"}</span></label>
       <div className="followup-grid three"><label>Atuar em<select value="ai" onChange={() => {}}><option value="ai">Chatbots de IA</option></select></label>
         <label>Não enviar antes das<input type="number" min={0} max={23} required value={config.startHour} onChange={event => change({ startHour: event.target.valueAsNumber })} /></label>
@@ -74,9 +77,10 @@ export function FollowupsPage({ ativo = true }: { ativo?: boolean }) {
     </fieldset>
       <div className="followup-save-bar">
         <span role={error ? "alert" : "status"} className={error ? "error-message" : ""}>
-          {error || (busy ? "Salvando follow-ups…" : message || (dirty ? "Alterações não salvas" : "Sem alterações pendentes"))}
+          {error || (busy ? "Processando follow-ups…" : message || (dirty ? "Alterações não salvas" : "Sem alterações pendentes"))}
         </span>
         <button type="submit" className="primary" disabled={busy || confirm || !dirty}>Salvar follow-ups</button>
+        {dirty && <button type="button" disabled={busy || confirm} onClick={() => { if (savedConfig) setConfig(structuredClone(savedConfig)); setError(""); }}>Desfazer alterações</button>}
       </div>
     </form>}
     <ModalConfirmacaoBlock aberto={confirm} titulo="Salvar follow-ups automáticos" mensagem={config.enabled

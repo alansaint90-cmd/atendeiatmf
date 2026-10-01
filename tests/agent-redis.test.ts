@@ -12,6 +12,7 @@ import { defaultFollowup } from "../src/lib/followups/schema";
 import { followupStore, followupQueue } from "../src/lib/followups/queue";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { pausaManualAtiva, pausaManualKey, pausaManualParaEvento } from "../src/lib/agent/pausa";
+import type { Turn } from "../src/lib/agent/providers";
 
 test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio duplicado", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
@@ -159,6 +160,87 @@ test("mensagem humana pausa a IA por cinco minutos da última saída; eco da IA 
     assert.equal(await client.get(pausaManualKey(pausa.conversation)), null, "Eco do agente não pausa.");
   } finally {
     await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive, pausaManualKey(pausa.conversation));
+    client.disconnect();
+  }
+});
+
+test("dois números: prompt compartilhado, histórico, pausa e follow-ups isolados", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!;
+  const target = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(target.hostname) && target.pathname === "/15");
+  const client = agentRedis(url); await client.connect();
+  const sufixo = randomUUID();
+  const principal = `principal-${sufixo}`, segundo = `segundo-${sufixo}`;
+  const evento = (instance: string, id: string, fromMe = false): EvolutionEvent => ({ event: "messages.upsert", instance,
+    data: { key: { id, fromMe, remoteJid: "5511777666555@s.whatsapp.net" }, messageTimestamp: Math.floor(Date.now() / 1000),
+      message: { conversation: `Mensagem recebida em ${instance}` } } });
+  const painel = (instance: string) => {
+    const config = structuredClone(defaultFollowup);
+    config.enabled = true; config.instance = instance; config.revision = randomUUID(); config.startHour = 0; config.endHour = 24;
+    config.steps[0] = { enabled: true, text: `Follow-up do chip ${instance}`, delay: 1, unit: "minutes" };
+    return config;
+  };
+  const a = painel(principal), b = painel(segundo);
+  const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "legado ignorado", OPENAI_API_KEY: "sk-test-only",
+    OPENAI_MODEL: "modelo-teste", EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste",
+    EVOLUTION_INSTANCE_NAME: principal, EVOLUTION_SECOND_INSTANCE_NAME: segundo, REDIS_URL: url,
+    FOLLOW_UP_CONFIG: JSON.stringify(a), FOLLOW_UP_SECOND_CONFIG: JSON.stringify(b) };
+  const saidas: { instancia: string; texto: string }[] = [];
+  const geracoes: { instancia: string; prompt: string; historico: Turn[] }[] = [];
+  const consultas: string[] = [];
+  let prompt = "Mesmo roteiro aprovado para os dois chips.";
+  const dependencies = { settings: async () => config,
+    chatbot: async (instancia: string) => { consultas.push(instancia); return { ...chatbotExample, context: prompt }; },
+    registrarEnvio: async () => {},
+    generate: async (atual: AgentConfig, historico: Turn[]) => {
+      geracoes.push({ instancia: atual.EVOLUTION_INSTANCE_NAME, prompt: atual.AI_SYSTEM_PROMPT, historico });
+      return "Resposta de teste";
+    },
+    send: async (atual: Pick<AgentConfig, "EVOLUTION_API_URL" | "EVOLUTION_API_KEY" | "EVOLUTION_INSTANCE_NAME">, _numero: string, texto: string) => {
+      saidas.push({ instancia: atual.EVOLUTION_INSTANCE_NAME, texto }); return `envio-${sufixo}-${saidas.length}`;
+    } };
+  const eventos = [evento(principal, "mesmo-id"), evento(segundo, "mesmo-id")];
+  const mensagens = eventos.map(e => incomingMessage(e, e.instance)!);
+  const jobKey = (indice: number) => `atendeia:{evolution}:followup:${mensagens[indice].conversation}`;
+  try {
+    for (const e of eventos) await enqueueEvolutionEventWithClient(client, e);
+    await runAgentTick(dependencies); await runAgentTick(dependencies);
+    assert.deepEqual(saidas.map(s => s.instancia), [principal, segundo]);
+    assert.equal(geracoes[0].prompt, geracoes[1].prompt);
+    assert.deepEqual(geracoes.map(g => g.historico.length), [0, 0]);
+    const lease = randomUUID(); await client.set(agentKeys.lock, lease, "PX", 120000);
+    await messageStore(client, lease, mensagens[0]).rememberName("Carlos");
+    assert.equal(await messageStore(client, lease, mensagens[1]).contactName(), null);
+    for (let i = 0; i < 2; i++) {
+      const job = JSON.parse((await client.get(jobKey(i)))!);
+      assert.equal(job.instance, eventos[i].instance);
+      await followupStore(client, lease).save({ ...job, due: Date.now() - 1 });
+    }
+    await client.del(agentKeys.lock);
+    await runAgentTick(dependencies); await runAgentTick(dependencies);
+    assert.deepEqual(saidas.slice(2).map(s => s.texto).sort(), [a.steps[0].text, b.steps[0].text].sort());
+    assert.equal(geracoes.length, 2, "Follow-ups usam o painel, sem geração.");
+    await enqueueEvolutionEventWithClient(client, evento(principal, randomUUID(), true));
+    await enqueueEvolutionEventWithClient(client, evento(principal, randomUUID()));
+    prompt = "Roteiro atualizado no painel.";
+    await enqueueEvolutionEventWithClient(client, evento(segundo, randomUUID()));
+    for (let i = 0; i < 3; i++) await runAgentTick(dependencies);
+    assert.equal(saidas.length, 5, "A pausa do primeiro chip não bloqueia o segundo.");
+    assert.equal(saidas.at(-1)?.instancia, segundo);
+    assert.ok(geracoes.at(-1)?.prompt.includes(prompt));
+    assert.ok(geracoes.at(-1)?.historico.every(t => !t.content.includes(principal)));
+    assert.ok(consultas.every(instancia => instancia === principal), "Ambos usam o mesmo chatbot.");
+    assert.equal(await pausaManualAtiva(client, mensagens[0].conversation), true);
+    assert.equal(await pausaManualAtiva(client, mensagens[1].conversation), false);
+    assert.equal(await client.get(jobKey(0)), null);
+    assert.ok(await client.get(jobKey(1)), "Segundo chip mantém seu próprio ciclo.");
+  } finally {
+    await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive);
+    for (const mensagem of mensagens) {
+      await client.del(`atendeia:{evolution}:followup:${mensagem.conversation}`, pausaManualKey(mensagem.conversation),
+        `atendeia:{evolution}:history:${mensagem.conversation}`, `atendeia:{evolution}:name:${mensagem.conversation}`);
+      await client.zrem(followupQueue, mensagem.conversation);
+    }
     client.disconnect();
   }
 });

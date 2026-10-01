@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sincronizarWebhookEvolution, ErroWebhookEvolution } from "../src/lib/evolution/configurar-webhook";
+import { sincronizarWebhookEvolution, sincronizarWebhooksConfigurados, ErroWebhookEvolution } from "../src/lib/evolution/configurar-webhook";
 import { POST } from "../src/app/api/settings/evolution-webhook/route";
 
 const values = {
@@ -10,6 +10,24 @@ const values = {
   EVOLUTION_WEBHOOK_SECRET: "segredo-webhook-de-teste-com-32-caracteres",
 };
 const origin = "https://atendeia.example.test";
+
+test("sincronização confirma os dois chips e informa falha parcial", async () => {
+  const salvos: string[] = [];
+  const request: typeof fetch = async (url, init) => {
+    if (init?.method === "POST") { salvos.push(String(url)); return Response.json({ ok: true }); }
+    return Response.json({ url: `${origin}/api/webhooks/evolution`, enabled: true,
+      events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
+      headers: { "x-webhook-secret": values.EVOLUTION_WEBHOOK_SECRET } });
+  };
+  const configuracao = { ...values, EVOLUTION_SECOND_INSTANCE_NAME: "segundo" };
+  await sincronizarWebhooksConfigurados(configuracao, origin, request);
+  assert.equal(salvos.length, 2);
+  assert.ok(salvos[0].endsWith("/thais%20tmf")); assert.ok(salvos[1].endsWith("/segundo"));
+  await assert.rejects(sincronizarWebhooksConfigurados(configuracao, origin, async (url, init) => {
+    if (String(url).endsWith("/segundo")) return new Response(null, { status: 401 });
+    return request(url, init);
+  }), /Instância segundo:.*não foi concluída/);
+});
 
 test("sincronização envia cabeçalho secreto, preserva eventos e confirma leitura posterior", async () => {
   const calls: { url: string; init: RequestInit }[] = [];

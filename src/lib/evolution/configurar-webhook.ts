@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { settingsSchema } from "../settings/schema";
+import { instanciasConfiguradas } from "./instancias";
 
 const configuracaoSchema = z.object({
   EVOLUTION_API_URL: settingsSchema.shape.EVOLUTION_API_URL,
@@ -24,6 +25,21 @@ const webhookSchema = z.object({
 type Webhook = z.infer<typeof webhookSchema>;
 const eventosNecessarios = ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"];
 export class ErroWebhookEvolution extends Error {}
+
+export async function sincronizarWebhooksConfigurados(values: unknown, origin: string, request: typeof fetch = fetch) {
+  const configuracao = settingsSchema.safeParse(values);
+  if (!configuracao.success) throw new ErroWebhookEvolution("Confira as configurações salvas da Evolution.");
+  const instancias = instanciasConfiguradas(configuracao.data);
+  if (!configuracao.data.EVOLUTION_INSTANCE_NAME) { await sincronizarWebhookEvolution(values, origin, request); return; }
+  for (const instancia of instancias) {
+    try {
+      await sincronizarWebhookEvolution({ ...configuracao.data, EVOLUTION_INSTANCE_NAME: instancia }, origin, request);
+    } catch (erro) {
+      const mensagem = erro instanceof ErroWebhookEvolution ? erro.message : "Falha de conexão com a Evolution.";
+      throw new ErroWebhookEvolution(`Instância ${instancia}: ${mensagem} A sincronização de todos os chips ainda não foi concluída.`);
+    }
+  }
+}
 
 function extrairWebhook(value: unknown): Webhook {
   const envelope = z.object({ webhook: z.unknown() }).safeParse(value);
