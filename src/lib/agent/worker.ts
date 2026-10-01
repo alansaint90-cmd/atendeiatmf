@@ -3,7 +3,7 @@ import { z } from "zod";
 import { effectiveSettings } from "../settings/repository";
 import { evolutionEventSchema } from "../evolution/schema";
 import { streamKey } from "../evolution/queue";
-import { configurarAgente } from "./config";
+import { agentBaseConfigSchema, configurarAgente } from "./config";
 import { incomingMessage, digest } from "./message";
 import { generateReply, sendReply } from "./providers";
 import { transcribeAudio } from "./audio";
@@ -39,8 +39,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
   try {
     await client.connect();
     if (!await client.set(agentKeys.lock, token, "PX", 120000, "NX")) return;
-    const chatbot = settings.EVOLUTION_INSTANCE_NAME ? await dependencies.chatbot(settings.EVOLUTION_INSTANCE_NAME) : null;
-    const config = configurarAgente(settings, chatbot);
+    const config = agentBaseConfigSchema.safeParse(settings);
     const status = settings.AI_ENABLED !== "true" ? "desativado" : config.success ? "ativo" : "configuracao_incompleta";
     const previous = await client.get(agentKeys.heartbeat);
     const last = previous ? JSON.parse(previous) as { lastResult?: string; lastCode?: string; lastAt?: string } : {};
@@ -64,6 +63,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       try { value = JSON.parse(payload); } catch { value = null; }
       const parsed = evolutionEventSchema.safeParse(value);
       const instancia = parsed.success ? parsed.data.instance : "";
+      const chatbot = settingsDaInstancia(settings, instancia) ? await dependencies.chatbot(instancia) : null;
       const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
       const followupConfig = followupDaInstancia(settings, instancia);
       if (parsed.success && config.success) await followups.observe(parsed.data, instancia);
@@ -75,8 +75,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
           enabled: async () => {
             const currentSettings = await dependencies.settings();
-            const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
-              ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
+            const currentBot = await dependencies.chatbot(instancia);
             const current = configurarAgente(settingsDaInstancia(currentSettings, instancia), currentBot);
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
               && !await pausaManualAtiva(client, message.conversation)
@@ -105,6 +104,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
     const job = await followups.due();
     if (job) {
       const instancia = job.instance ?? settings.EVOLUTION_INSTANCE_NAME ?? "";
+      const chatbot = settingsDaInstancia(settings, instancia) ? await dependencies.chatbot(instancia) : null;
       const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
       if (!config.success) { await followups.finish(job, "cancelado"); return; }
       const followupConfig = followupDaInstancia(settings, instancia);
@@ -113,8 +113,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         enabled: async () => {
           const currentSettings = await dependencies.settings();
           const currentFollowup = followupDaInstancia(currentSettings, instancia);
-          const currentBot = currentSettings.EVOLUTION_INSTANCE_NAME
-            ? await dependencies.chatbot(currentSettings.EVOLUTION_INSTANCE_NAME) : null;
+          const currentBot = await dependencies.chatbot(instancia);
           const current = configurarAgente(settingsDaInstancia(currentSettings, instancia), currentBot);
           return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
             && configuracaoPermiteFollowup(job, currentFollowup)

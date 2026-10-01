@@ -164,7 +164,7 @@ test("mensagem humana pausa a IA por 30 minutos da última saída; eco da IA nã
   }
 });
 
-test("dois números: prompt compartilhado, histórico, pausa e follow-ups isolados", { skip: !process.env.TEST_REDIS_URL }, async () => {
+test("dois números: prompts próprios, histórico, pausa e follow-ups isolados", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
   const target = new URL(url);
   assert.ok(["localhost", "127.0.0.1"].includes(target.hostname) && target.pathname === "/15");
@@ -190,7 +190,7 @@ test("dois números: prompt compartilhado, histórico, pausa e follow-ups isolad
   const consultas: string[] = [];
   let prompt = "Mesmo roteiro aprovado para os dois chips.";
   const dependencies = { settings: async () => config,
-    chatbot: async (instancia: string) => { consultas.push(instancia); return { ...chatbotExample, context: prompt }; },
+    chatbot: async (instancia: string) => { consultas.push(instancia); return { ...chatbotExample, context: `${prompt} Variante ${instancia}` }; },
     registrarEnvio: async () => {},
     generate: async (atual: AgentConfig, historico: Turn[]) => {
       geracoes.push({ instancia: atual.EVOLUTION_INSTANCE_NAME, prompt: atual.AI_SYSTEM_PROMPT, historico });
@@ -206,7 +206,9 @@ test("dois números: prompt compartilhado, histórico, pausa e follow-ups isolad
     for (const e of eventos) await enqueueEvolutionEventWithClient(client, e);
     await runAgentTick(dependencies); await runAgentTick(dependencies);
     assert.deepEqual(saidas.map(s => s.instancia), [principal, segundo]);
-    assert.equal(geracoes[0].prompt, geracoes[1].prompt);
+    assert.notEqual(geracoes[0].prompt, geracoes[1].prompt);
+    assert.ok(geracoes[0].prompt.includes(`Variante ${principal}`));
+    assert.ok(geracoes[1].prompt.includes(`Variante ${segundo}`));
     assert.deepEqual(geracoes.map(g => g.historico.length), [0, 0]);
     const lease = randomUUID(); await client.set(agentKeys.lock, lease, "PX", 120000);
     await messageStore(client, lease, mensagens[0]).rememberName("Carlos");
@@ -229,7 +231,7 @@ test("dois números: prompt compartilhado, histórico, pausa e follow-ups isolad
     assert.equal(saidas.at(-1)?.instancia, segundo);
     assert.ok(geracoes.at(-1)?.prompt.includes(prompt));
     assert.ok(geracoes.at(-1)?.historico.every(t => !t.content.includes(principal)));
-    assert.ok(consultas.every(instancia => instancia === principal), "Ambos usam o mesmo chatbot.");
+    assert.ok(consultas.includes(principal) && consultas.includes(segundo), "Consulta o chatbot de cada número.");
     assert.equal(await pausaManualAtiva(client, mensagens[0].conversation), true);
     assert.equal(await pausaManualAtiva(client, mensagens[1].conversation), false);
     assert.equal(await client.get(jobKey(0)), null);

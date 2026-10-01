@@ -412,7 +412,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
   }
-  if (rel === "src/lib/agent/worker.ts" && !/settingsDaInstancia\(settings, instancia\)/.test(content)) {
+  if (rel === "src/lib/agent/worker.ts" && (!/settingsDaInstancia\(settings, instancia\)/.test(content) || !/dependencies.chatbot\(instancia\)/.test(content))) {
     findings.push({ level: "error", id: "isolamento-instancias", file: rel, line: 1,
       msg: "O worker deve selecionar a instância de origem antes de enviar respostas e follow-ups." });
   }

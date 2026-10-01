@@ -1,7 +1,7 @@
 # ADR-0010: Dois números com chatbot compartilhado
 
 - Data: 2026-10-01
-- Status: Aceito.
+- Status: Parcialmente substituído pela ADR-0011 quanto ao compartilhamento do prompt.
 
 ## Decisão
 

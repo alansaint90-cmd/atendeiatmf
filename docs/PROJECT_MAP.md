@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 138 |
+| Arquivos TS/TSX | 139 |
 | Tabelas (Drizzle) | 31 |
 | Server Actions (arquivos) | 11 |
 | Rotas de API | 6 |
@@ -115,6 +115,7 @@ lib/
     validacao.ts
   chatbots/
     defaults.ts
+    instancias.ts
     prompt-servidor.ts
     repository.ts
     schema.ts

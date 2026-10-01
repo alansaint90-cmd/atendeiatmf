@@ -220,7 +220,7 @@ sessões. Nenhum teste de autenticação usa banco de produção.
 
 Configurações, integrações e estado do agente são exclusivos do super administrador.
 Dois números na mesma Evolution usam EVOLUTION_INSTANCE_NAME e a opcional
-EVOLUTION_SECOND_INSTANCE_NAME. Ambos usam o chatbot da instância principal.
+EVOLUTION_SECOND_INSTANCE_NAME. Cada instância usa seu próprio chatbot e prompt para testes A/B. Ao abrir Chatbot IA, vínculos compartilhados são separados com cópia inicial do prompt e auditoria; edições posteriores não afetam o outro número.
 Webhook aceita somente essas instâncias; resposta e áudio usam a instância recebida.
 Histórico, nome, pausa humana e ciclos de follow-up são isolados por instância e cliente.
 FOLLOW_UP_CONFIG e FOLLOW_UP_SECOND_CONFIG têm revisões independentes; salvar um chip

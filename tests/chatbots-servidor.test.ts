@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { applyMigrations } from "../src/lib/db/migrate";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { chatbotDaInstancia, listarChatbotsServidor, salvarChatbotServidor } from "../src/lib/chatbots/server-repository";
+import { prepararAssistentes } from "../src/lib/chatbots/instancias";
 
 test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à instância", async () => {
   const cliente = new PGlite();
@@ -38,5 +39,17 @@ test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à i
     assert.ok(corrigido.configuracao.context.includes("O grupo do evento recebe avisos."));
     const auditoria = await cliente.query<{ action: string }>("SELECT action FROM atendeia_audit_logs WHERE entity_id=$1 ORDER BY created_at DESC LIMIT 1", [criado.id]);
     assert.equal(auditoria.rows[0]?.action, "prompt_corrigido_por_migracao");
+    const preparados = await prepararAssistentes(banco, ["chip-sdr", "chip-b"], usuario);
+    const a = preparados.itens.find(item => item.id === preparados.instancias[0].chatbotId)!;
+    const b = preparados.itens.find(item => item.id === preparados.instancias[1].chatbotId)!;
+    assert.notEqual(a.id, b.id);
+    assert.equal(a.configuracao.context, b.configuracao.context);
+    assert.equal((await prepararAssistentes(banco, ["chip-sdr", "chip-b"], usuario)).itens.length, preparados.itens.length);
+    await salvarChatbotServidor(banco, { id: b.id, versao: b.versao,
+      configuracao: { ...b.configuracao, context: "Variante B de atendimento" }, instancia: "chip-b", usuario });
+    assert.equal((await chatbotDaInstancia(banco, "chip-b"))?.context, "Variante B de atendimento");
+    assert.equal((await chatbotDaInstancia(banco, "chip-sdr"))?.context, a.configuracao.context);
+    await assert.rejects(salvarChatbotServidor(banco, { id: a.id, versao: a.versao,
+      configuracao: a.configuracao, instancia: "chip-b", usuario }), /instância/);
   } finally { await cliente.close(); }
 });

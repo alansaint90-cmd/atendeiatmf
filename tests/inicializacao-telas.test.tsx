@@ -9,9 +9,28 @@ vi.mock("@/lib/actions/chatbots", () => ({ carregarChatbots: actions.carregar, s
 
 afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
+test("seleciona instância pelo nome e salva apenas o prompt daquele número", async () => {
+  const a = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Prompt A" }, versao: 0 };
+  const b = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Prompt B" }, versao: 0 };
+  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [a, b], instancias: [
+    { nome: "thaistmf01", chatbotId: a.id }, { nome: "thaistmf02", chatbotId: b.id }] } });
+  actions.salvar.mockResolvedValue({ ok: true, dados: { ...b, configuracao: { ...b.configuracao, context: "Variante B" }, versao: 1 } });
+  render(<ChatbotsPage />);
+  const seletor = await screen.findByLabelText("Número / instância");
+  expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt A");
+  fireEvent.change(seletor, { target: { value: "thaistmf02" } });
+  expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt B");
+  fireEvent.change(screen.getByLabelText("Prompt de atendimento"), { target: { value: "Variante B" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(actions.salvar).toHaveBeenCalledWith(expect.objectContaining({ id: b.id, instancia: "thaistmf02" })));
+  await waitFor(() => expect(seletor).toBeEnabled());
+  fireEvent.change(seletor, { target: { value: "thaistmf01" } });
+  expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt A");
+});
+
 test("não importa silenciosamente prompt antigo do navegador para o servidor", async () => {
   localStorage.setItem("atendeia.chatbots.v1", JSON.stringify([{ ...chatbotExample, context: "Mentoria em grupo legada" }]));
-  actions.carregar.mockResolvedValue({ ok: true, dados: [] });
+  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [], instancias: [] } });
   render(<ChatbotsPage />);
   expect(await screen.findByText("Nenhum chatbot cadastrado. Crie o primeiro assistente.")).toBeInTheDocument();
   expect(actions.salvar).not.toHaveBeenCalled();
@@ -20,7 +39,7 @@ test("não importa silenciosamente prompt antigo do navegador para o servidor", 
 
 test("prompt do servidor carrega, continua editável e volta ao servidor", async () => {
   const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Atendimento personalizado" }, versao: 0 };
-  actions.carregar.mockResolvedValue({ ok: true, dados: [registro] });
+  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [registro], instancias: [{ nome: "chip-a", chatbotId: registro.id }] } });
   actions.salvar.mockResolvedValue({ ok: true, dados: { ...registro, configuracao: { ...registro.configuracao, context: "Contexto atualizado" }, versao: 1 } });
   expect(renderToString(<ChatbotsPage />)).toContain("Carregando chatbots");
   render(<ChatbotsPage />);
@@ -36,7 +55,7 @@ test("prompt do servidor carrega, continua editável e volta ao servidor", async
 
 test("falha ao salvar o prompt mantém a edição e mostra erro sem expor detalhes", async () => {
   const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Prompt anterior" }, versao: 2 };
-  actions.carregar.mockResolvedValue({ ok: true, dados: [registro] });
+  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [registro], instancias: [{ nome: "chip-a", chatbotId: registro.id }] } });
   actions.salvar.mockRejectedValue(new Error("detalhe privado do banco"));
   render(<ChatbotsPage />);
   const campo = await screen.findByLabelText("Prompt de atendimento");
