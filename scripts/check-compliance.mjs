@@ -400,15 +400,15 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
       msg: "As instruções da Thaís precisam afirmar que a mentoria com Wellington é individual." });
   }
-  if (rel === "src/lib/agent/processor.ts" && !/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content)) {
+  if (rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
-      msg: "O processador deve identificar o nome informado e tratar a resposta antes do envio." });
+      msg: "O processador deve tratar o nome e impedir que respostas de configuração antiga orientem a persona atual." });
   }
   if (rel === "src/lib/agent/store.ts" && !/\bcontactName\b[\s\S]*\brememberName\b/.test(content)) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O nome confirmado deve sobreviver ao histórico curto da conversa." });
   }
-  if ((rel === "src/lib/agent/worker.ts" && !/\bpausaManualAtiva\b/.test(content)) || (rel === "src/lib/agent/pausa.ts" && !/duracaoPausaManual = 30 \* 60 \* 1000/.test(content))) {
+  if ((rel === "src/lib/agent/worker.ts" && (!/\bpausaManualAtiva\b/.test(content) || !/\bpausarTransferencia\b/.test(content))) || (rel === "src/lib/agent/pausa.ts" && !/duracaoPausaManual = 30 \* 60 \* 1000/.test(content))) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
   }

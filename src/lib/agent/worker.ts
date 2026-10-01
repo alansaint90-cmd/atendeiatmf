@@ -17,7 +17,8 @@ import { executarAgendamentos } from "../agendamentos/worker";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
 import { db } from "../db/client";
 import { registrarEnvioIa } from "../operacao/atribuir-ia";
-import { pausaManualAtiva } from "./pausa";
+import { pausaManualAtiva, pausarTransferencia } from "./pausa";
+import { transferirAtendimento } from "../operacao/transferir";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -27,6 +28,7 @@ function report(status: string) {
 }
 
 const dependenciasPadrao = { settings: effectiveSettings, generate: generateReply, send: sendReply,
+  transferir: (instancia: string, numero: string, destino: string) => transferirAtendimento(db(), instancia, numero, destino),
   registrarEnvio: (instancia: string, id: string) => registrarEnvioIa(db(), instancia, id),
   chatbot: (instancia: string) => chatbotDaInstancia(db(), instancia) };
 export async function runAgentTick(substituicoes: Partial<typeof dependenciasPadrao> = {}) {
@@ -67,12 +69,16 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
       const followupConfig = followupDaInstancia(settings, instancia);
       if (parsed.success && config.success) await followups.observe(parsed.data, instancia);
-      const message = parsed.success && config.success ? incomingMessage(parsed.data, instancia) : null;
+      const message = parsed.success && config.success ? incomingMessage(parsed.data, instancia, Date.now(), config.data.atendimento?.transferMedia) : null;
       let result = "ignorada";
       if (message && config.success) {
         const store = messageStore(client, token, message);
         result = await pausaManualAtiva(client, message.conversation) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
+          transferir: async destino => {
+            await dependencies.transferir(instancia, message.number, destino);
+            await pausarTransferencia(client, token, message.conversation);
+          },
           enabled: async () => {
             const currentSettings = await dependencies.settings();
             const currentBot = await dependencies.chatbot(instancia);
@@ -87,7 +93,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         if (state?.status === "enviada" && state.providerId) {
           await dependencies.registrarEnvio(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
           await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
-          if (followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME && state.configHash === digest(JSON.stringify(config.data))) {
+          if (!state.transferencia && followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME && state.configHash === digest(JSON.stringify(config.data))) {
             await followups.schedule(message, followupConfig);
           }
         }
@@ -124,7 +130,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         send: (number, text) => dependencies.send(config.data, number, text),
         delivered: async (id, text) => {
           await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, id);
-          await followups.history(job, text);
+          await followups.history(job, text, digest(config.data.AI_SYSTEM_PROMPT));
         },
       });
     }

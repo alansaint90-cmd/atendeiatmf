@@ -8,12 +8,12 @@ const messageSchema = z.object({
   messageTimestamp: z.coerce.number().int().positive(),
   message: z.object({ conversation: z.string().max(12000).optional(),
     extendedTextMessage: z.object({ text: z.string().max(12000) }).optional(),
-    audioMessage: z.object({}).optional() }),
+    audioMessage: z.object({}).optional(), imageMessage: z.object({}).optional(), documentMessage: z.object({}).optional() }),
 });
-export interface IncomingMessage { identity: string; conversation: string; number: string; text: string; timestamp: number; audio?: { id: string } }
+export interface IncomingMessage { identity: string; conversation: string; number: string; text: string; timestamp: number; audio?: { id: string }; midia?: boolean }
 export const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 
-export function incomingMessage(event: EvolutionEvent, instance: string, now = Date.now()): IncomingMessage | null {
+export function incomingMessage(event: EvolutionEvent, instance: string, now = Date.now(), transferirMidia = false): IncomingMessage | null {
   if (event.event !== "messages.upsert" || event.instance !== instance || Array.isArray(event.data)) return null;
   const parsed = messageSchema.safeParse(event.data);
   if (!parsed.success) return null;
@@ -23,8 +23,10 @@ export function incomingMessage(event: EvolutionEvent, instance: string, now = D
   const jid = [data.key.remoteJid, data.key.remoteJidAlt].find(value => value && /^[1-9]\d{6,14}@s\.whatsapp\.net$/.test(value));
   const text = (data.message.conversation ?? data.message.extendedTextMessage?.text ?? "").trim();
   const age = now / 1000 - data.messageTimestamp;
-  if (!jid || (!text && !data.message.audioMessage) || age > 300 || age < -60) return null;
+  const midia = transferirMidia && Boolean(data.message.imageMessage || data.message.documentMessage);
+  if (!jid || (!text && !data.message.audioMessage && !midia) || age > 300 || age < -60) return null;
   return { identity: digest(`${instance}:${data.key.id}`), conversation: digest(`${instance}:${jid}`),
-    number: jid.split("@")[0], text, timestamp: data.messageTimestamp,
+    number: jid.split("@")[0], text: midia ? "[Imagem ou documento recebido]" : text, timestamp: data.messageTimestamp,
+    ...(midia ? { midia: true } : {}),
     ...(!text && data.message.audioMessage ? { audio: { id: data.key.id } } : {}) };
 }

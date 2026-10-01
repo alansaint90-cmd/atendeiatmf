@@ -3,8 +3,18 @@ import type { EvolutionEvent } from "../evolution/schema";
 import { activity } from "../followups/queue";
 import { z } from "zod";
 import { digest } from "./message";
+import { agentKeys, owned, assertResult } from "./redis";
 
 export const duracaoPausaManual = 30 * 60 * 1000;
+export async function pausarTransferencia(client: Redis, token: string, conversa: string, agora = Date.now()) {
+  await assertResult(await client.eval(owned + `
+    local prazo = math.max(tonumber(redis.call('GET', KEYS[2]) or '0'), tonumber(ARGV[2]))
+    redis.call('SET', KEYS[2], prazo, 'PXAT', prazo)
+    redis.call('DEL', KEYS[3])
+    redis.call('ZREM', KEYS[4], ARGV[3])
+    return 1`, 4, agentKeys.lock, pausaManualKey(conversa),
+  `atendeia:{evolution}:followup:${conversa}`, 'atendeia:{evolution}:followups', token, agora + duracaoPausaManual, conversa));
+}
 export const pausaManualKey = (conversation: string) => `atendeia:{evolution}:manual-pause:${conversation}`;
 const aliasKey = (conversation: string) => `atendeia:{evolution}:contact-alias:${conversation}`;
 const endereco = /^(?:[1-9]\d{6,14}@s\.whatsapp\.net|\d{1,30}@lid)$/;

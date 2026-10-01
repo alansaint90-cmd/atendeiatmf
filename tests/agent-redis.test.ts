@@ -14,6 +14,45 @@ import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { pausaManualAtiva, pausaManualKey, pausaManualParaEvento } from "../src/lib/agent/pausa";
 import type { Turn } from "../src/lib/agent/providers";
 
+test("transferência pausa 30 minutos, cancela follow-up e não pausa o outro número", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!; const alvo = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(alvo.hostname) && alvo.pathname === "/15");
+  const client = agentRedis(url); await client.connect();
+  const sufixo = randomUUID(); const instancia = `transferencia-${sufixo}`;
+  const evento = (instance: string, id: string): EvolutionEvent => ({ instance, event: "messages.upsert", data: {
+    key: { id, fromMe: false, remoteJid: "5511999999999@s.whatsapp.net" }, messageTimestamp: Math.floor(Date.now() / 1000), message: { conversation: "Quero uma pessoa" } } });
+  const mensagem = incomingMessage(evento(instancia, "1"), instancia)!;
+  const outra = incomingMessage(evento(`${instancia}-b`, "1"), `${instancia}-b`)!;
+  const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "legado", OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "gpt-4.1-mini",
+    EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste", EVOLUTION_INSTANCE_NAME: instancia,
+    EVOLUTION_SECOND_INSTANCE_NAME: `${instancia}-b`, REDIS_URL: url };
+  const saidas: string[] = []; let transferencias = 0;
+  const dependencias = { settings: async () => config, chatbot: async () => ({ ...chatbotExample, context: "Atenda o cliente.", transferNotice: "Nossa equipe continuará o atendimento." }),
+    generate: async () => ({ transferir: true as const }), transferir: async () => {
+      transferencias++;
+      await client.set(`atendeia:{evolution}:followup:${mensagem.conversation}`, "ciclo simulado");
+      await client.zadd(followupQueue, Date.now(), mensagem.conversation);
+    }, registrarEnvio: async () => {},
+    send: async (_config: unknown, _numero: string, texto: string) => { saidas.push(texto); return `envio-${sufixo}`; } };
+  try {
+    await enqueueEvolutionEventWithClient(client, evento(instancia, "1"));
+    await runAgentTick(dependencias);
+    const prazo = Number(await client.get(pausaManualKey(mensagem.conversation)));
+    assert.ok(prazo > Date.now() + 29 * 60000 && prazo <= Date.now() + 30 * 60000);
+    assert.equal(await pausaManualAtiva(client, mensagem.conversation, prazo - 1), true);
+    assert.equal(await pausaManualAtiva(client, mensagem.conversation, prazo), false);
+    assert.equal(await pausaManualAtiva(client, outra.conversation), false);
+    assert.equal(await client.get(`atendeia:{evolution}:followup:${mensagem.conversation}`), null);
+    assert.equal(await client.zscore(followupQueue, mensagem.conversation), null);
+    await enqueueEvolutionEventWithClient(client, evento(instancia, "2"));
+    await runAgentTick(dependencias);
+    assert.equal(transferencias, 1); assert.deepEqual(saidas, ["Nossa equipe continuará o atendimento."]);
+  } finally {
+    await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive, pausaManualKey(mensagem.conversation));
+    client.disconnect();
+  }
+});
+
 test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio duplicado", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
   const target = new URL(url);

@@ -46,8 +46,13 @@ test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à i
     assert.equal(a.configuracao.context, b.configuracao.context);
     assert.equal((await prepararAssistentes(banco, ["chip-sdr", "chip-b"], usuario)).itens.length, preparados.itens.length);
     await salvarChatbotServidor(banco, { id: b.id, versao: b.versao,
-      configuracao: { ...b.configuracao, context: "Variante B de atendimento" }, instancia: "chip-b", usuario });
+      configuracao: { ...b.configuracao, context: "Variante B de atendimento", persona: "Derek", gender: "Masculino",
+        personalities: ["Amigável"], transferHuman: true, destination: "Suporte", transferNotice: "Vou encaminhar ao suporte." }, instancia: "chip-b", usuario });
     assert.equal((await chatbotDaInstancia(banco, "chip-b"))?.context, "Variante B de atendimento");
+    const configuracaoB = (await chatbotDaInstancia(banco, "chip-b"))!;
+    assert.equal(configuracaoB.persona, "Derek"); assert.equal(configuracaoB.gender, "Masculino");
+    assert.deepEqual(configuracaoB.personalities, ["Amigável"]); assert.equal(configuracaoB.destination, "Suporte");
+    assert.equal(configuracaoB.transferNotice, "Vou encaminhar ao suporte.");
     assert.equal((await chatbotDaInstancia(banco, "chip-sdr"))?.context, a.configuracao.context);
     await assert.rejects(salvarChatbotServidor(banco, { id: a.id, versao: a.versao,
       configuracao: a.configuracao, instancia: "chip-b", usuario }), /instância/);

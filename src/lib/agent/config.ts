@@ -14,11 +14,15 @@ export const agentBaseConfigSchema = settingsSchema.extend({
 });
 export const agentConfigSchema = agentBaseConfigSchema.extend({
   AI_SYSTEM_PROMPT: z.string().trim().min(1).max(200000),
+  atendimento: z.object({ transferHuman: z.boolean(), transferMedia: z.boolean(),
+    destination: z.string(), transferNotice: z.string() }).optional(),
 });
 export type AgentConfig = z.infer<typeof agentConfigSchema>;
 
 export function configurarAgente(settings: unknown, chatbot: Chatbot | null) {
   const base = agentBaseConfigSchema.safeParse(settings);
   return agentConfigSchema.safeParse(base.success ? { ...base.data,
-    AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(chatbot) } : {});
+    AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(chatbot),
+    atendimento: chatbot ? { transferHuman: chatbot.transferHuman, transferMedia: chatbot.transferMedia,
+      destination: chatbot.destination, transferNotice: chatbot.transferNotice } : undefined } : {});
 }

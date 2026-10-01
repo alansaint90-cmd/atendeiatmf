@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 139 |
+| Arquivos TS/TSX | 140 |
 | Tabelas (Drizzle) | 31 |
 | Server Actions (arquivos) | 11 |
 | Rotas de API | 6 |
@@ -157,6 +157,7 @@ lib/
     evento.ts
     painel.ts
     receber.ts
+    transferir.ts
   perfil/
     servico.ts
   settings/

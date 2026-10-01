@@ -55,6 +55,9 @@
 
 ## Agente de respostas de texto
 
+- Persona, gênero, missão e tom salvos no chatbot da instância orientam as próximas respostas. A persona do painel tem prioridade sobre nomes antigos em exemplos do prompt. Respostas anteriores da IA com outra revisão das instruções não são reenviadas ao modelo; o histórico armazenado e o nome informado pelo cliente são preservados.
+- Quando habilitada, a transferência solicitada pelo cliente é uma ação validada do agente. O servidor registra a conversa como pendente no setor escolhido, limpa a atribuição individual, audita e pausa a IA por 30 minutos naquela instância e cliente. Envia literalmente o aviso cadastrado (ou aviso neutro se vazio), sem acrescentar pergunta de nome. Imagens/documentos também podem disparar essa ação quando a opção correspondente estiver ligada. O ciclo de follow-up é cancelado e não se cria outro pelo aviso. Após o prazo, novas mensagens voltam ao atendimento normal; não responder mensagens acumuladas na pausa. Novas saídas humanas renovam o prazo de 30 minutos.
+
 - O processador inicia com `ATENDEIA_WORKER_ENABLED=true` no processo Next.js persistente (EasyPanel), fora do build. A configuração administrativa `AI_ENABLED=true` também é obrigatória; padrão desativado.
 - Em Configurações, o super administrador seleciona o modelo OpenAI e ativa as respostas. O gerente ou super administrador edita o prompt em Chatbot IA; somente o chatbot com prompt vinculado à instância fornece as instruções do agente. A confirmação de Configurações bloqueia por três segundos.
 - Somente `messages.upsert` individual com texto ou áudio, `fromMe=false`, ID, telefone e timestamp é respondido. Grupos, mensagens próprias, outras mídias, lotes e eventos de status não geram resposta. LID requer telefone alternativo válido. Mensagens com mais de cinco minutos ou timestamp mais de um minuto no futuro são arquivadas como ignoradas, evitando responder histórico antigo.

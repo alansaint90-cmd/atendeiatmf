@@ -230,3 +230,8 @@ chatbot vinculado à instância fornece instruções para respostas. AI_SYSTEM_P
 legado pode ser lido para compatibilidade, mas não é exibido, editado nem usado.
 Não embutir roteiros comerciais ou catálogos de produtos no modelo inicial do chatbot.
 Dados antigos do navegador não podem ser importados automaticamente para o servidor.
+Persona, gênero e tom atuais prevalecem sobre exemplos e histórico antigo. Respostas
+da IA levam a revisão das instruções; revisões antigas não voltam ao contexto do modelo.
+Transferência habilitada usa ação validada, destino e aviso do painel: registra a
+conversa pendente no setor, pausa IA por 30 minutos e cancela follow-ups por instância.
+Não confirmar encaminhamento se o registro falhar; envio incerto não é repetido.

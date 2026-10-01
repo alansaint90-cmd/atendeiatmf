@@ -76,9 +76,9 @@ export function followupStore(client: Redis, token: string) {
         redis.call('XADD', KEYS[4], 'MAXLEN', '=', 10000, '*', 'status', ARGV[3], 'conversation', ARGV[2])`,
       [jobKey(job.conversation), followupQueue, prefix + "followup-results"], [job.conversation, result]);
     },
-    async history(job: FollowupJob, text: string) {
+    async history(job: FollowupJob, text: string, revisao?: string) {
       await guarded("redis.call('RPUSH', KEYS[2], ARGV[2]); redis.call('LTRIM', KEYS[2], -12, -1); redis.call('EXPIRE', KEYS[2], 86400)",
-        [prefix + "history:" + job.conversation], [JSON.stringify({ role: "assistant", content: text })]);
+        [prefix + "history:" + job.conversation], [JSON.stringify({ role: "assistant", content: text, revisao })]);
     },
   };
 }
