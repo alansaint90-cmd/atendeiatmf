@@ -192,6 +192,9 @@ Mensagem individual `fromMe=true` enviada por humano pausa a resposta da IA por
 cinco minutos desde a última saída manual. Ecos identificados dos envios da própria
 IA não pausam. Mensagens recebidas durante a pausa são arquivadas sem resposta
 automática; a IA volta a atender novas mensagens após o prazo.
+Saídas manuais em lote ou apenas com LID também pausam. A associação LID/telefone
+usa somente pares explícitos recebidos da Evolution, separados por instância;
+nunca inferir telefone dos dígitos do LID. A pausa cancela o follow-up pendente.
 
 Follow-ups e tags seguem ADR-0004 e ADR-0008. Actions exigem sessão individual
 e permissão de gerente ou superior. Não aceitar token administrativo como acesso.

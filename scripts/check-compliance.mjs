@@ -416,7 +416,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "isolamento-instancias", file: rel, line: 1,
       msg: "O worker deve selecionar a instância de origem antes de enviar respostas e follow-ups." });
   }
-  if (rel === "src/lib/evolution/queue.ts" && !/\bpausaManualParaEvento\b/.test(content)) {
+  if (rel === "src/lib/evolution/queue.ts" && !/\bpausasManuaisParaEvento\b/.test(content)) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O webhook deve registrar a pausa manual junto com o evento autenticado." });
   }

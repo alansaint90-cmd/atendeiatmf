@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { agentRedis, agentKeys } from "../src/lib/agent/redis";
 import { messageStore } from "../src/lib/agent/store";
 import { runAgentTick } from "../src/lib/agent/worker";
-import { incomingMessage } from "../src/lib/agent/message";
+import { incomingMessage, digest } from "../src/lib/agent/message";
 import { enqueueEvolutionEventWithClient, streamKey } from "../src/lib/evolution/queue";
 import type { AgentConfig } from "../src/lib/agent/config";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
@@ -242,5 +242,38 @@ test("dois números: prompt compartilhado, histórico, pausa e follow-ups isolad
       await client.zrem(followupQueue, mensagem.conversation);
     }
     client.disconnect();
+  }
+});
+
+test("saída manual em lote somente com LID pausa o telefone associado e cancela follow-up", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!;
+  const target = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(target.hostname) && target.pathname === "/15");
+  const client = agentRedis(url); await client.connect();
+  const instance = `lid-${randomUUID()}`, telefone = "5511666555444@s.whatsapp.net", lid = "987654321@lid";
+  const conversation = digest(`${instance}:${telefone}`), conversaLid = digest(`${instance}:${lid}`);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const recebido: EvolutionEvent = { event: "messages.upsert", instance, data: {
+    key: { id: randomUUID(), fromMe: false, remoteJid: lid, remoteJidAlt: telefone },
+    messageTimestamp: timestamp, message: { conversation: "Olá" } } };
+  const ciclo = `atendeia:{evolution}:followup:${conversation}`;
+  try {
+    await enqueueEvolutionEventWithClient(client, recebido);
+    await client.set(ciclo, JSON.stringify({ started: timestamp * 1000 - 1000 }));
+    await client.zadd(followupQueue, Date.now(), conversation);
+    const manual: EvolutionEvent = { event: "messages.upsert", instance, data: [{
+      key: { id: randomUUID(), fromMe: true, remoteJid: lid }, messageTimestamp: timestamp,
+      message: { conversation: "Atendente assumiu" } }] };
+    await enqueueEvolutionEventWithClient(client, manual);
+    assert.equal(await pausaManualAtiva(client, conversation), true);
+    assert.equal(await pausaManualAtiva(client, conversaLid), true);
+    assert.equal(await pausaManualAtiva(client, digest(`outro:${telefone}`)), false);
+    assert.equal(await client.get(ciclo), null);
+    assert.equal(await client.zscore(followupQueue, conversation), null);
+    assert.equal(await pausaManualAtiva(client, conversation, timestamp * 1000 + 300000), false);
+  } finally {
+    await client.del(streamKey, ciclo, pausaManualKey(conversation), pausaManualKey(conversaLid),
+      `atendeia:{evolution}:contact-alias:${conversation}`, `atendeia:{evolution}:contact-alias:${conversaLid}`);
+    await client.zrem(followupQueue, conversation); client.disconnect();
   }
 });

@@ -40,6 +40,8 @@
 
 ## Recepção de eventos Evolution
 
+- A pausa manual aceita saídas individuais em lotes e identificadores LID. Pares explícitos LID/telefone recebidos da Evolution são guardados por instância no Redis por até 100 dias; não há conversão presumida de LID em telefone. A entrada manual cancela o follow-up pendente daquela conversa e registra a pausa junto com o evento. Sem associação conhecida, a pausa fica no LID e passa a valer para o telefone quando um evento trouxer o par.
+
 - `POST /api/webhooks/evolution` autentica o serviço pelo header `x-webhook-secret`, comparado com `EVOLUTION_WEBHOOK_SECRET` (mínimo de 32 caracteres).
 - O super administrador pode usar `POST /api/settings/evolution-webhook` para sincronizar o webhook da instância configurada com a Evolution: a aplicação mantém os eventos existentes, inclui os três eventos aceitos, define a URL do `AUTH_ORIGIN`, desliga By Events/Base64 e envia `x-webhook-secret` como cabeçalho personalizado. A operação só confirma sucesso após consultar novamente a Evolution e verificar URL, eventos e cabeçalho; nunca exibe a chave.
 - Aceita as instâncias `EVOLUTION_INSTANCE_NAME` e, opcionalmente, `EVOLUTION_SECOND_INSTANCE_NAME` da mesma Evolution, e os eventos `MESSAGES_UPSERT`, `MESSAGES_UPDATE` e `CONNECTION_UPDATE`. A sincronização configura e confirma ambos os webhooks; falha parcial identifica o chip sem alegar sucesso completo.
