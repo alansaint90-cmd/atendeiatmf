@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { ChatbotsPage } from "@/components/chatbots/page";
 import { Settings } from "@/components/settings";
@@ -7,17 +7,28 @@ import { chatbotExample } from "@/lib/chatbots/defaults";
 const actions = vi.hoisted(() => ({ carregar: vi.fn(), salvar: vi.fn() }));
 vi.mock("@/lib/actions/chatbots", () => ({ carregarChatbots: actions.carregar, salvarChatbot: actions.salvar }));
 
-afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 test("seleciona instância pelo nome e salva apenas o prompt daquele número", async () => {
   const a = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Prompt A" }, versao: 0 };
   const b = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Prompt B" }, versao: 0 };
-  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [a, b], instancias: [
-    { nome: "thaistmf01", chatbotId: a.id }, { nome: "thaistmf02", chatbotId: b.id }] } });
+  const c = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Prompt C" }, versao: 0 };
+  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [a, b, c], instancias: [
+    { nome: "thaistmf01", chatbotId: a.id }, { nome: "thaistmf02", chatbotId: b.id }, { nome: "levaelava", chatbotId: c.id }] } });
   actions.salvar.mockResolvedValue({ ok: true, dados: { ...b, configuracao: { ...b.configuracao, context: "Variante B" }, versao: 1 } });
   render(<ChatbotsPage />);
   const seletor = await screen.findByLabelText("Número / instância");
   expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt A");
+  fireEvent.change(seletor, { target: { value: "levaelava" } });
+  expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt C");
+  actions.salvar.mockResolvedValue({ ok: true, dados: { ...c, configuracao: { ...c.configuracao, context: "Variante C" }, versao: 1 } });
+  fireEvent.change(screen.getByLabelText("Prompt de atendimento"), { target: { value: "Variante C" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(actions.salvar).toHaveBeenLastCalledWith(expect.objectContaining({ id: c.id, instancia: "levaelava" })));
+  await waitFor(() => expect(seletor).toBeEnabled());
+  fireEvent.change(seletor, { target: { value: "thaistmf02" } });
+  expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt B");
+  actions.salvar.mockResolvedValue({ ok: true, dados: { ...b, configuracao: { ...b.configuracao, context: "Variante B" }, versao: 1 } });
   fireEvent.change(seletor, { target: { value: "thaistmf02" } });
   expect(screen.getByLabelText("Prompt de atendimento")).toHaveValue("Prompt B");
   fireEvent.change(screen.getByLabelText("Prompt de atendimento"), { target: { value: "Variante B" } });
@@ -95,4 +106,25 @@ test("erro ao sincronizar fecha a confirmação e mostra a resposta do servidor"
   expect(await screen.findByRole("alert")).toHaveTextContent("segredo do webhook");
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
   expect(requisicao).toHaveBeenCalledWith("/api/settings/evolution-webhook", { method: "POST" });
+});
+
+test("configura o terceiro número e permite desativá-lo enviando campo vazio", async () => {
+  let terceira = "";
+  const requisicao = vi.fn(async (_entrada: RequestInfo | URL, inicio?: RequestInit) => {
+    if (inicio?.method === "PUT") terceira = JSON.parse(String(inicio.body)).values.EVOLUTION_THIRD_INSTANCE_NAME;
+    return Response.json({ version: 1, configured: {}, values: { EVOLUTION_THIRD_INSTANCE_NAME: terceira } });
+  });
+  vi.stubGlobal("fetch", requisicao);
+  render(<Settings />);
+  const campo = await screen.findByLabelText(/Instância Evolution do terceiro número/);
+  for (const valor of ["levaelava", ""]) {
+    fireEvent.change(campo, { target: { value: valor } });
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar configurações" }));
+    for (let i = 0; i < 3; i++) await act(() => vi.advanceTimersByTimeAsync(1000));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Confirmar e salvar" })));
+    vi.useRealTimers();
+    expect(terceira).toBe(valor);
+    expect(campo).toHaveValue(valor);
+  }
 });

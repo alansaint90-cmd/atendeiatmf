@@ -43,7 +43,23 @@ test("follow-ups são gravados e lidos novamente com auditoria no banco", async 
       systemUserId, database, async () => {}), InstanciasDuplicadas);
     await assert.rejects(saveSettings({ FOLLOW_UP_CONFIG: JSON.stringify(config) }, reloaded.version,
       systemUserId, database, async () => {}), SettingsConflict);
-    await saveSettings({ EVOLUTION_SECOND_INSTANCE_NAME: "" }, dois.version, systemUserId, database, async () => {});
+    const terceiro = { ...structuredClone(config), instance: "levaelava" };
+    terceiro.steps[0].text = "Mensagem independente do terceiro chip";
+    const tres = await saveSettings({ EVOLUTION_THIRD_INSTANCE_NAME: "levaelava",
+      FOLLOW_UP_THIRD_CONFIG: JSON.stringify(terceiro) }, dois.version, systemUserId, database, async () => {});
+    assert.deepEqual(parseFollowup((await readSettings(database, async () => {})).values.FOLLOW_UP_THIRD_CONFIG), terceiro);
+    for (const duplicado of ["teste", "segundo"]) {
+      await assert.rejects(saveSettings({ EVOLUTION_THIRD_INSTANCE_NAME: duplicado }, tres.version,
+        systemUserId, database, async () => {}), InstanciasDuplicadas);
+    }
+    const renomeado = await saveSettings({ EVOLUTION_THIRD_INSTANCE_NAME: "terceiro-novo" }, tres.version, systemUserId, database, async () => {});
+    assert.equal(parseFollowup(renomeado.values.FOLLOW_UP_THIRD_CONFIG).enabled, false);
+    assert.deepEqual(parseFollowup(renomeado.values.FOLLOW_UP_SECOND_CONFIG), segundo);
+    assert.deepEqual(parseFollowup(renomeado.values.FOLLOW_UP_CONFIG), config);
+    const semTerceiro = await saveSettings({ EVOLUTION_THIRD_INSTANCE_NAME: "" }, renomeado.version, systemUserId, database, async () => {});
+    assert.equal(semTerceiro.values.EVOLUTION_THIRD_INSTANCE_NAME, "");
+    assert.equal(parseFollowup(semTerceiro.values.FOLLOW_UP_THIRD_CONFIG).enabled, false);
+    await saveSettings({ EVOLUTION_SECOND_INSTANCE_NAME: "" }, semTerceiro.version, systemUserId, database, async () => {});
     const removido = await readSettings(database, async () => {});
     assert.equal(removido.values.EVOLUTION_SECOND_INSTANCE_NAME, "");
     assert.equal(parseFollowup(removido.values.FOLLOW_UP_SECOND_CONFIG).enabled, false);

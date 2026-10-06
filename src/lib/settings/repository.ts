@@ -5,6 +5,7 @@ import { db } from "../db/client";
 import { ensureDatabase } from "../db/migrate";
 import { agentBaseConfigSchema } from "../agent/config";
 import { defaultFollowup } from "../followups/schema";
+import { camposInstancias } from "../evolution/instancias";
 
 interface SettingsTransaction { execute(query: SQL): PromiseLike<unknown> }
 interface SettingsDatabase extends SettingsTransaction { transaction<T>(work: (tx: SettingsTransaction) => Promise<T>): Promise<T> }
@@ -38,7 +39,8 @@ export async function saveSettings(values: IntegrationSettings, version: number,
   if (current.version !== version) throw new SettingsConflict();
   const merged = settingsSchema.parse({ ...current.values, ...values });
   const effective = { ...environmentSettings(), ...merged };
-  if (effective.EVOLUTION_SECOND_INSTANCE_NAME && effective.EVOLUTION_SECOND_INSTANCE_NAME === effective.EVOLUTION_INSTANCE_NAME) {
+  const instancias = camposInstancias.map(([nome]) => effective[nome]).filter(Boolean);
+  if (new Set(instancias).size !== instancias.length) {
     throw new InstanciasDuplicadas();
   }
   if (effective.AI_ENABLED === "true" && !agentBaseConfigSchema.safeParse(effective).success) {
@@ -46,8 +48,7 @@ export async function saveSettings(values: IntegrationSettings, version: number,
   }
   const alterados = new Set(Object.keys(values));
   const anterior = { ...environmentSettings(), ...current.values };
-  for (const [nome, campo] of [["EVOLUTION_INSTANCE_NAME", "FOLLOW_UP_CONFIG"],
-    ["EVOLUTION_SECOND_INSTANCE_NAME", "FOLLOW_UP_SECOND_CONFIG"]] as const) {
+  for (const [nome, campo] of camposInstancias) {
     if (values[nome] !== undefined && values[nome] !== anterior[nome] && anterior[campo]) {
       merged[campo] = JSON.stringify({ ...defaultFollowup, instance: values[nome] });
       alterados.add(campo);

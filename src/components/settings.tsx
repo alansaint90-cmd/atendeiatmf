@@ -10,9 +10,14 @@ const fields = [
   ["EVOLUTION_API_KEY", "Chave de API da Evolution", true],
   ["EVOLUTION_INSTANCE_NAME", "Nome exato da instância Evolution", false],
   ["EVOLUTION_SECOND_INSTANCE_NAME", "Instância Evolution do segundo número (opcional)", false],
+  ["EVOLUTION_THIRD_INSTANCE_NAME", "Instância Evolution do terceiro número (opcional)", false],
   ["EVOLUTION_WEBHOOK_SECRET", "Segredo do webhook (32 a 256 caracteres)", true],
   ["REDIS_URL", "URL de conexão Redis", true],
 ] as const;
+const instanciasOpcionais: Record<string, string> = {
+  EVOLUTION_SECOND_INSTANCE_NAME: "Vazio desativa o segundo número",
+  EVOLUTION_THIRD_INSTANCE_NAME: "Vazio desativa o terceiro número",
+};
 type Status = { version: number; configured: Record<string, boolean>; values: Record<string, string> };
 export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
   const [status, setStatus] = useState<Status | null>(null);
@@ -43,7 +48,7 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
     try {
       const response = await fetch("/api/settings/integrations", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ version: status?.version, values: Object.fromEntries(Object.entries(values).filter(([name, value]) => value.trim() || name === "EVOLUTION_SECOND_INSTANCE_NAME").map(([name, value]) => [name, value.trim()])) }),
+        body: JSON.stringify({ version: status?.version, values: Object.fromEntries(Object.entries(values).filter(([name, value]) => value.trim() || name in instanciasOpcionais).map(([name, value]) => [name, value.trim()])) }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Falha ao acessar o servidor.");
@@ -69,8 +74,8 @@ export function Settings({ podeEditar = true }: { podeEditar?: boolean }) {
     {!status && !error && <p role="status">{busy ? "Carregando configurações…" : "Aguardando a consulta das configurações."}</p>}
     {status && <form className="panel form-panel" onSubmit={event => { event.preventDefault(); setConfirm(true); }}>
       <AgentSettings values={values} disabled={busy || confirm || !podeEditar} onChange={(name, value) => setValues(previous => ({ ...previous, [name]: value }))} />
-      {fields.map(([name, label, secret]) => <label key={name}>{label}<input type={secret ? "password" : "text"} autoComplete="off" spellCheck={false} maxLength={4096} disabled={busy || confirm || !podeEditar} value={values[name] ?? ""} placeholder={name === "EVOLUTION_SECOND_INSTANCE_NAME" ? "Vazio desativa o segundo número" : status.configured[name] ? "Configurado — deixe vazio para manter" : "Não configurado"} onChange={event => setValues(previous => ({ ...previous, [name]: event.target.value }))} /><small>{status.configured[name] ? "Valor configurado no servidor" : "Nenhum valor configurado"}</small></label>)}
-      <small>Os dois números devem estar na mesma Evolution e têm prompts próprios em Chatbot IA. Deixe o segundo número vazio para desativá-lo. Os outros campos vazios mantêm o valor atual. As configurações salvas prevalecem sobre as variáveis de ambiente. Redis deve começar com redis:// ou rediss://.</small>
+      {fields.map(([name, label, secret]) => <label key={name}>{label}<input type={secret ? "password" : "text"} autoComplete="off" spellCheck={false} maxLength={4096} disabled={busy || confirm || !podeEditar} value={values[name] ?? ""} placeholder={instanciasOpcionais[name] ?? (status.configured[name] ? "Configurado — deixe vazio para manter" : "Não configurado")} onChange={event => setValues(previous => ({ ...previous, [name]: event.target.value }))} /><small>{status.configured[name] ? "Valor configurado no servidor" : "Nenhum valor configurado"}</small></label>)}
+      <small>Até três números podem usar a mesma Evolution, com prompts próprios em Chatbot IA. Deixe o campo do segundo ou terceiro número vazio para desativar aquele chip. Os outros campos vazios mantêm o valor atual. As configurações salvas prevalecem sobre as variáveis de ambiente. Redis deve começar com redis:// ou rediss://.</small>
       {podeEditar && <button className="primary" disabled={busy || confirm}>Salvar configurações</button>}
       <ModalConfirmacaoBlock aberto={confirm} titulo="Salvar configurações do agente"
         mensagem="Ativar respostas autoriza o agente a responder novas mensagens de texto e áudio no WhatsApp usando o prompt salvo em Chatbot IA. Alterar o segredo exige atualizar também a Evolution."

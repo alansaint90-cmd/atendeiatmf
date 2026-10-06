@@ -1,17 +1,20 @@
 import type { IntegrationSettings } from "../settings/schema";
 import { parseFollowup } from "../followups/schema";
 
-type Instancias = Pick<IntegrationSettings, "EVOLUTION_INSTANCE_NAME" | "EVOLUTION_SECOND_INSTANCE_NAME">;
+export const camposInstancias = [
+  ["EVOLUTION_INSTANCE_NAME", "FOLLOW_UP_CONFIG"],
+  ["EVOLUTION_SECOND_INSTANCE_NAME", "FOLLOW_UP_SECOND_CONFIG"],
+  ["EVOLUTION_THIRD_INSTANCE_NAME", "FOLLOW_UP_THIRD_CONFIG"],
+] as const;
+type Instancias = Pick<IntegrationSettings, typeof camposInstancias[number][0]>;
 
 export function instanciasConfiguradas(settings: Instancias): string[] {
-  return [...new Set([settings.EVOLUTION_INSTANCE_NAME, settings.EVOLUTION_SECOND_INSTANCE_NAME]
+  return [...new Set(camposInstancias.map(([nome]) => settings[nome])
     .filter((nome): nome is string => Boolean(nome)))];
 }
 
 export function campoFollowup(settings: Instancias, instancia: string) {
-  if (instancia && instancia === settings.EVOLUTION_INSTANCE_NAME) return "FOLLOW_UP_CONFIG";
-  if (instancia && instancia === settings.EVOLUTION_SECOND_INSTANCE_NAME) return "FOLLOW_UP_SECOND_CONFIG";
-  return null;
+  return camposInstancias.find(([nome]) => instancia && settings[nome] === instancia)?.[1] ?? null;
 }
 
 export function followupDaInstancia(settings: IntegrationSettings, instancia: string) {
@@ -28,7 +31,8 @@ export function settingsDaInstancia(settings: IntegrationSettings, instancia: st
   if (!instanciasConfiguradas(settings).includes(instancia)) return null;
   // Configurações de follow-up não mudam o prompt nem o diário de resposta da IA.
   const { FOLLOW_UP_CONFIG: _principal, FOLLOW_UP_SECOND_CONFIG: _segundo,
-    EVOLUTION_SECOND_INSTANCE_NAME: _instancia, ...base } = settings;
-  void _principal; void _segundo; void _instancia;
+    FOLLOW_UP_THIRD_CONFIG: _terceiro, EVOLUTION_SECOND_INSTANCE_NAME: _instancia,
+    EVOLUTION_THIRD_INSTANCE_NAME: _terceiraInstancia, ...base } = settings;
+  void _principal; void _segundo; void _terceiro; void _instancia; void _terceiraInstancia;
   return { ...base, EVOLUTION_INSTANCE_NAME: instancia };
 }

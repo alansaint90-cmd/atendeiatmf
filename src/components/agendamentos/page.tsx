@@ -11,7 +11,7 @@ function dataLocal(iso: string) {
 const formatar = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 export function AgendamentosPage({ ativoNaTela = true }: { ativoNaTela?: boolean }) {
   const [itens, setItens] = useState<Agendamento[] | null>(null);
-  const [instancia, setInstancia] = useState("");
+  const [instancias, setInstancias] = useState<string[]>([]);
   const [ativo, setAtivo] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState("");
@@ -29,7 +29,7 @@ export function AgendamentosPage({ ativoNaTela = true }: { ativoNaTela?: boolean
     try {
       const r = await carregarAgendamentos();
       if (!r.ok) { setErro(r.erro); return; }
-      setItens(r.dados.itens); setInstancia(r.dados.instancia); setAtivo(r.dados.processadorAtivo); setPagina(0);
+      setItens(r.dados.itens); setInstancias(r.dados.instancias); setAtivo(r.dados.processadorAtivo); setPagina(0);
     } catch { setErro("Falha de conexão ao carregar agendamentos."); } finally { setOcupado(false); }
   }, []);
   useEffect(() => {
@@ -41,7 +41,7 @@ export function AgendamentosPage({ ativoNaTela = true }: { ativoNaTela?: boolean
     setErro(""); setAviso(""); setVersao(item?.version);
     const iso = item?.agendadoPara ?? new Date(Date.now() + 3600000).toISOString();
     setHorario(dataLocal(iso));
-    setRascunho({ id: item?.id ?? crypto.randomUUID(), telefone: item?.telefone ?? "", instancia: item?.instancia ?? instancia,
+    setRascunho({ id: item?.id ?? crypto.randomUUID(), telefone: item?.telefone ?? "", instancia: item?.instancia ?? instancias[0] ?? "",
       mensagem: item?.mensagem ?? "", agendadoPara: iso });
   }
   async function confirmar() {
@@ -67,15 +67,18 @@ export function AgendamentosPage({ ativoNaTela = true }: { ativoNaTela?: boolean
       {!ativo && <p role="status" className="followup-note">Processador desativado no servidor. Os agendamentos serão salvos, mas o envio depende da ativação em Configurações do servidor.</p>}
       <div className="page-head"><div className="agendamento-filtros"><label>Buscar<input placeholder="Telefone, chip ou mensagem" value={busca} onChange={e => { setBusca(e.target.value); setPagina(0); }} /></label>
         <label>Status<select value={filtro} onChange={e => { setFiltro(e.target.value); setPagina(0); }}><option value="">Todos</option>{Object.entries(statusAgendamento).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
-        <button className="primary" disabled={ocupado || !instancia} onClick={() => editar()}>+ Novo agendamento</button></div>
-      {!instancia && <p>Configure um chip Evolution em Configurações para agendar.</p>}
+        <button className="primary" disabled={ocupado || !instancias.length} onClick={() => editar()}>+ Novo agendamento</button></div>
+      {!instancias.length && <p>Configure um chip Evolution em Configurações para agendar.</p>}
       {rascunho && <form className="tag-editor" onSubmit={event => {
         event.preventDefault(); const data = new Date(horario);
         if (!Number.isFinite(data.getTime()) || data.getTime() < Date.now() + 60000) { setErro("Escolha um horário com pelo menos um minuto de antecedência."); return; }
         setRascunho({ ...rascunho, agendadoPara: data.toISOString() }); setConfirmacao("salvar");
       }}><h2>{versao === undefined ? "Novo agendamento" : "Editar agendamento"}</h2>
         <div className="followup-grid"><label>Telefone com código do país<input required type="tel" placeholder="+5571999999999" pattern="\+[1-9][0-9]{6,14}" disabled={ocupado} value={rascunho.telefone} onChange={e => setRascunho({ ...rascunho, telefone: e.target.value })} /></label>
-          <label>Chip<select required disabled={ocupado} value={rascunho.instancia} onChange={e => setRascunho({ ...rascunho, instancia: e.target.value })}><option value={instancia}>{instancia}</option></select></label></div>
+          <label>Chip<select required disabled={ocupado} value={rascunho.instancia} onChange={e => setRascunho({ ...rascunho, instancia: e.target.value })}>
+            {!instancias.includes(rascunho.instancia) && <option value="">Selecione um chip disponível</option>}
+            {instancias.map(instancia => <option key={instancia} value={instancia}>{instancia}</option>)}
+          </select></label></div>
         <label>Data e hora<input required type="datetime-local" disabled={ocupado} value={horario} onChange={e => setHorario(e.target.value)} /></label>
         <small>Horários no fuso do seu navegador: {Intl.DateTimeFormat().resolvedOptions().timeZone}. O envio pode ocorrer após o horário se o serviço estiver indisponível.</small>
         <label>Mensagem<textarea required maxLength={6000} rows={4} disabled={ocupado} value={rascunho.mensagem} onChange={e => setRascunho({ ...rascunho, mensagem: e.target.value })} /></label>

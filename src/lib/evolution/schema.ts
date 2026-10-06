@@ -4,6 +4,7 @@ export const webhookConfigSchema = z.object({
   EVOLUTION_WEBHOOK_SECRET: z.string().min(32).max(256),
   EVOLUTION_INSTANCE_NAME: z.string().min(1).max(100).regex(/^[\p{L}\p{N}_. -]+$/u),
   EVOLUTION_SECOND_INSTANCE_NAME: z.string().max(100).regex(/^[\p{L}\p{N}_. -]*$/u).optional(),
+  EVOLUTION_THIRD_INSTANCE_NAME: z.string().max(100).regex(/^[\p{L}\p{N}_. -]*$/u).optional(),
   REDIS_URL: z.string().url().regex(/^rediss?:\/\//),
 });
 export type WebhookConfig = z.infer<typeof webhookConfigSchema>;

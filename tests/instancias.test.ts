@@ -8,14 +8,23 @@ import { pausaManualParaEvento } from "../src/lib/agent/pausa";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
 import { configuracaoPermiteFollowup, type FollowupJob } from "../src/lib/followups/processor";
 
-test("dois chips mantêm configurações e revisões independentes; chip renomeado começa desligado", () => {
+test("três chips mantêm configurações e revisões independentes; chip renomeado começa desligado", () => {
   const primeiro = { ...structuredClone(defaultFollowup), instance: "principal", revision: randomUUID(), enabled: true };
   primeiro.steps[0].enabled = true;
   const segundo = { ...structuredClone(primeiro), instance: "segundo", revision: randomUUID() };
   segundo.steps[0].text = "Texto exclusivo do segundo número";
+  const terceiro = { ...structuredClone(primeiro), instance: "levaelava", revision: randomUUID() };
+  terceiro.steps[0].text = "Texto exclusivo do terceiro número";
   const settings = { EVOLUTION_INSTANCE_NAME: "principal", EVOLUTION_SECOND_INSTANCE_NAME: "segundo",
+    EVOLUTION_THIRD_INSTANCE_NAME: "levaelava", FOLLOW_UP_THIRD_CONFIG: JSON.stringify(terceiro),
     FOLLOW_UP_CONFIG: JSON.stringify(primeiro), FOLLOW_UP_SECOND_CONFIG: JSON.stringify(segundo) };
-  assert.deepEqual(instanciasConfiguradas(settings), ["principal", "segundo"]);
+  assert.deepEqual(instanciasConfiguradas(settings), ["principal", "segundo", "levaelava"]);
+  assert.deepEqual(followupDaInstancia(settings, "levaelava"), terceiro);
+  assert.equal(campoFollowup(settings, "levaelava"), "FOLLOW_UP_THIRD_CONFIG");
+  assert.deepEqual(settingsDaInstancia(settings, "levaelava"), { EVOLUTION_INSTANCE_NAME: "levaelava" });
+  assert.deepEqual(settingsDaInstancia({ ...settings, FOLLOW_UP_THIRD_CONFIG: "alterado" }, "principal"),
+    settingsDaInstancia(settings, "principal"));
+  assert.equal(followupDaInstancia({ ...settings, EVOLUTION_THIRD_INSTANCE_NAME: "novo" }, "novo").enabled, false);
   assert.deepEqual(followupDaInstancia(settings, "principal"), primeiro);
   assert.deepEqual(followupDaInstancia(settings, "segundo"), segundo);
   assert.equal(campoFollowup(settings, "estranho"), null);

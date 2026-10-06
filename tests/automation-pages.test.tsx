@@ -74,7 +74,7 @@ test("troca de chip consulta configuração separada e protege alterações pend
   vi.mocked(carregarFollowups).mockImplementation(async (instancia = "primeiro") => {
     const config = structuredClone(defaultFollowup); config.instance = instancia;
     config.steps[0].text = `Mensagem do ${instancia}`;
-    return { ok: true, dados: { config, version: 2, instance: instancia, instances: ["primeiro", "segundo"] } };
+    return { ok: true, dados: { config, version: 2, instance: instancia, instances: ["primeiro", "segundo", "levaelava"] } };
   });
   render(<FollowupsPage />);
   const chip = await screen.findByLabelText("Chip");
@@ -87,4 +87,7 @@ test("troca de chip consulta configuração separada e protege alterações pend
   expect(chip).not.toBeDisabled();
   fireEvent.change(chip, { target: { value: "primeiro" } });
   await waitFor(() => expect(screen.getByLabelText("Mensagem 1")).toHaveValue("Mensagem do primeiro"));
+  fireEvent.change(chip, { target: { value: "levaelava" } });
+  await waitFor(() => expect(screen.getByLabelText("Mensagem 1")).toHaveValue("Mensagem do levaelava"));
+  expect(carregarFollowups).toHaveBeenLastCalledWith("levaelava");
 });

@@ -2,16 +2,25 @@ import { db } from "../db/client";
 import { ensureDatabase } from "../db/migrate";
 import { effectiveSettings } from "../settings/repository";
 import { settingsSchema, type IntegrationSettings } from "../settings/schema";
+import { instanciasConfiguradas, settingsDaInstancia } from "../evolution/instancias";
 import { sendReply, ProviderError } from "../agent/providers";
 import { reservarAgendamento, concluirAgendamento, type BancoAgendamentos } from "./repository";
 
 const configuracaoEnvio = settingsSchema.pick({ EVOLUTION_API_URL: true, EVOLUTION_API_KEY: true, EVOLUTION_INSTANCE_NAME: true }).required();
 export async function processarAgendamento(banco: BancoAgendamentos, configuracoes: () => Promise<IntegrationSettings>, enviar = sendReply) {
-  const inicial = configuracaoEnvio.safeParse(await configuracoes());
+  const settings = await configuracoes();
+  // Um envio por chip a cada ciclo evita que a fila principal impeça os demais.
+  for (const instancia of instanciasConfiguradas(settings)) {
+    await processarChip(banco, settings, instancia, configuracoes, enviar);
+  }
+}
+async function processarChip(banco: BancoAgendamentos, settings: IntegrationSettings, instancia: string,
+  configuracoes: () => Promise<IntegrationSettings>, enviar: typeof sendReply) {
+  const inicial = configuracaoEnvio.safeParse(settingsDaInstancia(settings, instancia));
   if (!inicial.success) return;
   const item = await reservarAgendamento(banco, inicial.data.EVOLUTION_INSTANCE_NAME);
   if (!item) return;
-  const atual = configuracaoEnvio.safeParse(await configuracoes());
+  const atual = configuracaoEnvio.safeParse(settingsDaInstancia(await configuracoes(), instancia));
   if (!atual.success || JSON.stringify(atual.data) !== JSON.stringify(inicial.data)) {
     await concluirAgendamento(banco, item, "erro", "configuracao_alterada", null); return;
   }

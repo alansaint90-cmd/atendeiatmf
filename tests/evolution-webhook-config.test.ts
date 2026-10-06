@@ -11,7 +11,7 @@ const values = {
 };
 const origin = "https://atendeia.example.test";
 
-test("sincronização confirma os dois chips e informa falha parcial", async () => {
+test("sincronização confirma os três chips e informa falha parcial", async () => {
   const salvos: string[] = [];
   const request: typeof fetch = async (url, init) => {
     if (init?.method === "POST") { salvos.push(String(url)); return Response.json({ ok: true }); }
@@ -19,14 +19,19 @@ test("sincronização confirma os dois chips e informa falha parcial", async () 
       events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
       headers: { "x-webhook-secret": values.EVOLUTION_WEBHOOK_SECRET } });
   };
-  const configuracao = { ...values, EVOLUTION_SECOND_INSTANCE_NAME: "segundo" };
+  const configuracao = { ...values, EVOLUTION_SECOND_INSTANCE_NAME: "segundo", EVOLUTION_THIRD_INSTANCE_NAME: "levaelava" };
   await sincronizarWebhooksConfigurados(configuracao, origin, request);
-  assert.equal(salvos.length, 2);
+  assert.equal(salvos.length, 3);
+  assert.ok(salvos[2].endsWith("/levaelava"));
   assert.ok(salvos[0].endsWith("/thais%20tmf")); assert.ok(salvos[1].endsWith("/segundo"));
   await assert.rejects(sincronizarWebhooksConfigurados(configuracao, origin, async (url, init) => {
     if (String(url).endsWith("/segundo")) return new Response(null, { status: 401 });
     return request(url, init);
   }), /Instância segundo:.*não foi concluída/);
+  await assert.rejects(sincronizarWebhooksConfigurados(configuracao, origin, async (url, init) => {
+    if (String(url).endsWith("/levaelava")) return new Response(null, { status: 401 });
+    return request(url, init);
+  }), /Instância levaelava:.*não foi concluída/);
 });
 
 test("sincronização envia cabeçalho secreto, preserva eventos e confirma leitura posterior", async () => {

@@ -10,16 +10,17 @@ const request = (body: unknown = payload, key = secret) => new Request("http://l
   method: "POST", headers: { "content-type": "application/json", "x-webhook-secret": key }, body: JSON.stringify(body),
 });
 
-test("webhook aceita os dois chips configurados e recusa terceiros antes de persistir", async () => {
+test("webhook aceita três chips configurados e recusa desconhecidos antes de persistir", async () => {
   const recebidos: string[] = [];
-  const doisChips = { ...config, EVOLUTION_SECOND_INSTANCE_NAME: "segundo" };
+  const tresChips = { ...config, EVOLUTION_SECOND_INSTANCE_NAME: "segundo", EVOLUTION_THIRD_INSTANCE_NAME: "levaelava" };
   const fila: Enqueue = async evento => { recebidos.push(evento.instance); return "queued"; };
-  for (const instancia of ["tmf", "segundo"]) {
-    assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: instancia }), doisChips, fila)).status, 202);
+  for (const instancia of ["tmf", "segundo", "levaelava"]) {
+    assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: instancia }), tresChips, fila)).status, 202);
   }
-  assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: "terceiro" }), doisChips, fila)).status, 403);
-  assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: "segundo" }, "inválido"), doisChips, fila)).status, 401);
-  assert.deepEqual(recebidos, ["tmf", "segundo"]);
+  assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: "desconhecida" }), tresChips, fila)).status, 403);
+  assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: "segundo" }, "inválido"), tresChips, fila)).status, 401);
+  assert.equal((await receiveEvolutionEvent(request({ ...payload, instance: "levaelava" }, "inválido"), tresChips, fila)).status, 401);
+  assert.deepEqual(recebidos, ["tmf", "segundo", "levaelava"]);
 });
 
 test("webhook nega segredo ausente/incorreto e configuração incompleta antes de enfileirar", async () => {

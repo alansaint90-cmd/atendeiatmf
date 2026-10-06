@@ -54,6 +54,16 @@ test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à i
     assert.deepEqual(configuracaoB.personalities, ["Amigável"]); assert.equal(configuracaoB.destination, "Suporte");
     assert.equal(configuracaoB.transferNotice, "Vou encaminhar ao suporte.");
     assert.equal((await chatbotDaInstancia(banco, "chip-sdr"))?.context, a.configuracao.context);
+    const tres = await prepararAssistentes(banco, ["chip-sdr", "chip-b", "levaelava"], usuario);
+    const c = tres.itens.find(item => item.id === tres.instancias[2].chatbotId)!;
+    assert.notEqual(c.id, a.id); assert.notEqual(c.id, b.id);
+    assert.equal(c.configuracao.context, a.configuracao.context);
+    await salvarChatbotServidor(banco, { id: c.id, versao: c.versao,
+      configuracao: { ...c.configuracao, context: "Atendimento exclusivo do terceiro número", persona: "Alex" }, instancia: "levaelava", usuario });
+    assert.equal((await chatbotDaInstancia(banco, "levaelava"))?.persona, "Alex");
+    assert.equal((await chatbotDaInstancia(banco, "chip-b"))?.context, "Variante B de atendimento");
+    assert.equal((await chatbotDaInstancia(banco, "chip-sdr"))?.context, a.configuracao.context);
+    assert.equal((await prepararAssistentes(banco, ["chip-sdr", "chip-b", "levaelava"], usuario)).itens.length, tres.itens.length);
     await assert.rejects(salvarChatbotServidor(banco, { id: a.id, versao: a.versao,
       configuracao: a.configuracao, instancia: "chip-b", usuario }), /instância/);
   } finally { await cliente.close(); }

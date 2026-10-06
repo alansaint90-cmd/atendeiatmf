@@ -59,3 +59,33 @@ test("valida a janela mínima e máxima do agendamento", () => {
   assert.equal(validarData(new Date(agora + 60000).toISOString(), agora), true);
   assert.equal(validarData(new Date(agora + 366 * 86400000).toISOString(), agora), false);
 });
+
+test("agendamentos usam cada um dos três chips e não enviam por instância removida", async () => {
+  const cliente = new PGlite(); const banco = drizzle(cliente);
+  const config = { EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste",
+    EVOLUTION_INSTANCE_NAME: "principal", EVOLUTION_SECOND_INSTANCE_NAME: "segundo", EVOLUTION_THIRD_INSTANCE_NAME: "levaelava" };
+  const enviados: string[] = [];
+  try {
+    await applyMigrations(banco);
+    const criar = async (instancia: string) => {
+      const item = await salvarAgendamento(banco, { id: randomUUID(), telefone: "+5511999999999", instancia,
+        mensagem: `Mensagem de ${instancia}`, agendadoPara: new Date(Date.now() + 3600000).toISOString() });
+      await cliente.query("UPDATE atendeia_agendamentos SET agendado_para=now()-interval '1 minute' WHERE id=$1", [item.id]);
+      return item;
+    };
+    for (const instancia of ["principal", "segundo", "levaelava", "desconhecido"]) await criar(instancia);
+    const enviar = async (atual: Pick<typeof config, "EVOLUTION_INSTANCE_NAME">, _telefone: string, mensagem: string) => {
+      assert.equal(mensagem, `Mensagem de ${atual.EVOLUTION_INSTANCE_NAME}`);
+      enviados.push(atual.EVOLUTION_INSTANCE_NAME); return `envio-${enviados.length}`;
+    };
+    await processarAgendamento(banco, async () => config, enviar);
+    assert.deepEqual(enviados, ["principal", "segundo", "levaelava"]);
+    await processarAgendamento(banco, async () => config, enviar);
+    assert.equal(enviados.length, 3);
+    assert.equal((await listarAgendamentos(banco)).find(item => item.instancia === "desconhecido")?.status, "pendente");
+    const removido = await criar("levaelava"); let leituras = 0;
+    await processarAgendamento(banco, async () => ++leituras === 1 ? config : { ...config, EVOLUTION_THIRD_INSTANCE_NAME: "" }, enviar);
+    assert.equal(enviados.length, 3);
+    assert.equal((await listarAgendamentos(banco)).find(item => item.id === removido.id)?.codigoErro, "configuracao_alterada");
+  } finally { await cliente.close(); }
+});
