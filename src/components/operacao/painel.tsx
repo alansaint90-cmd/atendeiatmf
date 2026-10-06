@@ -92,7 +92,7 @@ export function PainelOperacionalPage() {
       fuso: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", canalId });
   }
   return <div className="page-stack dashboard-page">
-    <section className="page-head"><div><h1>Visão geral do atendimento</h1><p>Indicadores calculados com dados reais do WhatsApp.</p></div></section>
+    <section className="page-head"><div><h1 className="dashboard-titulo"><span aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon("clock") }} />Conversas em tempo real</h1><p>Indicadores calculados com dados reais do WhatsApp.</p></div></section>
     {geral && <section className="kpi-grid" aria-label="Resumo geral">
       {[["Conversas abertas", geral.abertas, "green", "message"], ["Pendentes", geral.pendentes, "red", "clock"],
         ["Atendimento com IA", geral.atendimentoIa, "ia", "spark"], ["Atendimento humano", geral.atendimentoHumano, "orange", "users"]].map(([nome, valor, cor, icone]) =>

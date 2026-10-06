@@ -1,4 +1,7 @@
 .dashboard-page { gap: 18px; }
+.dashboard-titulo { display: flex; align-items: center; gap: 10px; }
+.dashboard-titulo > span { display: inline-flex; flex-shrink: 0; }
+.dashboard-titulo .icon { width: 20px; height: 20px; }
 .dashboard-page .page-head p { color: var(--muted); }
 .dashboard-page .kpi { position: relative; }
 .dashboard-page .kpi.ia { background: #edfcf5; border-color: #a6e8c7; color: #08704f; }
