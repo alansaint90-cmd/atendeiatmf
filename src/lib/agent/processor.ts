@@ -4,7 +4,7 @@ import { digest } from "./message";
 import { ProviderError, type Turn, type RespostaGerada } from "./providers";
 import { extrairNomeInformado, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
 
-export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean }
+export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
@@ -17,6 +17,7 @@ export interface ProcessingPort {
   transferir?(destino: string): Promise<void>;
   generate(config: AgentConfig, history: Turn[], text: string): Promise<RespostaGerada>;
   send(config: AgentConfig, number: string, text: string): Promise<string>;
+  registrarParte?(id: string): Promise<void>;
 }
 
 export async function processMessage(message: IncomingMessage, config: AgentConfig, port: ProcessingPort): Promise<string> {
@@ -30,7 +31,12 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   if (!await port.enabled()) return "pausada";
   const configHash = digest(JSON.stringify(config));
   const revisao = digest(config.AI_SYSTEM_PROMPT);
-  if (state?.configHash !== configHash) state = null;
+  if (state?.configHash !== configHash) {
+    if (state?.providerIds?.length) {
+      await port.write({ ...state, status: "falhou", code: "configuracao_alterada_entre_partes" }); return "falhou";
+    }
+    state = null;
+  }
   if ((state?.attempts ?? 0) >= 3 && !state?.reply) {
     await port.write({ ...state!, status: "falhou", code: "limite_tentativas" });
     return "falhou";
@@ -41,6 +47,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     await port.write({ status: "gerando", attempts, configHash, transcript });
     let reply: string;
     let transferencia = false;
+    let partes: string[] | undefined;
     try {
       if (message.audio && !transcript) {
         if (!port.transcribe) throw new ProviderError("audio_transcricao_indisponivel");
@@ -62,40 +69,50 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const instrucoes = `${instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0)}\nNão use o nome da assistente como rótulo ou prefixo das mensagens. Preserve a apresentação natural no início da conversa.`;
       // Preservar o histórico armazenado, mas não ensinar novamente uma persona ou roteiro antigo.
       const contextoAtual = persona ? historico.filter(turno => turno.role === "user" || turno.revisao === revisao) : historico;
-      const gerada = message.midia && config.atendimento?.transferMedia ? { transferir: true }
+      const saudacao = /^(?:oi+|ol[aá]+|bom dia|boa tarde|boa noite)[\s!.😊👋]*$/iu.test((transcript ?? message.text).trim());
+      if (!nome && !historico.length && !message.midia && saudacao && config.openingMessages?.length) partes = config.openingMessages;
+      const gerada = partes ? partes.join("\n\n") : message.midia && config.atendimento?.transferMedia ? { transferir: true }
         : await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, contextoAtual, transcript ?? message.text);
       if (typeof gerada !== "string") {
         if (!(config.atendimento?.transferHuman || (message.midia && config.atendimento?.transferMedia)) || !port.transferir) throw new ProviderError("transferencia_indisponivel");
         transferencia = true;
         reply = config.atendimento.transferNotice.replace(/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu, nome?.split(" ")[0] ?? "").trim()
           || "Vou encaminhar seu atendimento para nossa equipe.";
-      } else reply = removerRotuloDaPersona(respostaComNome(gerada, nome), persona);
+      } else reply = partes ? gerada : removerRotuloDaPersona(respostaComNome(gerada, nome), persona);
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
       await port.write({ status: attempts >= 3 ? "falhou" : "gerando", attempts, code, configHash, transcript });
       return attempts >= 3 ? "falhou" : "repetir";
     }
-    state = { status: "gerada", attempts, reply, configHash, transcript, transferencia };
+    state = { status: "gerada", attempts, reply, partes, configHash, transcript, transferencia };
     await port.write(state);
   }
   if (!await port.enabled()) return "pausada";
-  if (!state.transferencia && /\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(state.reply!)) {
+  if (!state.partes && !state.transferencia && /\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(state.reply!)) {
     state = { ...state, reply: respostaComNome(state.reply!, await port.contactName?.() ?? null) };
     await port.write(state);
   }
-  const semRotulo = state.transferencia ? state.reply! : removerRotuloDaPersona(state.reply!, personaDoAgente(config.AI_SYSTEM_PROMPT));
+  const semRotulo = state.transferencia || state.partes ? state.reply! : removerRotuloDaPersona(state.reply!, personaDoAgente(config.AI_SYSTEM_PROMPT));
   if (semRotulo !== state.reply) {
     state = { ...state, reply: semRotulo };
     await port.write(state);
   }
-  await port.write({ ...state, status: "enviando" });
-  // Reservar o encaminhamento antes da saída; falha não produz promessa falsa nem reenvio incerto.
-  if (state.transferencia) await port.transferir!(config.atendimento!.destination);
-  try { state.providerId = await port.send(config, message.number, state.reply!); }
-  catch (error) {
-    await port.write({ ...state, status: "incerta", code: error instanceof ProviderError ? error.code : "envio_incerto" });
-    return "incerta";
+  const partes = state.partes ?? [state.reply!];
+  for (let indice = state.providerIds?.length ?? 0; indice < partes.length; indice++) {
+    if (!await port.enabled()) return "pausada";
+    await port.write({ ...state, status: "enviando" });
+    // Reserva antes de cada saída; entrega incerta nunca é repetida.
+    if (state.transferencia) await port.transferir!(config.atendimento!.destination);
+    try {
+      state.providerId = await port.send(config, message.number, partes[indice]);
+      await port.registrarParte?.(state.providerId);
+    } catch (error) {
+      await port.write({ ...state, status: "incerta", code: error instanceof ProviderError ? error.code : "envio_incerto" });
+      return "incerta";
+    }
+    state = { ...state, providerIds: [...(state.providerIds ?? []), state.providerId!] };
+    if (indice < partes.length - 1) await port.write({ ...state, status: "gerada" });
   }
   // Estado e histórico são confirmados juntos. Se falhar, permanece "enviando".
   await port.complete({ ...state, status: "enviada" }, [

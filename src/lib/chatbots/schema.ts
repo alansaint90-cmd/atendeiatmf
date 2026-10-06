@@ -7,6 +7,7 @@ export const chatbotSchema = z.object({
   gender: z.enum(["Feminino", "Masculino", "Neutro"]),
   personalities: z.array(z.enum(personalities)).max(3).refine(items => new Set(items).size === items.length),
   mission: z.string().max(10000), context: z.string().max(200000),
+  openingMessages: z.array(z.string().trim().min(1).max(2000).refine(texto => !/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(texto), "A abertura deve perguntar o nome, sem marcadores como [NOME].")).max(2).optional(),
   fallback: z.string().max(10000), delay: z.number().int().min(0).max(3600),
   transferMedia: z.boolean(), transferHuman: z.boolean(),
   destination: z.enum(["Atendimento humano", "Comercial", "Suporte", "Financeiro"]),

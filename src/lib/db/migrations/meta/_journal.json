@@ -71,6 +71,13 @@
       "when": 1790260000000,
       "tag": "0009_mentoria_individual",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791316625636,
+      "tag": "0010_abertura_levaelava",
+      "breakpoints": true
     }
   ]
 }

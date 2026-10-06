@@ -75,6 +75,10 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         const store = messageStore(client, token, message);
         result = await pausaManualAtiva(client, message.conversation) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
+          registrarParte: async id => {
+            await followups.outgoing(instancia, id);
+            await dependencies.registrarEnvio(instancia, id);
+          },
           transferir: async destino => {
             await dependencies.transferir(instancia, message.number, destino);
             await pausarTransferencia(client, token, message.conversation);

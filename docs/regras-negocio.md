@@ -55,6 +55,8 @@
 
 ## Agente de respostas de texto
 
+- A abertura opcional do chatbot contém até dois textos literais em balões separados. Só se aplica a saudação simples sem histórico nem nome confirmado; perguntas diretas seguem o prompt. Campos vazios desativam a abertura fixa. A migração 0010 configura os dois textos solicitados somente no chatbot exclusivo de `levaelava`, sem alterar seu prompt ou os outros números. Cada envio revalida pausa/configuração, registra seu ID como saída da IA e mantém o checkpoint; entrega incerta não é repetida. O follow-up começa após a sequência completa. “Qual seu nome?” já conta como pergunta de nome e não recebe outra pergunta automática.
+
 - Persona, gênero, missão e tom salvos no chatbot da instância orientam as próximas respostas. A persona do painel tem prioridade sobre nomes antigos em exemplos do prompt. Respostas anteriores da IA com outra revisão das instruções não são reenviadas ao modelo; o histórico armazenado e o nome informado pelo cliente são preservados.
 - Quando habilitada, a transferência solicitada pelo cliente é uma ação validada do agente. O servidor registra a conversa como pendente no setor escolhido, limpa a atribuição individual, audita e pausa a IA por 30 minutos naquela instância e cliente. Envia literalmente o aviso cadastrado (ou aviso neutro se vazio), sem acrescentar pergunta de nome. Imagens/documentos também podem disparar essa ação quando a opção correspondente estiver ligada. O ciclo de follow-up é cancelado e não se cria outro pelo aviso. Após o prazo, novas mensagens voltam ao atendimento normal; não responder mensagens acumuladas na pausa. Novas saídas humanas renovam o prazo de 30 minutos.
 

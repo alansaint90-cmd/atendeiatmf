@@ -188,6 +188,9 @@ essa regra e a migração 0009 corrige o trecho legado já armazenado.
 O agente pergunta o nome no início da conversa, guarda somente o nome informado
 pelo cliente no Redis por até 100 dias e usa o primeiro nome nas respostas seguintes.
 Não enviar marcadores como `[NOME]` ao WhatsApp nem presumir o nome de exibição.
+Abertura opcional por chatbot usa até dois balões literais do painel, somente em
+saudação inicial sem histórico nem nome confirmado. Cada balão registra seu ID e
+revalida a pausa; entrega incerta nunca repete partes. Não duplicar a pergunta de nome.
 Mensagem individual `fromMe=true` enviada por humano pausa a resposta da IA por
 30 minutos desde a última saída manual. Ecos identificados dos envios da própria
 IA não pausam. Mensagens recebidas durante a pausa são arquivadas sem resposta

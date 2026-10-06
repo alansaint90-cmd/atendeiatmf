@@ -20,7 +20,7 @@ export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Pro
   return <dialog ref={dialog} className="bot-dialog" aria-labelledby="bot-title" onCancel={onClose}>
     <form className="bot-form" onSubmit={event => {
       event.preventDefault();
-      const parsed = chatbotSchema.safeParse(draft);
+      const parsed = chatbotSchema.safeParse({ ...draft, openingMessages: draft.openingMessages?.map(texto => texto.trim()).filter(Boolean) });
       if (!parsed.success) { setValidation(parsed.error.issues[0].message); return; }
       setValidation(""); onSave(parsed.data);
     }}>
@@ -34,6 +34,12 @@ export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Pro
         </div>{textField("mission", "Missão do chatbot", 2)}<details className="bot-examples"><summary>Exemplos de missão (para copiar e alterar)</summary><p>Atender clientes, esclarecer dúvidas sobre produtos e serviços e orientar cada pessoa até a melhor solução.</p><button type="button" className="secondary" onClick={() => update("mission", "Atender clientes, esclarecer dúvidas sobre produtos e serviços e orientar cada pessoa até a melhor solução.")}>Usar exemplo</button></details></section>
         <section className="bot-section"><h2>Contexto e conhecimento do chatbot</h2><p>Inclua o prompt e todas as informações que o assistente precisa conhecer.</p>{textField("context", "Contexto geral", 12)}{textField("fallback", "Como agir se não tiver a resposta?", 2)}
           <details className="bot-examples"><summary>Exemplos de textos (para copiar e alterar)</summary><p>Não tenho essa informação no momento. Posso ajudar com outro assunto ou encaminhar você para nossa equipe?</p><button className="secondary" type="button" onClick={() => update("fallback", "Não tenho essa informação no momento. Posso ajudar com outro assunto ou encaminhar você para nossa equipe?")}>Usar exemplo</button></details>
+        </section>
+        <section className="bot-section"><h2>Abertura da conversa</h2><p>Opcional: até duas mensagens separadas, enviadas literalmente ao receber apenas uma saudação no primeiro contato. Deixe ambas vazias para usar o prompt.</p>
+          {[0, 1].map(indice => <label key={indice}>Mensagem de abertura {indice + 1}<textarea rows={3} maxLength={2000} value={draft.openingMessages?.[indice] ?? ""} onChange={event => {
+            const mensagens = [...(draft.openingMessages ?? ["", ""])]; mensagens[indice] = event.target.value;
+            update("openingMessages", mensagens);
+          }} /></label>)}
         </section>
         <section className="bot-section"><h2>Ajustes gerais</h2><p>Configure suas preferências de atendimento.</p><div className="bot-settings-grid">
           <label>Atraso na resposta (em segundos)<input name="delay" type="number" min="0" max="3600" step="1" required value={draft.delay} onChange={e => update("delay", e.target.valueAsNumber)} /><small>Digite 0 para responder imediatamente.</small></label>

@@ -1,6 +1,6 @@
 import type { Turn } from "./providers";
 
-const perguntaNome = /(?:qual\s+(?:é|e)\s+(?:o\s+)?seu\s+nome|como\s+(?:posso|devo)\s+te\s+chamar)/iu;
+const perguntaNome = /(?:qual\s+(?:(?:é|e)\s+)?(?:o\s+)?seu\s+nome|como\s+(?:posso|devo)\s+(?:te|lhe)\s+chamar|como\s+(?:você\s+)?prefere\s+ser\s+chamad[oa])/iu;
 const marcadorNome = /\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu;
 const palavrasQueNaoSaoNome = new Set([
   "oi", "olá", "ola", "sim", "não", "nao", "obrigado", "obrigada", "quero", "gostaria",

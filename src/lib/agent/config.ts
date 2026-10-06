@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { settingsSchema } from "../settings/schema";
-import type { Chatbot } from "../chatbots/schema";
+import { chatbotSchema, type Chatbot } from "../chatbots/schema";
 import { montarInstrucoesDoAgente } from "../chatbots/prompt-servidor";
 
 export const agentBaseConfigSchema = settingsSchema.extend({
@@ -14,6 +14,7 @@ export const agentBaseConfigSchema = settingsSchema.extend({
 });
 export const agentConfigSchema = agentBaseConfigSchema.extend({
   AI_SYSTEM_PROMPT: z.string().trim().min(1).max(200000),
+  openingMessages: chatbotSchema.shape.openingMessages,
   atendimento: z.object({ transferHuman: z.boolean(), transferMedia: z.boolean(),
     destination: z.string(), transferNotice: z.string() }).optional(),
 });
@@ -23,6 +24,7 @@ export function configurarAgente(settings: unknown, chatbot: Chatbot | null) {
   const base = agentBaseConfigSchema.safeParse(settings);
   return agentConfigSchema.safeParse(base.success ? { ...base.data,
     AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(chatbot),
+    openingMessages: chatbot?.openingMessages,
     atendimento: chatbot ? { transferHuman: chatbot.transferHuman, transferMedia: chatbot.transferMedia,
       destination: chatbot.destination, transferNotice: chatbot.transferNotice } : undefined } : {});
 }

@@ -400,9 +400,9 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
       msg: "As instruções da Thaís precisam afirmar que a mentoria com Wellington é individual." });
   }
-  if (rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content))) {
+  if (rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
-      msg: "O processador deve tratar o nome e impedir que respostas de configuração antiga orientem a persona atual." });
+      msg: "O processador deve tratar o nome, filtrar revisões antigas e registrar cada balão da abertura antes de continuar." });
   }
   if (rel === "src/lib/agent/store.ts" && !/\bcontactName\b[\s\S]*\brememberName\b/.test(content)) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,

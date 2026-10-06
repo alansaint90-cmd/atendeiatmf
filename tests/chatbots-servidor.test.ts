@@ -64,6 +64,15 @@ test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à i
     assert.equal((await chatbotDaInstancia(banco, "chip-b"))?.context, "Variante B de atendimento");
     assert.equal((await chatbotDaInstancia(banco, "chip-sdr"))?.context, a.configuracao.context);
     assert.equal((await prepararAssistentes(banco, ["chip-sdr", "chip-b", "levaelava"], usuario)).itens.length, tres.itens.length);
+    const abertura = readFileSync("src/lib/db/migrations/0010_abertura_levaelava.sql", "utf8");
+    await cliente.exec(abertura);
+    const terceiroAtual = (await chatbotDaInstancia(banco, "levaelava"))!;
+    assert.equal(terceiroAtual.openingMessages?.length, 2);
+    assert.equal(terceiroAtual.context, "Atendimento exclusivo do terceiro número");
+    assert.equal((await chatbotDaInstancia(banco, "chip-b"))?.openingMessages, undefined);
+    await cliente.exec(abertura);
+    const trilhaAbertura = await cliente.query("SELECT id FROM atendeia_audit_logs WHERE action='abertura_corrigida_por_migracao' AND entity_id=$1", [c.id]);
+    assert.equal(trilhaAbertura.rows.length, 1);
     await assert.rejects(salvarChatbotServidor(banco, { id: a.id, versao: a.versao,
       configuracao: a.configuracao, instancia: "chip-b", usuario }), /instância/);
   } finally { await cliente.close(); }
