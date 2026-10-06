@@ -95,8 +95,11 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         if (result === "pausada" && await pausaManualAtiva(client, message.conversation)) result = "pausa_manual";
         const state = await store.read();
         if (state?.status === "enviada" && state.providerId) {
-          await dependencies.registrarEnvio(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
-          await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
+          // Estados antigos não registravam cada parte antes da confirmação.
+          if (!state.providerIds?.includes(state.providerId)) {
+            await dependencies.registrarEnvio(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
+            await followups.outgoing(config.data.EVOLUTION_INSTANCE_NAME, state.providerId);
+          }
           if (!state.transferencia && followupConfig.instance === config.data.EVOLUTION_INSTANCE_NAME && state.configHash === digest(JSON.stringify(config.data))) {
             await followups.schedule(message, followupConfig);
           }
