@@ -58,6 +58,8 @@
 
 ## Agente de respostas de texto
 
+- Uma proposta de transferência textual é revisada antes de alterar a conversa ou pausar a IA. A revisão recebe o mesmo prompt e histórico, considera variações de grafia de pessoas conhecidas e devolve resposta quando houver orientação aplicável. Encaminhamento exige trecho literal do prompt que o autorize; revisão inválida não envia aviso nem transfere. A revisão ocorre apenas quando o modelo propõe a ação e compartilha os 45 segundos da geração. Mídias com transferência habilitada seguem a ação direta existente.
+
 - Antes de usar fallback ou transferir, o agente segue a orientação específica do prompt e dos fluxos para a intenção do cliente. Pedidos previstos nas instruções não são classificados automaticamente como falta de conhecimento. A transferência validada se aplica quando o procedimento cadastrado indicar encaminhamento, o cliente insistir em falar diretamente com uma pessoa ou faltar orientação aplicável que permita resolver o pedido.
 
 - A abertura opcional do chatbot contém até dois textos literais em balões separados. Só se aplica a saudação simples sem histórico nem nome confirmado; perguntas diretas seguem o prompt. Campos vazios desativam a abertura fixa. A migração 0010 configura os dois textos solicitados somente no chatbot exclusivo de `levaelava`, sem alterar seu prompt ou os outros números. Cada envio revalida pausa/configuração, registra seu ID como saída da IA e mantém o checkpoint; entrega incerta não é repetida. O follow-up começa após a sequência completa. “Qual seu nome?” já conta como pergunta de nome e não recebe outra pergunta automática.

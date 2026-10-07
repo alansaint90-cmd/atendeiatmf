@@ -11,11 +11,40 @@ const responseSchema = z.object({ status: z.literal("completed"), output: z.arra
   content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional(),
 })) });
 
-export async function generateReply(config: AgentConfig, history: Turn[], text: string, request = fetch): Promise<RespostaGerada> {
+const revisaoTransferenciaSchema = z.strictObject({ acao: z.enum(["responder", "transferir"]),
+  resposta: z.string().max(6000), trecho_prompt: z.string().max(6000) });
+
+async function revisarTransferencia(config: AgentConfig, history: Turn[], text: string, request: typeof fetch, signal: AbortSignal): Promise<RespostaGerada> {
+  const instrucoes = `${config.AI_SYSTEM_PROMPT}\n\nREVISÃO OBRIGATÓRIA ANTES DE TRANSFERIR:
+Uma proposta de encaminhamento ainda não foi executada. Reavalie o pedido com o prompt e os fluxos acima.
+Perguntas sobre uma pessoa descrita no prompt e o primeiro pedido de falar com ela não significam falta de conhecimento.
+Reconheça variações de grafia do nome (por exemplo, Welington e Wellington) usando o contexto, sem inventar informações.
+Se houver informação ou procedimento aplicável, responda ou faça a pergunta prevista antes de encaminhar.
+Transfira somente quando o procedimento aplicável determinar isso agora, houver insistência em atendimento humano ou faltar orientação para resolver o pedido.
+Não use o aviso genérico de transferência como resposta a uma pergunta que o prompt resolve.
+Retorne somente JSON: {"acao":"responder" ou "transferir","resposta":"texto para o cliente quando responder","trecho_prompt":"trecho literal das instruções que autoriza o encaminhamento quando transferir"}.
+Para responder, deixe trecho_prompt vazio. Para transferir, deixe resposta vazia. Não invente nem parafraseie o trecho.`;
+  const resultado = await generateReply({ ...config, AI_SYSTEM_PROMPT: instrucoes,
+    atendimento: config.atendimento ? { ...config.atendimento, transferHuman: false } : undefined }, history, text, request, signal);
+  const revisao = revisaoTransferenciaSchema.safeParse(typeof resultado === "string" ? (() => {
+    try { return JSON.parse(resultado); } catch { return null; }
+  })() : null);
+  if (!revisao.success) throw new ProviderError("openai_revisao_transferencia_invalida");
+  if (revisao.data.acao === "responder") {
+    if (!revisao.data.resposta.trim()) throw new ProviderError("openai_revisao_transferencia_invalida");
+    return revisao.data.resposta.trim();
+  }
+  const trecho = revisao.data.trecho_prompt.trim();
+  if (trecho.length < 20 || !config.AI_SYSTEM_PROMPT.includes(trecho)) throw new ProviderError("openai_transferencia_sem_fundamento");
+  return { transferir: true };
+}
+
+export async function generateReply(config: AgentConfig, history: Turn[], text: string, request = fetch,
+  signal = AbortSignal.timeout(45000)): Promise<RespostaGerada> {
   let response: Response;
   try {
     response = await request("https://api.openai.com/v1/responses", {
-      method: "POST", redirect: "error", signal: AbortSignal.timeout(45000),
+      method: "POST", redirect: "error", signal,
       headers: { Authorization: `Bearer ${config.OPENAI_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: config.OPENAI_MODEL, store: false, max_output_tokens: 1000,
         ...(config.atendimento?.transferHuman ? { parallel_tool_calls: false, tools: [{ type: "function",
@@ -34,7 +63,7 @@ export async function generateReply(config: AgentConfig, history: Turn[], text: 
     try { argumentos = JSON.parse(chamadas[0].arguments ?? "null"); } catch { argumentos = null; }
     if (!config.atendimento?.transferHuman || chamadas.length !== 1 || chamadas[0].name !== "transferir_para_humano"
       || !z.strictObject({}).safeParse(argumentos).success) throw new ProviderError("openai_acao_invalida");
-    return { transferir: true };
+    return revisarTransferencia(config, history, text, request, signal);
   }
   const reply = parsed.data.output.filter(item => item.type === "message")
     .flatMap(item => item.content ?? []).filter(item => item.type === "output_text").map(item => item.text ?? "").join("\n").trim();

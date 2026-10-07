@@ -39,6 +39,27 @@ function portas() {
   return { port, historico, saidas, destinos, estado: () => estado, nova: () => { estado = null; } };
 }
 
+test("revisa a transferência indevida sobre Wellington e responde com o prompt salvo", async () => {
+  for (const pergunta of ["Quem é o Welington?", "Preciso falar com Wellington", "Quero saber sobre Wellington Junior"]) {
+    const configuracao = configurarAgente(base, { ...bot, context: "Wellington Junior é o profissional responsável pelo atendimento individual. Se o cliente pedir para falar com ele, pergunte o motivo do contato antes de encaminhar." }).data!;
+    const f = portas();
+    let chamadas = 0;
+    f.port.generate = async (atual, historico, texto) => generateReply(atual, historico, texto, async (_url, init) => {
+      const corpo = JSON.parse(String(init?.body));
+      chamadas++;
+      if (chamadas === 1) return Response.json({ status: "completed", output: [{ type: "function_call", name: "transferir_para_humano", arguments: "{}" }] });
+      assert.equal(corpo.tools, undefined);
+      assert.match(corpo.instructions, /Wellington Junior é o profissional responsável/);
+      assert.match(corpo.instructions, /variações de grafia/);
+      return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ acao: "responder", resposta: "Aaron, qual é o motivo do contato com Wellington?", trecho_prompt: "" }) }] }] });
+    });
+    assert.equal(await processMessage({ ...mensagem, text: pergunta }, configuracao, f.port), "enviada");
+    assert.equal(chamadas, 2);
+    assert.deepEqual(f.destinos, []);
+    assert.deepEqual(f.saidas, ["Aaron, qual é o motivo do contato com Wellington?"]);
+  }
+});
+
 test("persona e tom atuais prevalecem; roteiro antigo fica fora do contexto sem apagar histórico", async () => {
   const f = portas();
   f.port.generate = async (atual, historico) => {
@@ -98,6 +119,7 @@ test("imagens transferem somente quando habilitadas e dispensam geração", asyn
 test("provedor oferece ação apenas se habilitada e não envia metadados internos no histórico", async () => {
   const request: typeof fetch = async (_url, init) => {
     const corpo = JSON.parse(String(init?.body));
+    if (!corpo.tools) return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ acao: "transferir", resposta: "", trecho_prompt: "quando o cliente insistir em falar diretamente com uma pessoa" }) }] }] });
     assert.equal(corpo.tools[0].name, "transferir_para_humano");
     assert.equal(corpo.tools[0].strict, true);
     assert.equal(corpo.input[0].revisao, undefined);
@@ -109,4 +131,18 @@ test("provedor oferece ação apenas se habilitada e não envia metadados intern
     assert.equal(JSON.parse(String(init?.body)).tools, undefined);
     return Response.json({ status: "completed", output: [{ type: "function_call", name: "transferir_para_humano", arguments: "{}" }] });
   }), /openai_acao_invalida/);
+});
+
+test("revisão sem fundamento no prompt não autoriza encaminhar e usa o mesmo prazo da geração", async () => {
+  let sinal: AbortSignal | null | undefined;
+  let chamadas = 0;
+  await assert.rejects(generateReply(config, [], "Quero falar com Wellington", async (_url, init) => {
+    chamadas++;
+    if (chamadas === 1) {
+      sinal = init?.signal;
+      return Response.json({ status: "completed", output: [{ type: "function_call", name: "transferir_para_humano", arguments: "{}" }] });
+    }
+    assert.equal(init?.signal, sinal);
+    return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ acao: "transferir", resposta: "", trecho_prompt: "Orientação inventada para encaminhar qualquer pessoa." }) }] }] });
+  }), /openai_transferencia_sem_fundamento/);
 });

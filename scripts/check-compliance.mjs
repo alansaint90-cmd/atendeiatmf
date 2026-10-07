@@ -396,7 +396,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
       msg: "O contexto geral legado não pode compor as instruções do chatbot." });
   }
-  if (rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content))) {
+  if ((rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content))) || (rel === "src/lib/agent/providers.ts" && (!/return revisarTransferencia\(config, history, text, request, signal\)/.test(content) || !/config.AI_SYSTEM_PROMPT.includes\(trecho\)/.test(content)))) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
       msg: "As instruções devem afirmar a mentoria individual e priorizar o prompt antes de fallback ou transferência." });
   }

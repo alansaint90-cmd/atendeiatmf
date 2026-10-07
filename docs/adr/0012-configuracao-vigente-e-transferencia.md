@@ -29,4 +29,15 @@ do prompt/fluxo tem prioridade; o fallback vale somente sem orientação aplicá
 Insistência em falar diretamente com humano continua permitindo encaminhamento.
 O aviso salvo permanece literal após transferência efetiva.
 
+Complemento: somente a instrução de prioridade não impedia chamadas indevidas da
+função. Antes de executar uma proposta textual, o adaptador realiza uma revisão
+sem ferramentas com o mesmo prompt, pedido e histórico. Retorna resposta ou decisão
+de encaminhar acompanhada de trecho literal validado das instruções. JSON inválido
+ou fundamento inexistente bloqueia a ação, sem aviso falso nem pausa humana.
+A revisão considera nomes com variações de grafia e procedimentos anteriores ao
+encaminhamento. Não adiciona uma resposta comercial fixa nem altera o prompt salvo.
+Somente propostas de transferência têm essa chamada adicional; as duas chamadas
+compartilham o mesmo AbortSignal de 45 segundos para preservar a lease do worker.
+Transferência direta de mídia, destino, aviso literal e pausa de 30 minutos permanecem.
+
 Referência: [Function calling na Responses API](https://developers.openai.com/api/docs/guides/function-calling).

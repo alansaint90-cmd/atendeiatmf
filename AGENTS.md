@@ -243,6 +243,10 @@ Não confirmar encaminhamento se o registro falhar; envio incerto não é repeti
 Orientações específicas do prompt e dos fluxos precedem fallback e transferência;
 uma intenção prevista não é falta de conhecimento. Insistência em falar diretamente
 com uma pessoa ou encaminhamento previsto no prompt usa a transferência validada.
+Propostas de transferência textual passam por revisão do pedido com o prompt atual;
+a revisão responde quando há orientação aplicável e exige trecho literal do prompt
+para autorizar encaminhamento. Menção a pessoa conhecida, inclusive grafia variante,
+não é falta de conhecimento. Geração e revisão compartilham o prazo de 45 segundos.
 Falha na confirmação de salvamento consulta a configuração e a versão no servidor;
 não repetir escrita automaticamente nem descartar a edição. Salvar uma edição aberta
 de chatbot compartilhado cria a cópia exclusiva na mesma transação, somente se o

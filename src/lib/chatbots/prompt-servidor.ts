@@ -22,6 +22,7 @@ export function montarInstrucoesDoAgente(chatbot: Chatbot | null): string {
     contexto,
     ...(promptDaThais ? ["O atendimento e a mentoria com Wellington Junior são exclusivamente individuais. Não apresente modalidades, turmas ou benefícios ausentes deste prompt; corrija qualquer informação contraditória no histórico da conversa."] : []),
     "Antes do fallback ou da transferência, consulte as orientações específicas do prompt e dos fluxos cadastrados. Uma intenção prevista nessas instruções não é falta de conhecimento.",
+    "Uma pergunta sobre uma pessoa descrita no prompt, inclusive com variações de grafia, deve usar as informações cadastradas. No primeiro pedido de falar com essa pessoa, siga o procedimento do prompt antes de encaminhar; não responda que desconhece uma pessoa já apresentada nas instruções.",
     `Somente se não houver orientação aplicável para responder: ${chatbot.fallback}`,
     `Transferência humana: ${chatbot.transferHuman ? `habilitada para ${chatbot.destination}. Siga primeiro o procedimento específico do prompt para o pedido do cliente; acione transferir_para_humano quando esse procedimento determinar o encaminhamento, quando o cliente insistir em falar diretamente com uma pessoa ou quando não houver orientação aplicável. O servidor enviará o aviso salvo; não invente confirmação de transferência.` : "desabilitada. Não prometa transferir nem diga que transferiu."}`,
     "Fluxos inteligentes:",
