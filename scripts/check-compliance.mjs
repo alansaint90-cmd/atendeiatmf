@@ -408,7 +408,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O nome confirmado deve sobreviver ao histórico curto da conversa." });
   }
-  if ((rel === "src/lib/agent/worker.ts" && (!/\bmensagemBloqueadaPorPausa\b/.test(content) || !/\binstanciaPausada\b/.test(content) || !/\bpausarTransferencia\b/.test(content))) || (rel === "src/lib/agent/pausa.ts" && (!/duracaoPausaManual = 30 \* 60 \* 1000/.test(content) || !/ehGatilhoRetomada\([^\n]+, frase\)/.test(content))) || (rel === "src/lib/evolution/queue.ts" && !/chatbotDaInstancia\(db\(\), event.instance\)[\s\S]*chatbot\?\.returnTrigger/.test(content)) || (rel === "src/lib/agent/processor.ts" && !/avisoParaWellington\(config, transcript \?\? message.text\)/.test(content))) {
+  if ((rel === "src/lib/agent/worker.ts" && (!/\bmensagemBloqueadaPorPausa\b/.test(content) || !/\binstanciaPausada\b/.test(content) || !/\bpausarTransferencia\b/.test(content))) || (rel === "src/lib/agent/pausa.ts" && (!/duracaoPausaManual = 30 \* 60 \* 1000/.test(content) || !/ehGatilhoRetomada\([^\n]+, frase\)/.test(content))) || (rel === "src/lib/evolution/queue.ts" && !/chatbotDaInstancia\(db\(\), event.instance\)[\s\S]*chatbot\?\.returnTrigger/.test(content)) || (rel === "src/lib/agent/transferencia.ts" && (/config\.AI_SYSTEM_PROMPT|config\.atendimento\?\.transferHuman/.test(content) || !/Vou transferir seu atendimento para o Wellington/.test(content))) || (rel === "src/lib/agent/processor.ts" && !/avisoParaWellington\(config, transcript \?\? message.text\)/.test(content))) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
   }

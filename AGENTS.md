@@ -247,9 +247,9 @@ Orientações específicas do prompt e dos fluxos precedem fallback e transferê
 uma intenção prevista não é falta de conhecimento. Insistência em falar diretamente
 com uma pessoa ou encaminhamento previsto no prompt usa a transferência validada.
 Propostas de transferência textual passam por revisão do pedido com o prompt atual;
-Pedido direto de falar com Wellington, quando apresentado no prompt e transferência
-habilitada, aciona encaminhamento validado e aviso específico de espera; não depende
-do modelo. Perguntas sobre quem ele é continuam seguindo o prompt. O aviso é enviado
+Pedido direto de falar com Wellington aciona encaminhamento validado ao setor
+cadastrado e aviso específico de espera, independentemente da menção no prompt ou
+da opção de transferência genérica. Perguntas sobre quem ele é seguem o prompt. O aviso é enviado
 mesmo após a própria pausa da transferência; entrega incerta não é repetida.
 a revisão responde quando há orientação aplicável e exige trecho literal do prompt
 para autorizar encaminhamento. Menção a pessoa conhecida, inclusive grafia variante,

@@ -63,21 +63,23 @@ test("revisa a transferência indevida sobre Wellington e responde com o prompt 
 
 test("pedido direto de Wellington registra a transferência e envia aviso mesmo após a própria pausa", async () => {
   const atual = configurarAgente(base, { ...bot, context: "Wellington Junior é responsável pelo atendimento individual." }).data!;
-  assert.equal(avisoParaWellington(config, "Quero falar com Wellington"), null);
+  const aviso = "Vou transferir seu atendimento para o Wellington. Aguarde alguns instantes, por favor.";
+  assert.equal(avisoParaWellington(config, "Quero falar com Wellington"), aviso);
   assert.equal(avisoParaWellington(atual, "Não quero falar com Wellington"), null);
   assert.equal(avisoParaWellington(atual, "Quem é Wellington?"), null);
-  assert.equal(avisoParaWellington({ ...atual, atendimento: { ...atual.atendimento!, transferHuman: false } }, "Quero falar com Wellington"), null);
-  for (const texto of ["Quero falar com Welington", "Preciso falar com o Wellington"]) {
+  assert.equal(avisoParaWellington({ ...atual, atendimento: { ...atual.atendimento!, transferHuman: false } }, "Quero falar com Wellington"), aviso);
+  const semReferencia = configurarAgente(base, { ...bot, transferHuman: false, context: "Atenda como Derek.", transferNotice: "Não tenho essa resposta, mas estarei transferindo." }).data!;
+  for (const texto of ["Quero falar com Welington", "Preciso falar com o Wellington", "quero falar com WELLINGTON!"]) {
     const f = portas();
     let pausado = false;
     f.port.enabled = async () => !pausado;
     f.port.generate = async () => { throw new Error("Pedido direto não depende do modelo"); };
     f.port.transferir = async destino => { f.destinos.push(destino); pausado = true; };
-    assert.equal(await processMessage({ ...mensagem, text: texto }, atual, f.port), "enviada");
+    assert.equal(await processMessage({ ...mensagem, text: texto }, semReferencia, f.port), "enviada");
     assert.deepEqual(f.destinos, ["Suporte"]);
     assert.deepEqual(f.saidas, ["Vou transferir seu atendimento para o Wellington. Aguarde alguns instantes, por favor."]);
     assert.equal(f.estado()?.transferencia, true);
-    await processMessage({ ...mensagem, text: texto }, atual, f.port);
+    await processMessage({ ...mensagem, text: texto }, semReferencia, f.port);
     assert.equal(f.saidas.length, 1);
   }
 });
@@ -104,6 +106,17 @@ test("persona e tom atuais prevalecem; roteiro antigo fica fora do contexto sem 
     assert.ok(historico.every(turno => turno.role === "user")); return "Eu sou Ana.";
   };
   await processMessage(mensagem, novaConfig, f.port);
+});
+
+test("pedido direto de Wellington não envia aviso se o registro falhar nem repete entrega incerta", async () => {
+  const f = portas();
+  f.port.generate = async () => { throw new Error("Não deve consultar o modelo"); };
+  f.port.transferir = async () => { throw new Error("Falha simulada no registro"); };
+  const pedido = { ...mensagem, text: "Quero falar com Welington" };
+  await assert.rejects(processMessage(pedido, config, f.port));
+  assert.deepEqual(f.saidas, []);
+  assert.equal(await processMessage(pedido, config, f.port), "incerta");
+  assert.deepEqual(f.saidas, []);
 });
 
 test("transferência usa aviso literal e destino cadastrado, sem nome ou saudação acrescentados", async () => {

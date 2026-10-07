@@ -76,7 +76,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const gerada = partes ? partes.join("\n\n") : avisoWellington || (message.midia && config.atendimento?.transferMedia) ? { transferir: true }
         : await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, contextoAtual, transcript ?? message.text);
       if (typeof gerada !== "string") {
-        if (!(config.atendimento?.transferHuman || (message.midia && config.atendimento?.transferMedia)) || !port.transferir) throw new ProviderError("transferencia_indisponivel");
+        if (!config.atendimento || !(avisoWellington || config.atendimento.transferHuman || (message.midia && config.atendimento.transferMedia)) || !port.transferir) throw new ProviderError("transferencia_indisponivel");
         transferencia = true;
         reply = avisoWellington ?? (config.atendimento.transferNotice.replace(/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu, nome?.split(" ")[0] ?? "").trim()
           || "Vou encaminhar seu atendimento para nossa equipe.");

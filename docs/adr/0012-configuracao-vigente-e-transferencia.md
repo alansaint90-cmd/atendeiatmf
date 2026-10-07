@@ -42,7 +42,11 @@ Transferência direta de mídia, destino, aviso literal e pausa de 30 minutos pe
 
 Pedido posterior do usuário: solicitação direta de falar com Wellington deve
 encaminhar e confirmar a espera, sem pergunta intermediária. Regra local aplica-se
-somente quando Wellington aparece nas instruções e transferência está habilitada.
+para qualquer chatbot configurado, sem exigir menção ao nome nas instruções nem
+ativação da opção genérica de transferência humana. Essa exceção para o pedido
+direto de Wellington foi determinada pelo usuário; usa o setor cadastrado,
+registra o encaminhamento e só então envia o aviso específico. A opção do painel
+continua governando os demais pedidos de transferência.
 Dispensa geração para esse pedido e usa aviso específico; perguntas informativas
 mantêm a revisão. Encaminhamento validado precede o aviso, enviado na mesma execução
 mesmo com a pausa criada pela própria ação. Mantém prevenção de entregas duplicadas.
