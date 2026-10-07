@@ -8,7 +8,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
 test("confirma e pausa somente a instância selecionada; mostra o gatilho de liberação", async () => {
   actions.consultar.mockResolvedValue({ ok: true, dados: { pausada: false, versao: 7 } });
   actions.pausar.mockResolvedValue({ ok: true, dados: { pausada: true, versao: 8 } });
-  render(<PausaIa instancia="levaelava" />);
+  render(<PausaIa instancia="levaelava" gatilho="Pode contar comigo." />);
   await screen.findByText("IA disponível em levaelava.");
   vi.useFakeTimers();
   fireEvent.click(screen.getByRole("button", { name: "Pausar IA" }));
@@ -20,7 +20,7 @@ test("confirma e pausa somente a instância selecionada; mostra o gatilho de lib
   await act(async () => {});
   expect(actions.pausar).toHaveBeenCalledExactlyOnceWith({ instancia: "levaelava", versao: 7 });
   expect(screen.getByText("IA pausada em levaelava.")).toBeInTheDocument();
-  expect(screen.getByText(/Se precisar de algo mais/)).toBeInTheDocument();
+  expect(screen.getByText(/Pode contar comigo/)).toBeInTheDocument();
 });
 
 test("falha ao consultar estado não permite pausar às cegas", async () => {

@@ -10,10 +10,11 @@ test("salva e remove a abertura sem alterar o prompt", () => {
   });
   const salvar = vi.fn();
   render(<ChatbotEditor initial={{ ...chatbotExample, context: "Prompt preservado" }} creating={false} onSave={salvar} onClose={() => {}} error="" />);
+  fireEvent.change(screen.getByLabelText("Frase do gatilho de retorno"), { target: { value: "Pode contar comigo." } });
   fireEvent.change(screen.getByLabelText("Mensagem de abertura 1"), { target: { value: "Bem-vindo." } });
   fireEvent.change(screen.getByLabelText("Mensagem de abertura 2"), { target: { value: "Qual seu nome?" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-  expect(salvar).toHaveBeenLastCalledWith(expect.objectContaining({ context: "Prompt preservado", openingMessages: ["Bem-vindo.", "Qual seu nome?"] }));
+  expect(salvar).toHaveBeenLastCalledWith(expect.objectContaining({ returnTrigger: "Pode contar comigo.", context: "Prompt preservado", openingMessages: ["Bem-vindo.", "Qual seu nome?"] }));
   fireEvent.change(screen.getByLabelText("Mensagem de abertura 1"), { target: { value: "" } });
   fireEvent.change(screen.getByLabelText("Mensagem de abertura 2"), { target: { value: "" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar" }));

@@ -58,8 +58,9 @@ test("canal antigo fora das configurações não bloqueia salvar os chatbots dos
       const item = antes.itens.find(bot => bot.id === canal.chatbotId)!;
       const texto = `Prompt independente de ${canal.nome}`;
       await salvarChatbotServidor(banco, { id: item.id, versao: item.versao,
-        configuracao: { ...item.configuracao, context: texto }, instancia: canal.nome, usuario });
+        configuracao: { ...item.configuracao, context: texto, returnTrigger: `Retorno ${canal.nome}` }, instancia: canal.nome, usuario });
       assert.equal((await chatbotDaInstancia(banco, canal.nome))?.context, texto);
+      assert.equal((await chatbotDaInstancia(banco, canal.nome))?.returnTrigger, `Retorno ${canal.nome}`);
     }
     assert.equal((await chatbotDaInstancia(banco, "instancia-antiga"))?.context, "Prompt do canal antigo");
     const depois = await prepararAssistentes(banco, nomes, usuario);

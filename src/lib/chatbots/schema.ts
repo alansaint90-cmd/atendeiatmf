@@ -12,6 +12,7 @@ export const chatbotSchema = z.object({
   transferMedia: z.boolean(), transferHuman: z.boolean(),
   destination: z.enum(["Atendimento humano", "Comercial", "Suporte", "Financeiro"]),
   transferNotice: z.string().max(10000), closingPhrase: z.string().max(500),
+  returnTrigger: z.string().trim().min(1, "Preencha a frase do gatilho de retorno.").max(500).refine(texto => /[\p{L}\p{N}]/u.test(texto), "O gatilho precisa conter letras ou números.").optional(),
   flows: z.array(z.object({ name, description: z.string().trim().min(1).max(10000) })).max(50),
   temperature: z.number().min(0).max(1), contextRevision: z.string().optional(),
 });

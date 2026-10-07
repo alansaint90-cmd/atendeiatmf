@@ -192,7 +192,8 @@ Abertura opcional por chatbot usa até dois balões literais do painel, somente 
 saudação inicial sem histórico nem nome confirmado. Cada balão registra seu ID e
 revalida a pausa; entrega incerta nunca repete partes. Não duplicar a pergunta de nome.
 Mensagem individual `fromMe=true` enviada por humano pausa a resposta da IA sem
-prazo, até o atendente enviar manualmente “Se precisar de algo mais, é só falar.”
+prazo, até o atendente enviar manualmente a frase do gatilho de retorno salva no
+chatbot da instância. Sem configuração, usa “Se precisar de algo mais, é só falar.”
 Ecos da própria IA e mensagens do cliente não pausam/liberam por esse gatilho.
 Não responder mensagens acumuladas durante a pausa após a retomada. O botão em
 Chatbot IA pausa somente a instância selecionada; o mesmo gatilho manual a libera.

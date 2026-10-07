@@ -5,7 +5,11 @@ automática por transferência da ADR-0012 continua de 30 minutos enquanto não
 houver intervenção humana; essa intervenção passa a exigir liberação explícita.
 
 O usuário determinou pausa sem expiração após mensagem manual fromMe=true e
-retomada somente pela frase completa “Se precisar de algo mais, é só falar.”
+retomada somente pela frase completa salva no chatbot da instância. O campo
+`returnTrigger` em Ajustes gerais permite configurar cada número independentemente;
+chatbots legados sem o campo usam “Se precisar de algo mais, é só falar.”.
+O webhook consulta a configuração atual a cada evento, sem cache da frase.
+O campo legado `closingPhrase`, antes sem efeito, não é importado como gatilho.
 O webhook autentica a origem e aplica controle e enfileiramento no mesmo Lua.
 Marcadores dos próprios envios da IA impedem que ecos pausem ou liberem. Texto do
 cliente nunca libera. Pontuação, caixa e acentos são normalizados; frases maiores

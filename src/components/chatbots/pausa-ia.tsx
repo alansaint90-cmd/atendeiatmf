@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import { consultarPausaIa, pausarIaInstancia } from "@/lib/actions/pausa-ia";
 import { ModalConfirmacaoBlock } from "@/components/modal-confirmacao-block";
+import { gatilhoRetomada } from "@/lib/chatbots/gatilho-retorno";
 
-export function PausaIa({ instancia }: { instancia: string }) {
+export function PausaIa({ instancia, gatilho = gatilhoRetomada }: { instancia: string; gatilho?: string }) {
   const [estado, definirEstado] = useState<{ pausada: boolean; versao: number } | null>(null);
   const [erro, definirErro] = useState("");
   const [ocupado, definirOcupado] = useState(false);
@@ -37,7 +38,7 @@ export function PausaIa({ instancia }: { instancia: string }) {
     <button type="button" className="secondary" disabled={!estado || estado.pausada || ocupado} onClick={() => definirConfirmar(true)}>Pausar IA</button>{" "}
     <button type="button" className="secondary" disabled={ocupado} onClick={() => void atualizar()}>Atualizar estado</button>
     <p aria-live="polite">{estado ? estado.pausada ? `IA pausada em ${instancia}.` : `IA disponível em ${instancia}.` : "Consultando estado da IA…"}</p>
-    {estado?.pausada && <p>Para liberar, envie manualmente no WhatsApp: “Se precisar de algo mais, é só falar.”</p>}
+    {estado?.pausada && <p>Para liberar, envie manualmente no WhatsApp: “{gatilho}”</p>}
     {erro && <p role="alert">{erro}</p>}
     <ModalConfirmacaoBlock aberto={confirmar} titulo={`Pausar IA em ${instancia}`} mensagem="A IA deixará de responder neste número. Os outros números continuam atendendo." onConfirmar={() => void pausar()} onCancelar={() => definirConfirmar(false)} carregando={ocupado} textoConfirmar="Pausar IA" />
   </div>;

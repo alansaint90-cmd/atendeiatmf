@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { chatbotSchema, personalities, type Chatbot } from "@/lib/chatbots/schema";
+import { gatilhoRetomada } from "@/lib/chatbots/gatilho-retorno";
 
 interface Props { initial: Chatbot; creating: boolean; onSave: (bot: Chatbot) => void; onClose: () => void; error: string }
 export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Props) {
@@ -45,10 +46,11 @@ export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Pro
           <label>Atraso na resposta (em segundos)<input name="delay" type="number" min="0" max="3600" step="1" required value={draft.delay} onChange={e => update("delay", e.target.valueAsNumber)} /><small>Digite 0 para responder imediatamente.</small></label>
           <label className="bot-switch"><input type="checkbox" checked={draft.transferMedia} onChange={e => update("transferMedia", e.target.checked)} />Transferir a conversa ao receber imagens ou documentos</label>
         </div><label className="bot-switch"><input type="checkbox" checked={draft.transferHuman} onChange={e => update("transferHuman", e.target.checked)} />Transferir a conversa quando o contato solicitar atendimento humano</label>
+          <label>Frase do gatilho de retorno<input name="returnTrigger" required maxLength={500} value={draft.returnTrigger ?? gatilhoRetomada} onChange={e => update("returnTrigger", e.target.value)} /></label>
+          <small>Após salvar, envie essa frase completa manualmente no WhatsApp para liberar a IA neste número ou na conversa pausada. Mensagens do cliente e da própria IA não liberam.</small>
           <fieldset className="bot-transfer-fields" disabled={!draft.transferMedia && !draft.transferHuman}>
             <label>Transferir para?<select value={draft.destination} onChange={e => update("destination", e.target.value as Chatbot["destination"])}>{["Atendimento humano", "Comercial", "Suporte", "Financeiro"].map(value => <option key={value}>{value}</option>)}</select></label>
             {textField("transferNotice", "Aviso de transferência para atendimento humano", 2)}<small>Escreva literalmente o que o chatbot irá dizer no momento da transferência.</small>
-            {textField("closingPhrase", "Frase secreta para encerrar atendimento humano")}<small>Quando a integração estiver ativa, essa frase identificará o encerramento do atendimento humano. Use exatamente o texto cadastrado.</small>
           </fieldset>
         </section>
         <section className="bot-section"><h2>Fluxos inteligentes</h2><p>Descreva quando cada fluxo deve ser acionado durante a conversa.</p>{draft.flows.map((flow, index) => <div className="bot-flow-row" key={index}>

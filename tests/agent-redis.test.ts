@@ -40,7 +40,12 @@ test("botão pausa só a instância; gatilho de cliente ou eco não libera; manu
     await client.set(`atendeia:{evolution}:outgoing:${digest(`${instancia}:${eco}`)}`, "1", "EX", 60);
     await enqueueEvolutionEventWithClient(client, evento(eco, true));
     assert.equal(await instanciaPausada(client, instancia), true);
-    await enqueueEvolutionEventWithClient(client, evento("humano", true));
+    const frase = "Pode contar comigo.";
+    await enqueueEvolutionEventWithClient(client, evento("gatilho-antigo", true), frase);
+    assert.equal(await instanciaPausada(client, instancia), true);
+    const retorno = evento("humano", true);
+    retorno.data = { ...(retorno.data as Record<string, unknown>), message: { conversation: frase } };
+    await enqueueEvolutionEventWithClient(client, retorno, frase);
     assert.equal(await instanciaPausada(client, instancia), false);
     assert.equal(await instanciaPausada(client, instancia, instante / 1000), true);
     assert.equal(await pausaManualAtiva(client, conversa), false);

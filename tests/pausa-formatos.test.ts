@@ -4,6 +4,23 @@ import type Redis from "ioredis";
 import { pausasManuaisParaEvento, pausaManualAtiva, pausaManualKey } from "../src/lib/agent/pausa";
 import { digest } from "../src/lib/agent/message";
 import type { EvolutionEvent } from "../src/lib/evolution/schema";
+import { ehGatilhoRetomada } from "../src/lib/chatbots/gatilho-retorno";
+import { chatbotSchema } from "../src/lib/chatbots/schema";
+import { chatbotExample } from "../src/lib/chatbots/defaults";
+
+test("gatilho salvo substitui a frase padrão e exige texto completo manual", async () => {
+  const client = { get: async () => null } as unknown as Redis;
+  const frase = "Pode contar comigo.";
+  const evento = (texto: string, fromMe = true): EvolutionEvent => ({ event: "messages.upsert", instance: "chip-a", data: {
+    key: { id: "manual", fromMe, remoteJid: "5511999999999@s.whatsapp.net" }, messageTimestamp: Math.floor(Date.now() / 1000),
+    message: { extendedTextMessage: { text: texto } } } });
+  assert.equal((await pausasManuaisParaEvento(client, evento("PODE CONTAR COMIGO!"), frase))[0].pausada, false);
+  assert.equal((await pausasManuaisParaEvento(client, evento("Se precisar de algo mais, é só falar."), frase))[0].pausada, true);
+  assert.deepEqual(await pausasManuaisParaEvento(client, evento(frase, false), frase), []);
+  assert.equal(ehGatilhoRetomada(`Obrigado. ${frase}`, frase), false);
+  assert.equal(ehGatilhoRetomada(frase, "Outra frase."), false);
+  for (const returnTrigger of ["", "   ", ".", "x".repeat(501)]) assert.equal(chatbotSchema.safeParse({ ...chatbotExample, returnTrigger }).success, false);
+});
 
 test("LID explícito e lotes preservam a pausa sem presumir telefone nem afetar outro chip", async () => {
   const dados = new Map<string, string>();

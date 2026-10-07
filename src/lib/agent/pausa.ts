@@ -5,6 +5,8 @@ import { z } from "zod";
 import { digest } from "./message";
 import { agentKeys, owned, assertResult } from "./redis";
 import { controlePausa, mensagemAnteriorARetomada } from "./controle-pausa";
+import { ehGatilhoRetomada, gatilhoRetomada } from "../chatbots/gatilho-retorno";
+export { ehGatilhoRetomada, gatilhoRetomada } from "../chatbots/gatilho-retorno";
 
 export const duracaoPausaManual = 30 * 60 * 1000;
 export async function pausarTransferencia(client: Redis, token: string, conversa: string, agora = Date.now()) {
@@ -26,14 +28,9 @@ const eventoManualSchema = z.object({ key: z.object({ id: z.string().min(1).max(
   messageTimestamp: z.coerce.number().positive(), message: z.object({ conversation: z.string().optional(),
     extendedTextMessage: z.object({ text: z.string().optional() }).optional() }).optional() });
 
-export const gatilhoRetomada = "Se precisar de algo mais, é só falar.";
-export function ehGatilhoRetomada(texto: string) {
-  const normalizar = (valor: string) => valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.,!?:;]/g, "").replace(/\s+/g, " ").trim();
-  return normalizar(texto) === normalizar(gatilhoRetomada);
-}
 export interface ControleManual { conversation: string; instante: number; pausada: boolean; eventoId: string; outgoingKey: string }
 
-export async function pausasManuaisParaEvento(client: Redis, event: EvolutionEvent) {
+export async function pausasManuaisParaEvento(client: Redis, event: EvolutionEvent, frase = gatilhoRetomada) {
   if (event.event !== "messages.upsert") return [];
   const pausas: ControleManual[] = [];
   for (const item of Array.isArray(event.data) ? event.data : [event.data]) {
@@ -54,18 +51,18 @@ export async function pausasManuaisParaEvento(client: Redis, event: EvolutionEve
     }
     for (const conversation of new Set(conversas)) pausas.push({ conversation,
       instante: messageTimestamp * 1000, eventoId: key.id,
-      pausada: !ehGatilhoRetomada(message?.conversation ?? message?.extendedTextMessage?.text ?? ""),
+      pausada: !ehGatilhoRetomada(message?.conversation ?? message?.extendedTextMessage?.text ?? "", frase),
       outgoingKey: `atendeia:{evolution}:outgoing:${digest(`${event.instance}:${key.id}`)}` });
   }
   return pausas;
 }
 
-export function pausaManualParaEvento(event: EvolutionEvent) {
+export function pausaManualParaEvento(event: EvolutionEvent, frase = gatilhoRetomada) {
   const atual = activity(event, event.instance);
   if (!atual?.fromMe) return null;
   const mensagem = eventoManualSchema.safeParse(event.data);
   return { conversation: atual.conversation, instante: atual.timestamp * 1000,
-    pausada: !ehGatilhoRetomada(mensagem.success ? mensagem.data.message?.conversation ?? mensagem.data.message?.extendedTextMessage?.text ?? "" : ""),
+    pausada: !ehGatilhoRetomada(mensagem.success ? mensagem.data.message?.conversation ?? mensagem.data.message?.extendedTextMessage?.text ?? "" : "", frase),
     outgoingKey: `atendeia:{evolution}:outgoing:${atual.identity}` };
 }
 

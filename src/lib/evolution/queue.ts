@@ -3,6 +3,9 @@ import Redis from "ioredis";
 import type { EvolutionEvent } from "./schema";
 import { pausaManualKey, pausasManuaisParaEvento } from "../agent/pausa";
 import { pausaInstanciaKey } from "../agent/pausa-instancia";
+import { db } from "../db/client";
+import { chatbotDaInstancia } from "../chatbots/server-repository";
+import { gatilhoRetomada } from "../chatbots/gatilho-retorno";
 
 export const streamKey = "atendeia:{evolution}:events";
 // Atomic deduplication and enqueue. Capacity failures never silently discard data.
@@ -57,15 +60,16 @@ async function getRedis(url: string): Promise<Redis> {
 
 export async function enqueueEvolutionEvent(event: EvolutionEvent, url: string): Promise<"queued" | "duplicate"> {
   const client = await getRedis(url);
-  return enqueueEvolutionEventWithClient(client, event);
+  const chatbot = await chatbotDaInstancia(db(), event.instance);
+  return enqueueEvolutionEventWithClient(client, event, chatbot?.returnTrigger ?? gatilhoRetomada);
 }
 
-export async function enqueueEvolutionEventWithClient(client: Redis, event: EvolutionEvent): Promise<"queued" | "duplicate"> {
+export async function enqueueEvolutionEventWithClient(client: Redis, event: EvolutionEvent, frase = gatilhoRetomada): Promise<"queued" | "duplicate"> {
   // Without an event timestamp, recurring connection/status transitions are distinct.
   const identity = !event.date_time && event.event !== "messages.upsert" ? randomUUID() : JSON.stringify(event);
   const fingerprint = createHash("sha256").update(identity).digest("hex");
   const payload = JSON.stringify({ ...event, receivedAt: new Date().toISOString(), source: "evolution-webhook" });
-  const pausas = await pausasManuaisParaEvento(client, event);
+  const pausas = await pausasManuaisParaEvento(client, event, frase);
   const chaves = pausas.flatMap(pausa => [pausaManualKey(pausa.conversation), pausa.outgoingKey,
     `atendeia:{evolution}:followup:${pausa.conversation}`, "atendeia:{evolution}:followups"]);
   const result = await client.eval(enqueueScript, 3 + chaves.length, streamKey, `atendeia:{evolution}:dedupe:${fingerprint}`,
