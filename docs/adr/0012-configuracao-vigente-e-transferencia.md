@@ -40,4 +40,11 @@ Somente propostas de transferência têm essa chamada adicional; as duas chamada
 compartilham o mesmo AbortSignal de 45 segundos para preservar a lease do worker.
 Transferência direta de mídia, destino, aviso literal e pausa de 30 minutos permanecem.
 
+Pedido posterior do usuário: solicitação direta de falar com Wellington deve
+encaminhar e confirmar a espera, sem pergunta intermediária. Regra local aplica-se
+somente quando Wellington aparece nas instruções e transferência está habilitada.
+Dispensa geração para esse pedido e usa aviso específico; perguntas informativas
+mantêm a revisão. Encaminhamento validado precede o aviso, enviado na mesma execução
+mesmo com a pausa criada pela própria ação. Mantém prevenção de entregas duplicadas.
+
 Referência: [Function calling na Responses API](https://developers.openai.com/api/docs/guides/function-calling).

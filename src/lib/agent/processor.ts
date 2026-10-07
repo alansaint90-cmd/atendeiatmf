@@ -3,6 +3,7 @@ import type { IncomingMessage } from "./message";
 import { digest } from "./message";
 import { ProviderError, type Turn, type RespostaGerada } from "./providers";
 import { extrairNomeInformado, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
+import { avisoParaWellington } from "./transferencia";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean }
 export interface ProcessingPort {
@@ -71,13 +72,14 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const contextoAtual = persona ? historico.filter(turno => turno.role === "user" || turno.revisao === revisao) : historico;
       const saudacao = /^(?:oi+|ol[aá]+|bom dia|boa tarde|boa noite)[\s!.😊👋]*$/iu.test((transcript ?? message.text).trim());
       if (!nome && !historico.length && !message.midia && saudacao && config.openingMessages?.length) partes = config.openingMessages;
-      const gerada = partes ? partes.join("\n\n") : message.midia && config.atendimento?.transferMedia ? { transferir: true }
+      const avisoWellington = avisoParaWellington(config, transcript ?? message.text);
+      const gerada = partes ? partes.join("\n\n") : avisoWellington || (message.midia && config.atendimento?.transferMedia) ? { transferir: true }
         : await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, contextoAtual, transcript ?? message.text);
       if (typeof gerada !== "string") {
         if (!(config.atendimento?.transferHuman || (message.midia && config.atendimento?.transferMedia)) || !port.transferir) throw new ProviderError("transferencia_indisponivel");
         transferencia = true;
-        reply = config.atendimento.transferNotice.replace(/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu, nome?.split(" ")[0] ?? "").trim()
-          || "Vou encaminhar seu atendimento para nossa equipe.";
+        reply = avisoWellington ?? (config.atendimento.transferNotice.replace(/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu, nome?.split(" ")[0] ?? "").trim()
+          || "Vou encaminhar seu atendimento para nossa equipe.");
       } else reply = partes ? gerada : removerRotuloDaPersona(respostaComNome(gerada, nome), persona);
     }
     catch (error) {

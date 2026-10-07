@@ -58,6 +58,8 @@
 
 ## Agente de respostas de texto
 
+- Pedido direto de falar/conversar com Wellington (também Welington), presente no prompt e com transferência habilitada, encaminha ao setor do painel e envia “Vou transferir seu atendimento para o Wellington. Aguarde alguns instantes, por favor.” após registrar a transferência. Mantém a pausa de 30 minutos, sem bloquear o próprio aviso. Perguntas informativas continuam no prompt; outros chatbots preservam seu aviso. Não confirma transferência se o registro falhar nem repete entrega incerta.
+
 - Uma proposta de transferência textual é revisada antes de alterar a conversa ou pausar a IA. A revisão recebe o mesmo prompt e histórico, considera variações de grafia de pessoas conhecidas e devolve resposta quando houver orientação aplicável. Encaminhamento exige trecho literal do prompt que o autorize; revisão inválida não envia aviso nem transfere. A revisão ocorre apenas quando o modelo propõe a ação e compartilha os 45 segundos da geração. Mídias com transferência habilitada seguem a ação direta existente.
 
 - Antes de usar fallback ou transferir, o agente segue a orientação específica do prompt e dos fluxos para a intenção do cliente. Pedidos previstos nas instruções não são classificados automaticamente como falta de conhecimento. A transferência validada se aplica quando o procedimento cadastrado indicar encaminhamento, o cliente insistir em falar diretamente com uma pessoa ou faltar orientação aplicável que permita resolver o pedido.

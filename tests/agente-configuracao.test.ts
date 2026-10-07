@@ -5,6 +5,7 @@ import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { processMessage, type DeliveryState, type ProcessingPort } from "../src/lib/agent/processor";
 import { generateReply, type Turn } from "../src/lib/agent/providers";
 import { incomingMessage } from "../src/lib/agent/message";
+import { avisoParaWellington } from "../src/lib/agent/transferencia";
 
 const base = { AI_ENABLED: "true", OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "gpt-4.1-mini",
   EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste", EVOLUTION_INSTANCE_NAME: "chip-a", REDIS_URL: "redis://localhost:6379" };
@@ -22,7 +23,7 @@ test("pedido previsto no prompt precede fallback e transferência genérica", as
     assert.match(corpo.tools[0].description, /Siga primeiro o procedimento específico do prompt/);
     return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "Aaron, qual é o motivo do contato?" }] }] });
   });
-  assert.equal(await processMessage({ ...mensagem, text: "Preciso falar com Wellington" }, configuracao, f.port), "enviada");
+  assert.equal(await processMessage({ ...mensagem, text: "Como funciona o atendimento de Wellington?" }, configuracao, f.port), "enviada");
   assert.deepEqual(f.destinos, []);
   assert.deepEqual(f.saidas, ["Aaron, qual é o motivo do contato?"]);
 });
@@ -40,7 +41,7 @@ function portas() {
 }
 
 test("revisa a transferência indevida sobre Wellington e responde com o prompt salvo", async () => {
-  for (const pergunta of ["Quem é o Welington?", "Preciso falar com Wellington", "Quero saber sobre Wellington Junior"]) {
+  for (const pergunta of ["Quem é o Welington?", "Como funciona o atendimento de Wellington?", "Quero saber sobre Wellington Junior"]) {
     const configuracao = configurarAgente(base, { ...bot, context: "Wellington Junior é o profissional responsável pelo atendimento individual. Se o cliente pedir para falar com ele, pergunte o motivo do contato antes de encaminhar." }).data!;
     const f = portas();
     let chamadas = 0;
@@ -57,6 +58,27 @@ test("revisa a transferência indevida sobre Wellington e responde com o prompt 
     assert.equal(chamadas, 2);
     assert.deepEqual(f.destinos, []);
     assert.deepEqual(f.saidas, ["Aaron, qual é o motivo do contato com Wellington?"]);
+  }
+});
+
+test("pedido direto de Wellington registra a transferência e envia aviso mesmo após a própria pausa", async () => {
+  const atual = configurarAgente(base, { ...bot, context: "Wellington Junior é responsável pelo atendimento individual." }).data!;
+  assert.equal(avisoParaWellington(config, "Quero falar com Wellington"), null);
+  assert.equal(avisoParaWellington(atual, "Não quero falar com Wellington"), null);
+  assert.equal(avisoParaWellington(atual, "Quem é Wellington?"), null);
+  assert.equal(avisoParaWellington({ ...atual, atendimento: { ...atual.atendimento!, transferHuman: false } }, "Quero falar com Wellington"), null);
+  for (const texto of ["Quero falar com Welington", "Preciso falar com o Wellington"]) {
+    const f = portas();
+    let pausado = false;
+    f.port.enabled = async () => !pausado;
+    f.port.generate = async () => { throw new Error("Pedido direto não depende do modelo"); };
+    f.port.transferir = async destino => { f.destinos.push(destino); pausado = true; };
+    assert.equal(await processMessage({ ...mensagem, text: texto }, atual, f.port), "enviada");
+    assert.deepEqual(f.destinos, ["Suporte"]);
+    assert.deepEqual(f.saidas, ["Vou transferir seu atendimento para o Wellington. Aguarde alguns instantes, por favor."]);
+    assert.equal(f.estado()?.transferencia, true);
+    await processMessage({ ...mensagem, text: texto }, atual, f.port);
+    assert.equal(f.saidas.length, 1);
   }
 });
 

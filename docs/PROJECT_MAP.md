@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 140 |
+| Arquivos TS/TSX | 141 |
 | Tabelas (Drizzle) | 31 |
 | Server Actions (arquivos) | 11 |
 | Rotas de API | 6 |
@@ -91,6 +91,7 @@ lib/
     providers.ts
     redis.ts
     store.ts
+    transferencia.ts
     worker.ts
   audit/
     registrar.ts
