@@ -84,6 +84,38 @@ test("falha ao consultar servidor exibe erro e permite nova tentativa posteriorm
   expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar os chatbots");
 });
 
+test("confirma gravação perdida somente após reler a versão e a configuração da instância", async () => {
+  const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Anterior" }, versao: 2 };
+  const resposta = (item: typeof registro) => ({ ok: true, dados: { itens: [item], instancias: [{ nome: "chip-a", chatbotId: item.id }] } });
+  const texto = "Instrução cadastrada com emojis 😊 e acentos.\n".repeat(500);
+  actions.carregar.mockResolvedValueOnce(resposta(registro)).mockResolvedValueOnce(resposta({ ...registro, versao: 3, configuracao: { ...registro.configuracao, context: texto } }));
+  actions.salvar.mockRejectedValue(new Error("resposta perdida"));
+  render(<ChatbotsPage />);
+  const campo = await screen.findByLabelText("Prompt de atendimento");
+  fireEvent.change(campo, { target: { value: texto } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Configuração salva para chip-a"));
+  expect(campo).toHaveValue(texto);
+  expect(screen.queryByText(/Alterações não salvas/)).not.toBeInTheDocument();
+  expect(actions.salvar).toHaveBeenCalledTimes(1);
+});
+
+test("confirmação perdida não aceita conteúdo de outra versão e preserva opção de baixar edição", async () => {
+  const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Anterior" }, versao: 2 };
+  const resposta = (item: typeof registro) => ({ ok: true, dados: { itens: [item], instancias: [{ nome: "chip-a", chatbotId: item.id }] } });
+  actions.carregar.mockResolvedValueOnce(resposta(registro)).mockResolvedValueOnce(resposta({ ...registro, versao: 3, configuracao: { ...registro.configuracao, context: "Edição de outro usuário" } }));
+  actions.salvar.mockRejectedValue(new Error("resposta perdida"));
+  render(<ChatbotsPage />);
+  const campo = await screen.findByLabelText("Prompt de atendimento");
+  fireEvent.change(campo, { target: { value: "Minha edição" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Sua edição permanece nesta tela"));
+  expect(campo).toHaveValue("Minha edição");
+  expect(screen.getByRole("button", { name: "Baixar edição do prompt" })).toBeEnabled();
+  expect(screen.getByRole("status")).not.toHaveTextContent("Configuração salva");
+  expect(actions.salvar).toHaveBeenCalledTimes(1);
+});
+
 test("URL de webhook usa a origem do navegador somente no cliente", () => {
   expect(renderToString(<Settings />)).not.toContain(`${window.location.origin}/api/webhooks/evolution`);
   render(<Settings />);

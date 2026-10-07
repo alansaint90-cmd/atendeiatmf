@@ -23,4 +23,10 @@ Banco e Redis não constituem transação distribuída: falha intermediária pod
 exigir intervenção, sem confirmação falsa ao contato. Nenhuma chamada real a
 WhatsApp é feita nos testes. O CI cobre a pausa e o isolamento com Redis local.
 
+Correção em 2026-10-07: a descrição da função e as instruções gerais deixam de
+encaminhar imediatamente qualquer menção a uma pessoa. O procedimento específico
+do prompt/fluxo tem prioridade; o fallback vale somente sem orientação aplicável.
+Insistência em falar diretamente com humano continua permitindo encaminhamento.
+O aviso salvo permanece literal após transferência efetiva.
+
 Referência: [Function calling na Responses API](https://developers.openai.com/api/docs/guides/function-calling).

@@ -20,7 +20,7 @@ test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à i
     const inicial = { ...chatbotExample, context: "Instrução inicial do SDR" };
     const criado = await salvarChatbotServidor(banco, { id: null, versao: null, configuracao: inicial, instancia: "chip-sdr", usuario });
     assert.equal((await chatbotDaInstancia(banco, "chip-sdr"))?.context, inicial.context);
-    const revisado = { ...inicial, context: "Nova instrução do gerente para o SDR" };
+    const revisado = { ...inicial, context: "Nova instrução do gerente para o SDR. 😊\n".repeat(600).slice(0, 19881) };
     const salvo = await salvarChatbotServidor(banco, { id: criado.id, versao: criado.versao, configuracao: revisado, instancia: "chip-sdr", usuario });
     assert.equal(salvo.versao, criado.versao + 1);
     assert.equal((await listarChatbotsServidor(banco))[0]?.configuracao.context, revisado.context);

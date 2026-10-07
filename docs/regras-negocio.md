@@ -8,6 +8,7 @@
 - `carregarChatbots` e `salvarChatbot` exigem sessão de gerente ou superior, usam o PostgreSQL compartilhado e vinculam o chatbot salvo à instância Evolution configurada. `sairDoSistema` encerra e audita a sessão atual antes de apagar o cookie.
 
 - Configurações de chatbot são compartilhadas no PostgreSQL com os usuários autorizados; salvar o prompt atualiza também o chatbot vinculado à instância Evolution.
+- Se a confirmação do salvamento se perder, a tela consulta novamente o servidor e confirma sucesso somente se a instância estiver vinculada à configuração enviada e à versão posterior do mesmo registro. Não repete a escrita automaticamente nem substitui a edição por outro conteúdo. Edições podem ser baixadas como texto antes de atualizar a página.
 - Identificadores de chatbot são obrigatórios e únicos, sem distinção entre maiúsculas e minúsculas.
 - Cada chatbot permite até três personalidades distintas e até 50 fluxos com nome e descrição preenchidos.
 - Atraso: inteiro entre 0 e 3600 segundos. Temperatura: entre 0 e 1. Contexto: até 200 mil caracteres.
@@ -54,6 +55,8 @@
 - O endpoint não fornece mensagens a usuários sem autenticação. O GET público só identifica a rota; não testa credenciais nem a conexão Redis. O painel operacional exige sessão de SDR ou superior para consultar o histórico persistido desses eventos.
 
 ## Agente de respostas de texto
+
+- Antes de usar fallback ou transferir, o agente segue a orientação específica do prompt e dos fluxos para a intenção do cliente. Pedidos previstos nas instruções não são classificados automaticamente como falta de conhecimento. A transferência validada se aplica quando o procedimento cadastrado indicar encaminhamento, o cliente insistir em falar diretamente com uma pessoa ou faltar orientação aplicável que permita resolver o pedido.
 
 - A abertura opcional do chatbot contém até dois textos literais em balões separados. Só se aplica a saudação simples sem histórico nem nome confirmado; perguntas diretas seguem o prompt. Campos vazios desativam a abertura fixa. A migração 0010 configura os dois textos solicitados somente no chatbot exclusivo de `levaelava`, sem alterar seu prompt ou os outros números. Cada envio revalida pausa/configuração, registra seu ID como saída da IA e mantém o checkpoint; entrega incerta não é repetida. O follow-up começa após a sequência completa. “Qual seu nome?” já conta como pergunta de nome e não recebe outra pergunta automática.
 

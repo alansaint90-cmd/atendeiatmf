@@ -388,17 +388,17 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "prompt-legado", file: rel, line: 1,
       msg: "O modelo inicial do chatbot não pode trazer um roteiro comercial embutido." });
   }
-  if (rel === "src/components/chatbots/page.tsx" && /\b(?:localStorage|loadChatbots|storageKey)\b/.test(content)) {
+  if (rel === "src/components/chatbots/page.tsx" && (/\b(?:localStorage|loadChatbots|storageKey)\b/.test(content) || !/salvo.versao > registro.versao/.test(content))) {
     findings.push({ level: "error", id: "prompt-legado", file: rel, line: 1,
-      msg: "A página não pode importar prompts antigos do navegador automaticamente." });
+      msg: "A página não pode importar prompts antigos e deve conferir a versão ao recuperar uma confirmação perdida." });
   }
   if (rel === "src/lib/chatbots/prompt-servidor.ts" && /\b(?:contextoGeral|AI_SYSTEM_PROMPT)\b/.test(content)) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
       msg: "O contexto geral legado não pode compor as instruções do chatbot." });
   }
-  if (rel === "src/lib/chatbots/prompt-servidor.ts" && !/exclusivamente individuais/.test(content)) {
+  if (rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content))) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
-      msg: "As instruções da Thaís precisam afirmar que a mentoria com Wellington é individual." });
+      msg: "As instruções devem afirmar a mentoria individual e priorizar o prompt antes de fallback ou transferência." });
   }
   if (rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,

@@ -11,6 +11,21 @@ const base = { AI_ENABLED: "true", OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL:
 const bot = { ...chatbotExample, persona: "Derek", gender: "Masculino" as const, context: "Atenda como Derek.", transferNotice: "Vou encaminhar para nossa equipe.", destination: "Suporte" as const };
 const config = configurarAgente(base, bot).data!;
 const mensagem = { identity: "id", conversation: "conversa", number: "5511999999999", text: "Qual seu nome?", timestamp: Date.now() / 1000 };
+test("pedido previsto no prompt precede fallback e transferência genérica", async () => {
+  const configuracao = configurarAgente(base, { ...bot, context: 'Se pedir para falar com Wellington, pergunte o motivo do contato antes de encaminhar.', fallback: 'Não tenho essa resposta.' }).data!;
+  assert.match(configuracao.AI_SYSTEM_PROMPT, /Antes do fallback ou da transferência/);
+  assert.match(configuracao.AI_SYSTEM_PROMPT, /Siga primeiro o procedimento específico do prompt/);
+  const f = portas();
+  f.port.generate = async (atual, historico, texto) => generateReply(atual, historico, texto, async (_url, init) => {
+    const corpo = JSON.parse(String(init?.body));
+    assert.match(corpo.instructions, /pergunte o motivo do contato antes de encaminhar/);
+    assert.match(corpo.tools[0].description, /Siga primeiro o procedimento específico do prompt/);
+    return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "Aaron, qual é o motivo do contato?" }] }] });
+  });
+  assert.equal(await processMessage({ ...mensagem, text: "Preciso falar com Wellington" }, configuracao, f.port), "enviada");
+  assert.deepEqual(f.destinos, []);
+  assert.deepEqual(f.saidas, ["Aaron, qual é o motivo do contato?"]);
+});
 function portas() {
   let estado: DeliveryState | null = null;
   const historico: Turn[] = [{ role: "user", content: "Quero informações" }, { role: "assistant", content: "Eu sou a Thaís." }];

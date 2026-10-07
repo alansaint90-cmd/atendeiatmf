@@ -41,20 +41,41 @@ export function ChatbotsPage() {
   }, [dirty]);
 
   const discard = () => !dirty || window.confirm("Descartar as alterações não salvas do prompt de atendimento?");
+  function confirmarGravacao(registro: ChatbotPersistido) {
+    setItens(atuais => [...(atuais ?? []).filter(item => item.id !== registro.id), registro]
+      .sort((a, b) => a.configuracao.identifier.localeCompare(b.configuracao.identifier, "pt-BR")));
+    setSelected(registro.id); setContext(registro.configuracao.context); setDirty(false);
+    setInstancias(atuais => atuais.map(item => item.nome === instancia ? { ...item, chatbotId: registro.id } : item));
+    setMessage(`Configuração salva para ${instancia}. O agente usará estas instruções nas próximas mensagens desse número.`);
+  }
+  function baixarEdicao() {
+    const url = URL.createObjectURL(new Blob([context], { type: "text/plain;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = "prompt-de-atendimento.txt"; link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
   async function persistir(bot: Chatbot, registro: ChatbotPersistido | null) {
     if (saving) return false;
     setSaving(true); setError(""); setMessage("");
     try {
       const resultado = await salvarChatbot({ id: registro?.id ?? null, versao: registro?.versao ?? null, configuracao: bot, instancia });
       if (!resultado.ok) { setError(resultado.erro); return false; }
-      setItens(atuais => [...(atuais ?? []).filter(item => item.id !== resultado.dados.id), resultado.dados]
-        .sort((a, b) => a.configuracao.identifier.localeCompare(b.configuracao.identifier, "pt-BR")));
-      setSelected(resultado.dados.id); setContext(resultado.dados.configuracao.context); setDirty(false);
-      setInstancias(atuais => atuais.map(item => item.nome === instancia ? { ...item, chatbotId: resultado.dados.id } : item));
-      setMessage(`Configuração salva para ${instancia}. O agente usará estas instruções nas próximas mensagens desse número.`);
+      confirmarGravacao(resultado.dados);
       return true;
     } catch {
-      setError("Não foi possível salvar o prompt. Confira a conexão e tente novamente; sua edição permanece nesta tela.");
+      // A gravação pode ter terminado antes de perdermos a resposta da action.
+      try {
+        const consulta = await carregarChatbots();
+        if (consulta.ok) {
+          const vinculo = consulta.dados.instancias.find(item => item.nome === instancia)?.chatbotId;
+          const salvo = consulta.dados.itens.find(item => item.id === vinculo);
+          if (salvo && (!registro || (salvo.id === registro.id && salvo.versao > registro.versao))
+            && JSON.stringify(salvo.configuracao) === JSON.stringify(bot)) {
+            confirmarGravacao(salvo); return true;
+          }
+        }
+      } catch { /* Falha de leitura não autoriza repetir a gravação. */ }
+      setError("Não foi possível salvar o prompt ou confirmar a gravação. Sua edição permanece nesta tela. Baixe o texto antes de atualizar a página e tente novamente; se persistir, confira o log do servidor.");
       return false;
     } finally { setSaving(false); }
   }
@@ -84,7 +105,7 @@ export function ChatbotsPage() {
       <h2>Prompt de atendimento do SDR</h2><p>Estas são as instruções usadas pelo agente para responder no WhatsApp.</p>
       <p>Instância: <strong>{instancia}</strong> · Chatbot: {selecionado.configuracao.identifier}</p>
       <label>Prompt de atendimento<textarea name="generalContext" rows={18} disabled={saving} maxLength={200000} value={context} onChange={event => { setContext(event.target.value); setDirty(true); setMessage(""); }} /></label>
-      <small>{context.length.toLocaleString("pt-BR")} caracteres{dirty ? " · Alterações não salvas" : ""}</small><div><button className="primary" disabled={saving}>{saving ? "Salvando…" : "Salvar prompt de atendimento"}</button></div>
+      <small>{context.length.toLocaleString("pt-BR")} caracteres{dirty ? " · Alterações não salvas" : ""}</small><div><button className="primary" disabled={saving}>{saving ? "Salvando…" : "Salvar prompt de atendimento"}</button>{dirty && <button type="button" className="secondary" disabled={saving} onClick={baixarEdicao}>Baixar edição do prompt</button>}</div>
     </form>}
     <p role="status">{message}</p><p role="alert" className="error-message">{error}</p>
     {editor && <ChatbotEditor initial={editor.bot} creating={!editor.registro} error={error} onClose={() => { setEditor(null); setError(""); }} onSave={async bot => {

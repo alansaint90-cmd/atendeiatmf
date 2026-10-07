@@ -240,3 +240,8 @@ da IA levam a revisão das instruções; revisões antigas não voltam ao contex
 Transferência habilitada usa ação validada, destino e aviso do painel: registra a
 conversa pendente no setor, pausa IA por 30 minutos e cancela follow-ups por instância.
 Não confirmar encaminhamento se o registro falhar; envio incerto não é repetido.
+Orientações específicas do prompt e dos fluxos precedem fallback e transferência;
+uma intenção prevista não é falta de conhecimento. Insistência em falar diretamente
+com uma pessoa ou encaminhamento previsto no prompt usa a transferência validada.
+Falha na confirmação de salvamento consulta a configuração e a versão no servidor;
+não repetir escrita automaticamente nem descartar a edição. Permitir baixar o prompt.

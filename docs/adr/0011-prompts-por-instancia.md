@@ -27,3 +27,9 @@ com EVOLUTION_THIRD_INSTANCE_NAME opcional e FOLLOW_UP_THIRD_CONFIG independente
 Mantém o vínculo e a persistência existentes, sem migração de schema. Webhook,
 respostas, follow-ups e agendamentos selecionam a instância de origem. O terceiro
 chatbot recebe cópia inicial do principal, editável sem alterar os demais.
+
+Confirmação de gravação perdida: a tela relê o servidor uma vez e só confirma a
+configuração exata enviada, vinculada à instância, com versão posterior do mesmo
+registro editado. Não repete mutação automaticamente. Se não houver confirmação,
+conserva o rascunho em memória e oferece download explícito antes de recarregar;
+não armazena nem importa automaticamente prompts do navegador.
