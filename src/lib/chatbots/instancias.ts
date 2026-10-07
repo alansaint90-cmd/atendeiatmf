@@ -13,7 +13,10 @@ export async function prepararAssistentes(banco: BancoSql, instancias: string[],
       SELECT instance_name,chatbot_id FROM atendeia_channels WHERE provider='evolution' AND is_deleted=false`));
     const principal = bots.find(b => b.id === vinculos.find(c => c.instance_name === instancias[0])?.chatbot_id)
       ?? (bots.length === 1 ? bots[0] : null);
-    const usados = new Set<string>();
+    // Canais anteriores continuam vivos para preservar o histórico. Seus vínculos
+    // também reservam o chatbot: um número atual precisa de uma cópia exclusiva.
+    const usados = new Set(vinculos.filter(canal => !instancias.includes(canal.instance_name))
+      .map(canal => canal.chatbot_id).filter((id): id is string => Boolean(id)));
     for (const instancia of instancias) {
       const vinculado = bots.find(b => b.id === vinculos.find(c => c.instance_name === instancia)?.chatbot_id);
       const base = vinculado ?? principal;

@@ -245,3 +245,5 @@ uma intenção prevista não é falta de conhecimento. Insistência em falar dir
 com uma pessoa ou encaminhamento previsto no prompt usa a transferência validada.
 Falha na confirmação de salvamento consulta a configuração e a versão no servidor;
 não repetir escrita automaticamente nem descartar a edição. Permitir baixar o prompt.
+Separação de chatbots considera também vínculos vivos de instâncias antigas fora
+da configuração atual; cria cópia exclusiva sem alterar esses canais ou seu histórico.

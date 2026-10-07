@@ -9,6 +9,39 @@ import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { chatbotDaInstancia, listarChatbotsServidor, salvarChatbotServidor } from "../src/lib/chatbots/server-repository";
 import { prepararAssistentes } from "../src/lib/chatbots/instancias";
 
+test("canal antigo fora das configurações não bloqueia salvar os chatbots dos três números atuais", async () => {
+  const cliente = new PGlite();
+  const banco = drizzle(cliente);
+  const usuario = randomUUID();
+  try {
+    await applyMigrations(banco);
+    await cliente.query("INSERT INTO atendeia_users(id,name,email,role,enabled,modified_by) VALUES ($1,'Gerente','gerente@exemplo.test','admin',true,$1)", [usuario]);
+    const original = await salvarChatbotServidor(banco, { id: null, versao: null,
+      configuracao: { ...chatbotExample, context: "Prompt do canal antigo" }, instancia: "instancia-antiga", usuario });
+    await cliente.query("INSERT INTO atendeia_channels(name,instance_name,chatbot_id,modified_by) VALUES ('Canal atual','thaistmf01',$1,$2)", [original.id, usuario]);
+    const nomes = ["thaistmf01", "taistmf", "levaelava"];
+    const antes = await prepararAssistentes(banco, nomes, usuario);
+    const ids = antes.instancias.map(item => item.chatbotId);
+    assert.equal(new Set(ids).size, 3);
+    assert.ok(!ids.includes(original.id));
+    for (const canal of antes.instancias) {
+      const item = antes.itens.find(bot => bot.id === canal.chatbotId)!;
+      const texto = `Prompt independente de ${canal.nome}`;
+      await salvarChatbotServidor(banco, { id: item.id, versao: item.versao,
+        configuracao: { ...item.configuracao, context: texto }, instancia: canal.nome, usuario });
+      assert.equal((await chatbotDaInstancia(banco, canal.nome))?.context, texto);
+    }
+    assert.equal((await chatbotDaInstancia(banco, "instancia-antiga"))?.context, "Prompt do canal antigo");
+    const depois = await prepararAssistentes(banco, nomes, usuario);
+    assert.deepEqual(depois.instancias.map(item => item.chatbotId), ids);
+    assert.equal(depois.itens.length, antes.itens.length);
+    const auditoria = await cliente.query("SELECT id FROM atendeia_audit_logs WHERE action='chatbot_separado_por_instancia'");
+    assert.equal(auditoria.rows.length, 3);
+    await assert.rejects(salvarChatbotServidor(banco, { id: original.id, versao: original.versao,
+      configuracao: original.configuracao, instancia: "thaistmf01", usuario }), /instância/);
+  } finally { await cliente.close(); }
+});
+
 test("salvar prompt do SDR persiste, atualiza a versão e vincula o chatbot à instância", async () => {
   const cliente = new PGlite();
   const banco = drizzle(cliente);

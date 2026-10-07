@@ -33,3 +33,10 @@ configuração exata enviada, vinculada à instância, com versão posterior do 
 registro editado. Não repete mutação automaticamente. Se não houver confirmação,
 conserva o rascunho em memória e oferece download explícito antes de recarregar;
 não armazena nem importa automaticamente prompts do navegador.
+
+Correção em 2026-10-07: a preparação reservava apenas vínculos dos chips atualmente
+configurados. Canais anteriores preservados podiam compartilhar o chatbot do chip
+atual, levando o salvamento a recusá-lo por pertencer também a outra instância.
+A reserva inicial passa a incluir vínculos vivos fora das configurações atuais.
+O chip atual recebe cópia exclusiva auditada; o canal antigo e seu chatbot ficam
+preservados. A guarda do salvamento continua rejeitando edições cruzadas.

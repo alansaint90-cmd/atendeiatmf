@@ -8,6 +8,7 @@
 - `carregarChatbots` e `salvarChatbot` exigem sessão de gerente ou superior, usam o PostgreSQL compartilhado e vinculam o chatbot salvo à instância Evolution configurada. `sairDoSistema` encerra e audita a sessão atual antes de apagar o cookie.
 
 - Configurações de chatbot são compartilhadas no PostgreSQL com os usuários autorizados; salvar o prompt atualiza também o chatbot vinculado à instância Evolution.
+- A preparação dos assistentes considera vínculos vivos de instâncias antigas que já não estão configuradas. Se um chatbot atual também pertencer a esses canais, cria uma cópia exclusiva para o número atual, com auditoria; preserva o chatbot antigo, os canais e os históricos. Abrir a tela novamente não cria cópias adicionais.
 - Se a confirmação do salvamento se perder, a tela consulta novamente o servidor e confirma sucesso somente se a instância estiver vinculada à configuração enviada e à versão posterior do mesmo registro. Não repete a escrita automaticamente nem substitui a edição por outro conteúdo. Edições podem ser baixadas como texto antes de atualizar a página.
 - Identificadores de chatbot são obrigatórios e únicos, sem distinção entre maiúsculas e minúsculas.
 - Cada chatbot permite até três personalidades distintas e até 50 fluxos com nome e descrição preenchidos.
