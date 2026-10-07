@@ -244,6 +244,8 @@ Orientações específicas do prompt e dos fluxos precedem fallback e transferê
 uma intenção prevista não é falta de conhecimento. Insistência em falar diretamente
 com uma pessoa ou encaminhamento previsto no prompt usa a transferência validada.
 Falha na confirmação de salvamento consulta a configuração e a versão no servidor;
-não repetir escrita automaticamente nem descartar a edição. Permitir baixar o prompt.
+não repetir escrita automaticamente nem descartar a edição. Salvar uma edição aberta
+de chatbot compartilhado cria a cópia exclusiva na mesma transação, somente se o
+vínculo atual e a versão original conferirem; preserva o chatbot dos outros números.
 Separação de chatbots considera também vínculos vivos de instâncias antigas fora
 da configuração atual; cria cópia exclusiva sem alterar esses canais ou seu histórico.

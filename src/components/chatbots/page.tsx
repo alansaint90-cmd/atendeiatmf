@@ -48,12 +48,6 @@ export function ChatbotsPage() {
     setInstancias(atuais => atuais.map(item => item.nome === instancia ? { ...item, chatbotId: registro.id } : item));
     setMessage(`Configuração salva para ${instancia}. O agente usará estas instruções nas próximas mensagens desse número.`);
   }
-  function baixarEdicao() {
-    const url = URL.createObjectURL(new Blob([context], { type: "text/plain;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url; link.download = "prompt-de-atendimento.txt"; link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  }
   async function persistir(bot: Chatbot, registro: ChatbotPersistido | null) {
     if (saving) return false;
     setSaving(true); setError(""); setMessage("");
@@ -75,7 +69,7 @@ export function ChatbotsPage() {
           }
         }
       } catch { /* Falha de leitura não autoriza repetir a gravação. */ }
-      setError("Não foi possível salvar o prompt ou confirmar a gravação. Sua edição permanece nesta tela. Baixe o texto antes de atualizar a página e tente novamente; se persistir, confira o log do servidor.");
+      setError("Não foi possível salvar o prompt ou confirmar a gravação. Sua edição permanece nesta tela. Tente salvar novamente; se persistir, confira o log do servidor.");
       return false;
     } finally { setSaving(false); }
   }
@@ -105,7 +99,7 @@ export function ChatbotsPage() {
       <h2>Prompt de atendimento do SDR</h2><p>Estas são as instruções usadas pelo agente para responder no WhatsApp.</p>
       <p>Instância: <strong>{instancia}</strong> · Chatbot: {selecionado.configuracao.identifier}</p>
       <label>Prompt de atendimento<textarea name="generalContext" rows={18} disabled={saving} maxLength={200000} value={context} onChange={event => { setContext(event.target.value); setDirty(true); setMessage(""); }} /></label>
-      <small>{context.length.toLocaleString("pt-BR")} caracteres{dirty ? " · Alterações não salvas" : ""}</small><div><button className="primary" disabled={saving}>{saving ? "Salvando…" : "Salvar prompt de atendimento"}</button>{dirty && <button type="button" className="secondary" disabled={saving} onClick={baixarEdicao}>Baixar edição do prompt</button>}</div>
+      <small>{context.length.toLocaleString("pt-BR")} caracteres{dirty ? " · Alterações não salvas" : ""}</small><div><button className="primary" disabled={saving}>{saving ? "Salvando…" : "Salvar prompt de atendimento"}</button></div>
     </form>}
     <p role="status">{message}</p><p role="alert" className="error-message">{error}</p>
     {editor && <ChatbotEditor initial={editor.bot} creating={!editor.registro} error={error} onClose={() => { setEditor(null); setError(""); }} onSave={async bot => {

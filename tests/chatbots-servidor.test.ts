@@ -9,6 +9,36 @@ import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { chatbotDaInstancia, listarChatbotsServidor, salvarChatbotServidor } from "../src/lib/chatbots/server-repository";
 import { prepararAssistentes } from "../src/lib/chatbots/instancias";
 
+test("salvar uma edição já aberta separa o vínculo compartilhado sem recarregar o prompt", async () => {
+  const cliente = new PGlite();
+  const banco = drizzle(cliente);
+  const usuario = randomUUID();
+  try {
+    await applyMigrations(banco);
+    await cliente.query("INSERT INTO atendeia_users(id,name,email,role,enabled,modified_by) VALUES ($1,'Gerente','gerente@exemplo.test','admin',true,$1)", [usuario]);
+    const anterior = await salvarChatbotServidor(banco, { id: null, versao: null,
+      configuracao: { ...chatbotExample, context: "Prompt preservado do outro número" }, instancia: "antiga", usuario });
+    await cliente.query("INSERT INTO atendeia_channels(name,instance_name,chatbot_id,modified_by) VALUES ('Atual','atual',$1,$2)", [anterior.id, usuario]);
+    const edicao = { ...anterior.configuracao, context: "Minha edição completa 😊\n".repeat(1000) };
+    await assert.rejects(salvarChatbotServidor(banco, { id: anterior.id, versao: anterior.versao + 1,
+      configuracao: edicao, instancia: "atual", usuario }), /Outro usuário alterou/);
+    const salvo = await salvarChatbotServidor(banco, { id: anterior.id, versao: anterior.versao,
+      configuracao: edicao, instancia: "atual", usuario });
+    assert.notEqual(salvo.id, anterior.id);
+    assert.equal(salvo.configuracao.context, edicao.context);
+    assert.equal((await chatbotDaInstancia(banco, "atual"))?.context, edicao.context);
+    assert.equal((await chatbotDaInstancia(banco, "antiga"))?.context, anterior.configuracao.context);
+    const novamente = await salvarChatbotServidor(banco, { id: salvo.id, versao: salvo.versao,
+      configuracao: { ...salvo.configuracao, context: "Segunda edição" }, instancia: "atual", usuario });
+    assert.equal(novamente.id, salvo.id);
+    assert.equal((await listarChatbotsServidor(banco)).length, 2);
+    const trilha = await cliente.query("SELECT id FROM atendeia_audit_logs WHERE action='chatbot_separado_por_instancia' AND entity_id=$1", [salvo.id]);
+    assert.equal(trilha.rows.length, 1);
+    await assert.rejects(salvarChatbotServidor(banco, { id: anterior.id, versao: anterior.versao,
+      configuracao: edicao, instancia: "atual", usuario }), /instância/);
+  } finally { await cliente.close(); }
+});
+
 test("canal antigo fora das configurações não bloqueia salvar os chatbots dos três números atuais", async () => {
   const cliente = new PGlite();
   const banco = drizzle(cliente);

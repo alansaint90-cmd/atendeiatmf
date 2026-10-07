@@ -412,7 +412,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "pausa-manual", file: rel, line: 1,
       msg: "O worker deve verificar a pausa por atendimento humano antes de responder." });
   }
-  if ((rel === "src/lib/agent/worker.ts" && (!/settingsDaInstancia\(settings, instancia\)/.test(content) || !/dependencies.chatbot\(instancia\)/.test(content))) || (rel === "src/lib/evolution/instancias.ts" && !/EVOLUTION_THIRD_INSTANCE_NAME[\s\S]*FOLLOW_UP_THIRD_CONFIG/.test(content)) || (rel === "src/lib/chatbots/instancias.ts" && !/!instancias.includes\(canal.instance_name\)/.test(content)) || (rel === "src/lib/agendamentos/worker.ts" && !/settingsDaInstancia\(await configuracoes\(\), instancia\)/.test(content))) {
+  if ((rel === "src/lib/agent/worker.ts" && (!/settingsDaInstancia\(settings, instancia\)/.test(content) || !/dependencies.chatbot\(instancia\)/.test(content))) || (rel === "src/lib/evolution/instancias.ts" && !/EVOLUTION_THIRD_INSTANCE_NAME[\s\S]*FOLLOW_UP_THIRD_CONFIG/.test(content)) || (rel === "src/lib/chatbots/instancias.ts" && !/!instancias.includes\(canal.instance_name\)/.test(content)) || (rel === "src/lib/chatbots/server-repository.ts" && (!/copiarChatbotParaInstancia\(tx, configuracao, instancia, usuario\)/.test(content) || !/version=\$\{versao\}[\s\S]*FOR UPDATE/.test(content))) || (rel === "src/lib/agendamentos/worker.ts" && !/settingsDaInstancia\(await configuracoes\(\), instancia\)/.test(content))) {
     findings.push({ level: "error", id: "isolamento-instancias", file: rel, line: 1,
       msg: "Os três chips devem ter configuração própria e seleção da origem antes de responder, agendar ou enviar follow-ups." });
   }

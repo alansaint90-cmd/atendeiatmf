@@ -1,8 +1,6 @@
-import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { linhas, type BancoSql } from "../db/porta";
-import { chatbotSchema } from "./schema";
-import { listarChatbotsServidor, vincularChatbotAInstancia } from "./server-repository";
+import { copiarChatbotParaInstancia, listarChatbotsServidor, vincularChatbotAInstancia } from "./server-repository";
 
 /** Separação idempotente dos vínculos legados compartilhados, com auditoria. */
 export async function prepararAssistentes(banco: BancoSql, instancias: string[], usuario: string) {
@@ -23,13 +21,7 @@ export async function prepararAssistentes(banco: BancoSql, instancias: string[],
       if (!base) continue;
       let id = base.id;
       if (usados.has(id)) {
-        id = randomUUID();
-        const configuracao = chatbotSchema.parse({ ...base.configuracao, id,
-          identifier: `${instancia.slice(0, 85)} - ${id.slice(0, 8)}` });
-        await tx.execute(sql`INSERT INTO atendeia_chatbots(id,identifier,enabled,configuration,modified_by)
-          VALUES (${id},${configuracao.identifier},true,${JSON.stringify(configuracao)}::jsonb,${usuario})`);
-        await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields)
-          VALUES (${usuario},'chatbot_separado_por_instancia','chatbot',${id},${JSON.stringify(["configuration"])}::jsonb)`);
+        id = (await copiarChatbotParaInstancia(tx, base.configuracao, instancia, usuario)).id;
       }
       if (!vinculado || vinculado.id !== id) await vincularChatbotAInstancia(tx, id, instancia, usuario);
       usados.add(id);

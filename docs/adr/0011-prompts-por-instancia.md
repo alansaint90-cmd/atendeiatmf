@@ -31,7 +31,7 @@ chatbot recebe cópia inicial do principal, editável sem alterar os demais.
 Confirmação de gravação perdida: a tela relê o servidor uma vez e só confirma a
 configuração exata enviada, vinculada à instância, com versão posterior do mesmo
 registro editado. Não repete mutação automaticamente. Se não houver confirmação,
-conserva o rascunho em memória e oferece download explícito antes de recarregar;
+conserva o rascunho em memória na própria tela;
 não armazena nem importa automaticamente prompts do navegador.
 
 Correção em 2026-10-07: a preparação reservava apenas vínculos dos chips atualmente
@@ -40,3 +40,8 @@ atual, levando o salvamento a recusá-lo por pertencer também a outra instânci
 A reserva inicial passa a incluir vínculos vivos fora das configurações atuais.
 O chip atual recebe cópia exclusiva auditada; o canal antigo e seu chatbot ficam
 preservados. A guarda do salvamento continua rejeitando edições cruzadas.
+
+Edições já abertas também resolvem esse compartilhamento ao salvar: validam o
+vínculo atual e a versão original, criam uma cópia com a edição recebida e vinculam
+somente a instância atual, na mesma transação auditada. A tela recebe o novo ID e
+continua editando normalmente. Não exige download, recarga ou nova colagem do texto.

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { chatbotSchema, type Chatbot } from "./schema";
 import { linhas, type BancoSql, type TransacaoSql } from "../db/porta";
@@ -51,6 +52,16 @@ export async function vincularChatbotAInstancia(tx: TransacaoSql, chatbotId: str
     VALUES (${usuario},'chatbot_vinculado','canal',${canal.id},${JSON.stringify(["chatbot_id"])}::jsonb)`);
 }
 
+export async function copiarChatbotParaInstancia(tx: TransacaoSql, base: Chatbot, instancia: string, usuario: string): Promise<ChatbotPersistido> {
+  const id = randomUUID();
+  const configuracao = chatbotSchema.parse({ ...base, id, identifier: `${instancia.slice(0, 85)} - ${id.slice(0, 8)}` });
+  const [registro] = linhas<{ version: number }>(await tx.execute(sql`INSERT INTO atendeia_chatbots(id,identifier,enabled,configuration,modified_by)
+    VALUES (${id},${configuracao.identifier},true,${JSON.stringify(configuracao)}::jsonb,${usuario}) RETURNING version`));
+  await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields)
+    VALUES (${usuario},'chatbot_separado_por_instancia','chatbot',${id},${JSON.stringify(["configuration"])}::jsonb)`);
+  return { id, configuracao, versao: Number(registro.version) };
+}
+
 export async function salvarChatbotServidor(banco: BancoSql, dados: {
   id: string | null; versao: number | null; configuracao: Chatbot; instancia: string; usuario: string;
 }): Promise<ChatbotPersistido> {
@@ -63,7 +74,15 @@ export async function salvarChatbotServidor(banco: BancoSql, dados: {
       if (atual[0]?.chatbot_id && atual[0].chatbot_id !== id) throw new ErroDeNegocio("O chatbot desta instância mudou. Recarregue os assistentes.");
       const vinculos = linhas<{ instance_name: string }>(await tx.execute(sql`SELECT instance_name FROM atendeia_channels
         WHERE chatbot_id=${id} AND provider='evolution' AND is_deleted=false`));
-      if (vinculos.some(c => c.instance_name !== instancia)) throw new ErroDeNegocio("Este chatbot pertence a outra instância. Recarregue os assistentes.");
+      if (vinculos.some(c => c.instance_name !== instancia)) {
+        if (atual[0]?.chatbot_id !== id) throw new ErroDeNegocio("Este chatbot pertence a outra instância. Recarregue os assistentes.");
+        const fonte = linhas(await tx.execute(sql`SELECT id FROM atendeia_chatbots
+          WHERE id=${id} AND version=${versao} AND is_deleted=false FOR UPDATE`));
+        if (!fonte.length) throw new ErroDeNegocio("Outro usuário alterou este chatbot. Recarregue a página.");
+        const copia = await copiarChatbotParaInstancia(tx, configuracao, instancia, usuario);
+        await vincularChatbotAInstancia(tx, copia.id, instancia, usuario);
+        return copia;
+      }
     }
     let registros: { id: string; version: number }[];
     if (id && versao !== null) {

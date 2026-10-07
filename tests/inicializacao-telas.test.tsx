@@ -100,7 +100,24 @@ test("confirma gravação perdida somente após reler a versão e a configuraç�
   expect(actions.salvar).toHaveBeenCalledTimes(1);
 });
 
-test("confirmação perdida não aceita conteúdo de outra versão e preserva opção de baixar edição", async () => {
+test("salva a edição e continua no novo vínculo sem recarregar a tela", async () => {
+  const anterior = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Anterior" }, versao: 2 };
+  const novo = { id: crypto.randomUUID(), configuracao: { ...anterior.configuracao, context: "Minha edição" }, versao: 0 };
+  actions.carregar.mockResolvedValue({ ok: true, dados: { itens: [anterior], instancias: [{ nome: "chip-a", chatbotId: anterior.id }] } });
+  actions.salvar.mockResolvedValue({ ok: true, dados: novo });
+  render(<ChatbotsPage />);
+  const campo = await screen.findByLabelText("Prompt de atendimento");
+  fireEvent.change(campo, { target: { value: "Minha edição" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Configuração salva para chip-a"));
+  expect(campo).toHaveValue("Minha edição");
+  expect(actions.carregar).toHaveBeenCalledTimes(1);
+  fireEvent.change(campo, { target: { value: "Próxima edição" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
+  await waitFor(() => expect(actions.salvar).toHaveBeenLastCalledWith(expect.objectContaining({ id: novo.id, versao: 0 })));
+});
+
+test("confirmação perdida não aceita conteúdo de outra versão e preserva a edição na tela", async () => {
   const registro = { id: crypto.randomUUID(), configuracao: { ...chatbotExample, context: "Anterior" }, versao: 2 };
   const resposta = (item: typeof registro) => ({ ok: true, dados: { itens: [item], instancias: [{ nome: "chip-a", chatbotId: item.id }] } });
   actions.carregar.mockResolvedValueOnce(resposta(registro)).mockResolvedValueOnce(resposta({ ...registro, versao: 3, configuracao: { ...registro.configuracao, context: "Edição de outro usuário" } }));
@@ -111,7 +128,8 @@ test("confirmação perdida não aceita conteúdo de outra versão e preserva op
   fireEvent.click(screen.getByRole("button", { name: "Salvar prompt de atendimento" }));
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Sua edição permanece nesta tela"));
   expect(campo).toHaveValue("Minha edição");
-  expect(screen.getByRole("button", { name: "Baixar edição do prompt" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Salvar prompt de atendimento" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Baixar edição do prompt" })).not.toBeInTheDocument();
   expect(screen.getByRole("status")).not.toHaveTextContent("Configuração salva");
   expect(actions.salvar).toHaveBeenCalledTimes(1);
 });
