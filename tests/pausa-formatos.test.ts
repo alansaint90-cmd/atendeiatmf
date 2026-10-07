@@ -16,7 +16,7 @@ test("LID explícito e lotes preservam a pausa sem presumir telefone nem afetar 
   const semPar = await pausasManuaisParaEvento(client, evento(true));
   assert.equal(semPar.length, 1);
   assert.equal(semPar[0].conversation, digest(`${instance}:${lid}`));
-  dados.set(pausaManualKey(semPar[0].conversation), String(semPar[0].ate));
+  dados.set(pausaManualKey(semPar[0].conversation), JSON.stringify({ pausada: true, instante: semPar[0].instante, eventoId: semPar[0].eventoId }));
   assert.deepEqual(await pausasManuaisParaEvento(client, evento(false, telefone)), []);
   assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`)), true);
   assert.equal(await pausaManualAtiva(client, digest(`outro:${telefone}`)), false);
@@ -25,7 +25,7 @@ test("LID explícito e lotes preservam a pausa sem presumir telefone nem afetar 
   const lote = await pausasManuaisParaEvento(client, { ...manual, data: [manual.data as Record<string, unknown>] });
   assert.equal(lote.length, 2);
   assert.ok(lote.some(p => p.conversation === digest(`${instance}:${telefone}`)));
-  assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`), timestamp * 1000 + 1800000), false);
+  assert.equal(await pausaManualAtiva(client, digest(`${instance}:${telefone}`), timestamp * 1000 + 100 * 86400000), true);
   assert.deepEqual(await pausasManuaisParaEvento(client, { ...manual, data: {
     key: { id: "grupo", fromMe: true, remoteJid: "123@g.us", remoteJidAlt: telefone }, messageTimestamp: timestamp } }), []);
 });

@@ -13,6 +13,43 @@ import { followupStore, followupQueue } from "../src/lib/followups/queue";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { pausaManualAtiva, pausaManualKey, pausaManualParaEvento } from "../src/lib/agent/pausa";
 import type { Turn } from "../src/lib/agent/providers";
+import { pausaInstanciaKey, instanciaPausada, pausarInstancia } from "../src/lib/agent/pausa-instancia";
+
+test("botão pausa só a instância; gatilho de cliente ou eco não libera; manual libera", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!; const alvo = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(alvo.hostname) && alvo.pathname === "/15");
+  const client = agentRedis(url); await client.connect();
+  const instancia = `pausa-${randomUUID()}`, outra = `outra-${randomUUID()}`;
+  const instante = Math.floor(Date.now() / 1000) * 1000;
+  const evento = (id: string, fromMe: boolean): EvolutionEvent => ({ event: "messages.upsert", instance: instancia, data: {
+    key: { id, fromMe, remoteJid: "5511999998888@s.whatsapp.net" }, messageTimestamp: instante / 1000 + 1,
+    message: { conversation: "Se precisar de algo mais, é só falar." } } });
+  const conversa = digest(`${instancia}:5511999998888@s.whatsapp.net`);
+  const ciclo = `atendeia:{evolution}:followup:${conversa}`;
+  try {
+    await client.set(ciclo, JSON.stringify({ instance: instancia, started: instante - 1000 }));
+    await client.zadd(followupQueue, Date.now(), conversa);
+    await pausarInstancia(client, instancia, instante);
+    assert.equal(await instanciaPausada(client, instancia), true);
+    assert.equal(await client.pttl(pausaInstanciaKey(instancia)), -1);
+    assert.equal(await instanciaPausada(client, outra), false);
+    assert.equal(await client.get(ciclo), null);
+    await enqueueEvolutionEventWithClient(client, evento("cliente", false));
+    assert.equal(await instanciaPausada(client, instancia), true);
+    const eco = "eco";
+    await client.set(`atendeia:{evolution}:outgoing:${digest(`${instancia}:${eco}`)}`, "1", "EX", 60);
+    await enqueueEvolutionEventWithClient(client, evento(eco, true));
+    assert.equal(await instanciaPausada(client, instancia), true);
+    await enqueueEvolutionEventWithClient(client, evento("humano", true));
+    assert.equal(await instanciaPausada(client, instancia), false);
+    assert.equal(await instanciaPausada(client, instancia, instante / 1000), true);
+    assert.equal(await pausaManualAtiva(client, conversa), false);
+  } finally {
+    await client.del(streamKey, pausaInstanciaKey(instancia), pausaManualKey(conversa), ciclo,
+      `atendeia:{evolution}:outgoing:${digest(`${instancia}:eco`)}`);
+    await client.zrem(followupQueue, conversa); client.disconnect();
+  }
+});
 
 test("ecos dos dois balões da abertura não pausam a IA", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!; const alvo = new URL(url);
@@ -178,7 +215,7 @@ test("Redis real: recuperação de pendentes, Lua atômico e exclusão de envio 
   }
 });
 
-test("mensagem humana pausa a IA por 30 minutos da última saída; eco da IA não pausa", { skip: !process.env.TEST_REDIS_URL }, async () => {
+test("mensagem humana pausa sem prazo e só o gatilho manual libera; eco da IA não pausa", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!;
   const target = new URL(url);
   assert.ok(["localhost", "127.0.0.1"].includes(target.hostname) && target.pathname === "/15");
@@ -204,24 +241,29 @@ test("mensagem humana pausa a IA por 30 minutos da última saída; eco da IA nã
   assert.ok(pausa);
   try {
     assert.equal(await enqueueEvolutionEventWithClient(client, primeira), "queued");
-    assert.equal(await client.get(pausaManualKey(pausa.conversation)), String(pausa.ate));
+    assert.equal(JSON.parse((await client.get(pausaManualKey(pausa.conversation)))!).pausada, true);
+    assert.equal(await client.pttl(pausaManualKey(pausa.conversation)), -1);
     assert.equal(await enqueueEvolutionEventWithClient(client, primeira), "duplicate");
     await enqueueEvolutionEventWithClient(client, evento(randomUUID(), true, base + 1));
-    assert.equal(await client.get(pausaManualKey(pausa.conversation)), String(pausa.ate + 1000));
+    assert.equal(JSON.parse((await client.get(pausaManualKey(pausa.conversation)))!).instante, pausa.instante + 1000);
     await enqueueEvolutionEventWithClient(client, evento(randomUUID(), true, base - 60));
-    assert.equal(await client.get(pausaManualKey(pausa.conversation)), String(pausa.ate + 1000));
+    assert.equal(JSON.parse((await client.get(pausaManualKey(pausa.conversation)))!).instante, pausa.instante + 1000);
     await enqueueEvolutionEventWithClient(client, evento(randomUUID(), false));
     for (let i = 0; i < 4; i++) await runAgentTick(dependencies);
     assert.equal(gera, 0); assert.equal(envia, 0);
     assert.equal(await client.xlen(streamKey), 0);
-    assert.equal(await pausaManualAtiva(client, pausa.conversation, pausa.ate + 1000), false);
-    await client.del(pausaManualKey(pausa.conversation));
-    await enqueueEvolutionEventWithClient(client, evento(randomUUID(), false));
+    assert.equal(await pausaManualAtiva(client, pausa.conversation, pausa.instante + 100 * 86400000), true);
+    const liberar = evento(randomUUID(), true, base + 2);
+    liberar.data = { ...liberar.data, message: { conversation: "Se precisar de algo mais, é só falar." } };
+    await enqueueEvolutionEventWithClient(client, liberar);
+    await runAgentTick(dependencies);
+    assert.equal(await pausaManualAtiva(client, pausa.conversation), false);
+    await enqueueEvolutionEventWithClient(client, evento(randomUUID(), false, base + 3));
     await runAgentTick(dependencies);
     assert.equal(gera, 1); assert.equal(envia, 1);
     const eco = evento("envio-1", true);
     assert.equal(await enqueueEvolutionEventWithClient(client, eco), "queued");
-    assert.equal(await client.get(pausaManualKey(pausa.conversation)), null, "Eco do agente não pausa.");
+    assert.equal(await pausaManualAtiva(client, pausa.conversation), false, "Eco do agente não pausa.");
   } finally {
     await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive, pausaManualKey(pausa.conversation));
     client.disconnect();
@@ -341,7 +383,7 @@ test("saída manual em lote somente com LID pausa o telefone associado e cancela
     assert.equal(await pausaManualAtiva(client, digest(`outro:${telefone}`)), false);
     assert.equal(await client.get(ciclo), null);
     assert.equal(await client.zscore(followupQueue, conversation), null);
-    assert.equal(await pausaManualAtiva(client, conversation, timestamp * 1000 + 1800000), false);
+    assert.equal(await pausaManualAtiva(client, conversation, timestamp * 1000 + 100 * 86400000), true);
   } finally {
     await client.del(streamKey, ciclo, pausaManualKey(conversation), pausaManualKey(conversaLid),
       `atendeia:{evolution}:contact-alias:${conversation}`, `atendeia:{evolution}:contact-alias:${conversaLid}`);

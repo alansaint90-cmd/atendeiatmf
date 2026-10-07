@@ -10,7 +10,7 @@ import { ProviderError } from "../src/lib/agent/providers";
 import { montarInstrucoesDoAgente } from "../src/lib/chatbots/prompt-servidor";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
 import { extrairNomeInformado, respostaComNome } from "../src/lib/agent/nome";
-import { pausaManualParaEvento } from "../src/lib/agent/pausa";
+import { pausaManualParaEvento, ehGatilhoRetomada } from "../src/lib/agent/pausa";
 
 const config: AgentConfig = { AI_ENABLED: "true", AI_SYSTEM_PROMPT: "Atenda com o contexto cadastrado.",
   OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "gpt-4.1-mini", EVOLUTION_API_KEY: "teste",
@@ -21,13 +21,17 @@ const event: EvolutionEvent = { event: "messages.upsert", instance: "teste", dat
 } };
 const message = incomingMessage(event, "teste", 1700000000000)!;
 
-test("somente saída manual individual cria prazo de 30 minutos", () => {
+test("saída manual pausa sem prazo; somente a frase de encerramento libera", () => {
   const saida: EvolutionEvent = { ...event, data: { key: { id: "mensagem-saida", fromMe: true,
     remoteJid: "123@lid", remoteJidAlt: "5511999999999@s.whatsapp.net" },
     messageTimestamp: 1700000000, message: { conversation: "Oi" } } };
   const pausa = pausaManualParaEvento(saida);
   assert.ok(pausa);
-  assert.equal(pausa.ate, 1700000000000 + 1800000);
+  assert.equal(pausa.instante, 1700000000000);
+  assert.equal(pausa.pausada, true);
+  assert.equal(ehGatilhoRetomada("Se precisar de algo mais, é só falar."), true);
+  assert.equal(ehGatilhoRetomada("SE PRECISAR DE ALGO MAIS E SO FALAR!"), true);
+  assert.equal(ehGatilhoRetomada("Se precisar de algo mais, é só falar. Obrigado!"), false);
   assert.equal(pausa.conversation, message.conversation);
   assert.equal(pausaManualParaEvento(event), null);
   assert.equal(pausaManualParaEvento({ ...saida, data: { key: { id: "grupo", fromMe: true,

@@ -17,8 +17,9 @@ import { executarAgendamentos } from "../agendamentos/worker";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
 import { db } from "../db/client";
 import { registrarEnvioIa } from "../operacao/atribuir-ia";
-import { pausaManualAtiva, pausarTransferencia } from "./pausa";
+import { pausaManualAtiva, pausarTransferencia, mensagemBloqueadaPorPausa } from "./pausa";
 import { transferirAtendimento } from "../operacao/transferir";
+import { instanciaPausada } from "./pausa-instancia";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -73,7 +74,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       let result = "ignorada";
       if (message && config.success) {
         const store = messageStore(client, token, message);
-        result = await pausaManualAtiva(client, message.conversation) ? "pausa_manual" : await processMessage(message, config.data, {
+        result = await instanciaPausada(client, instancia, message.timestamp) || await mensagemBloqueadaPorPausa(client, message.conversation, message.timestamp) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
           registrarParte: async id => {
             await followups.outgoing(instancia, id);
@@ -88,7 +89,8 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
             const currentBot = await dependencies.chatbot(instancia);
             const current = configurarAgente(settingsDaInstancia(currentSettings, instancia), currentBot);
             return current.success && JSON.stringify(current.data) === JSON.stringify(config.data)
-              && !await pausaManualAtiva(client, message.conversation)
+              && !await mensagemBloqueadaPorPausa(client, message.conversation, message.timestamp)
+              && !await instanciaPausada(client, instancia, message.timestamp)
               && await client.get(agentKeys.lock) === token;
           },
         });
@@ -121,6 +123,10 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
       if (!config.success) { await followups.finish(job, "cancelado"); return; }
       const followupConfig = followupDaInstancia(settings, instancia);
+      if (await instanciaPausada(client, instancia, job.started / 1000)
+        || await mensagemBloqueadaPorPausa(client, job.conversation, job.started / 1000)) {
+        await followups.finish(job, "cancelado"); return;
+      }
       await processFollowup(job, followupConfig, {
         save: followups.save, finish: result => followups.finish(job, result),
         enabled: async () => {
@@ -132,6 +138,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
             && configuracaoPermiteFollowup(job, currentFollowup)
             && currentFollowup.instance === config.data.EVOLUTION_INSTANCE_NAME
             && !await pausaManualAtiva(client, job.conversation)
+            && !await instanciaPausada(client, instancia, job.started / 1000)
             && await client.get(agentKeys.lock) === token && await client.xlen(streamKey) === 0;
         },
         send: (number, text) => dependencies.send(config.data, number, text),

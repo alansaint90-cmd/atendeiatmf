@@ -191,13 +191,15 @@ Não enviar marcadores como `[NOME]` ao WhatsApp nem presumir o nome de exibiç�
 Abertura opcional por chatbot usa até dois balões literais do painel, somente em
 saudação inicial sem histórico nem nome confirmado. Cada balão registra seu ID e
 revalida a pausa; entrega incerta nunca repete partes. Não duplicar a pergunta de nome.
-Mensagem individual `fromMe=true` enviada por humano pausa a resposta da IA por
-30 minutos desde a última saída manual. Ecos identificados dos envios da própria
-IA não pausam. Mensagens recebidas durante a pausa são arquivadas sem resposta
-automática; a IA volta a atender novas mensagens após o prazo.
+Mensagem individual `fromMe=true` enviada por humano pausa a resposta da IA sem
+prazo, até o atendente enviar manualmente “Se precisar de algo mais, é só falar.”
+Ecos da própria IA e mensagens do cliente não pausam/liberam por esse gatilho.
+Não responder mensagens acumuladas durante a pausa após a retomada. O botão em
+Chatbot IA pausa somente a instância selecionada; o mesmo gatilho manual a libera.
 Saídas manuais em lote ou apenas com LID também pausam. A associação LID/telefone
 usa somente pares explícitos recebidos da Evolution, separados por instância;
-nunca inferir telefone dos dígitos do LID. A pausa cancela o follow-up pendente.
+nunca inferir telefone dos dígitos do LID. A associação persiste para a pausa sem prazo.
+A pausa cancela o follow-up pendente; a retomada não reinicia ciclos antigos.
 
 Follow-ups e tags seguem ADR-0004 e ADR-0008. Actions exigem sessão individual
 e permissão de gerente ou superior. Não aceitar token administrativo como acesso.

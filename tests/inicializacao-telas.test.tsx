@@ -6,6 +6,7 @@ import { Settings } from "@/components/settings";
 import { chatbotExample } from "@/lib/chatbots/defaults";
 const actions = vi.hoisted(() => ({ carregar: vi.fn(), salvar: vi.fn() }));
 vi.mock("@/lib/actions/chatbots", () => ({ carregarChatbots: actions.carregar, salvarChatbot: actions.salvar }));
+vi.mock("@/components/chatbots/pausa-ia", () => ({ PausaIa: () => null }));
 
 afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 

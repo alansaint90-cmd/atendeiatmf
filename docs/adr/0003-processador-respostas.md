@@ -1,6 +1,7 @@
 # ADR-0003: Processamento de respostas WhatsApp
 
 - Status: Aceito para implementação; ativação externa explícita.
+- Pausa por intervenção manual substituída pela ADR-0014; demais decisões mantidas.
 - Data: 2026-09-16
 
 O webhook anterior somente enfileirava eventos. Implementamos um consumidor Redis

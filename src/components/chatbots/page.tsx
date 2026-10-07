@@ -5,6 +5,7 @@ import { chatbotExample } from "@/lib/chatbots/defaults";
 import type { ChatbotPersistido } from "@/lib/chatbots/server-repository";
 import { type Chatbot } from "@/lib/chatbots/schema";
 import { ChatbotEditor } from "./editor";
+import { PausaIa } from "./pausa-ia";
 
 export function ChatbotsPage() {
   const [itens, setItens] = useState<ChatbotPersistido[] | null>(null);
@@ -89,6 +90,7 @@ export function ChatbotsPage() {
         const registro = itens.find(item => item.id === instancias.find(canal => canal.nome === nome)?.chatbotId);
         setInstancia(nome); setSelected(registro?.id ?? ""); setContext(registro?.configuracao.context ?? ""); setDirty(false); setMessage(""); setError("");
       }}>{!instancias.length && <option value="">Configure uma instância em Configurações</option>}{instancias.map(canal => <option key={canal.nome} value={canal.nome}>{canal.nome}</option>)}</select></label>
+      {instancia && <PausaIa key={instancia} instancia={instancia} />}
       {visiveis.length ? <div className="table chatbot-table"><table><thead><tr><th>Identificador</th><th>Persona</th><th>Personalidade</th><th>Ações</th></tr></thead><tbody>{visiveis.map(item => <tr key={item.id}><td data-label="Identificador">{item.configuracao.identifier}</td><td data-label="Persona">{item.configuracao.persona}</td><td data-label="Personalidade">{item.configuracao.personalities.join(" · ")}</td><td data-label="Ações"><button className="secondary" disabled={saving} data-edit-bot={item.id} onClick={() => {
         if (!discard()) return; setDirty(false); setContext(selecionado?.configuracao.context ?? ""); setError(""); setEditor({ bot: item.configuracao, registro: item });
       }}>Configurar</button></td></tr>)}</tbody></table></div> : <p>Nenhum chatbot cadastrado. Crie o primeiro assistente.</p>}

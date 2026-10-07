@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 141 |
+| Arquivos TS/TSX | 146 |
 | Tabelas (Drizzle) | 31 |
-| Server Actions (arquivos) | 11 |
+| Server Actions (arquivos) | 12 |
 | Rotas de API | 6 |
 | Paginas | 4 |
-| Componentes | 18 |
+| Componentes | 19 |
 
 ## Arvore (profundidade 3)
 
@@ -45,6 +45,7 @@ components/
   chatbots/
     editor.tsx
     page.tsx
+    pausa-ia.tsx
   followups/
     page.tsx
   operacao/
@@ -72,6 +73,7 @@ lib/
     followups.ts
     operacao.ts
     painel.ts
+    pausa-ia.ts
     perfil.ts
     seguranca.ts
     sessoes.ts
@@ -84,8 +86,11 @@ lib/
   agent/
     audio.ts
     config.ts
+    controle-instancia.ts
+    controle-pausa.ts
     message.ts
     nome.ts
+    pausa-instancia.ts
     pausa.ts
     processor.ts
     providers.ts
@@ -302,6 +307,7 @@ _(colunas nao detectadas)_
 - `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
 - `src/lib/actions/operacao.ts`: `carregarOperacao()`
 - `src/lib/actions/painel.ts`: `carregarPainel()`
+- `src/lib/actions/pausa-ia.ts`: `consultarPausaIa()`, `pausarIaInstancia()`
 - `src/lib/actions/perfil.ts`: `carregarMeuPerfil()`, `salvarMeuPerfil()`
 - `src/lib/actions/seguranca.ts`: `trocarMinhaSenha()`, `minhasPasskeys()`, `removerMinhaPasskey()`
 - `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`, `sairDoSistema()`
