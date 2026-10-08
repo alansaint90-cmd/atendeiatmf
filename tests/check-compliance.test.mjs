@@ -170,6 +170,7 @@ try {
     ["transferência sem revisão do prompt reprova", reprova("agent/providers.ts", "mentoria-individual")],
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
     ["nome sem persistência separada reprova", reprova("agent/store.ts", "nome-cliente")],
+    ["worker sem contexto persistido reprova", reprova("agent/worker.ts", "nome-cliente")],
     ["worker sem pausa manual reprova", reprova("agent/worker.ts", "pausa-manual")],
     ["pedido direto condicionado ao prompt reprova", reprova("agent/transferencia.ts", "pausa-manual")],
     ["worker sem seleção da instância reprova", reprova("agent/worker.ts", "isolamento-instancias")],

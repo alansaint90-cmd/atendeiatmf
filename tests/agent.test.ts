@@ -94,11 +94,17 @@ test("não transforma saudação ou interesse em nome e bloqueia marcador em res
   assert.equal(await processMessage({ ...message, text: "Mentoria em grupo" }, config, f.port), "enviada");
   assert.equal(f.contactName(), null);
   assert.ok(!f.sentTexts[0].includes("[NOME]"));
-  assert.match(f.sentTexts[0], /qual é o seu nome\?/u);
+  assert.doesNotMatch(f.sentTexts[0], /qual.*nome|antes de começarmos|bem-vindo/iu);
   const retomada = fixture();
   await retomada.port.write({ status: "gerada", attempts: 1, reply: "Tudo bem, [NOME]!" });
   assert.equal(await processMessage(message, config, retomada.port), "enviada");
   assert.ok(!retomada.sentTexts[0].includes("[NOME]"));
+});
+
+test("posso saber seu nome já conta como pergunta e reconhece a resposta sem duplicar", () => {
+  const abertura = "Oi! Eu sou Derek. Posso saber seu nome para te ajudar?";
+  assert.equal(respostaComNome(abertura, null), abertura);
+  assert.equal(extrairNomeInformado("Carla", [{ role: "assistant", content: abertura }]), "Carla");
 });
 
 test("aceita apresentação explícita e usa o primeiro nome sem expor marcador", () => {

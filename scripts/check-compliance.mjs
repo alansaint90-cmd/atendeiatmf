@@ -404,7 +404,7 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O processador deve tratar o nome, filtrar revisões antigas e registrar cada balão da abertura antes de continuar." });
   }
-  if (rel === "src/lib/agent/store.ts" && !/\bcontactName\b[\s\S]*\brememberName\b/.test(content)) {
+  if ((rel === "src/lib/agent/store.ts" && (!/\bcontactName\b[\s\S]*\brememberName\b/.test(content) || !/EXPIRE', KEYS\[3\], 8640000/.test(content))) || (rel === "src/lib/agent/worker.ts" && !/mesclarHistorico\(await dependencies.historico/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O nome confirmado deve sobreviver ao histórico curto da conversa." });
   }

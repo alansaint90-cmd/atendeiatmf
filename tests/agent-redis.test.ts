@@ -15,6 +15,40 @@ import { pausaManualAtiva, pausaManualKey, pausaManualParaEvento } from "../src/
 import type { Turn } from "../src/lib/agent/providers";
 import { pausaInstanciaKey, instanciaPausada, pausarInstancia } from "../src/lib/agent/pausa-instancia";
 
+test("worker recupera atendimento humano persistido mesmo sem histórico Redis", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!; const alvo = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(alvo.hostname) && alvo.pathname === "/15");
+  const client = agentRedis(url); await client.connect();
+  const instance = `contexto-${randomUUID()}`;
+  const evento: EvolutionEvent = { event: "messages.upsert", instance, data: { key: { id: "retomada", fromMe: false,
+    remoteJid: "5511999999999@s.whatsapp.net" }, messageTimestamp: Math.floor(Date.now() / 1000), message: { conversation: "?" } } };
+  const mensagem = incomingMessage(evento, instance)!; const saidas: string[] = [];
+  try {
+    await enqueueEvolutionEventWithClient(client, evento);
+    await runAgentTick({ settings: async () => ({ AI_ENABLED: "true", OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "modelo",
+      EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste", EVOLUTION_INSTANCE_NAME: instance, REDIS_URL: url }),
+    chatbot: async () => ({ ...chatbotExample, context: "Atenda como Derek.", persona: "Derek" }),
+    historico: async (chip, atual) => {
+      assert.equal(chip, instance); assert.equal(atual.number, mensagem.number);
+      return [{ role: "assistant", content: "Qual é o seu nome?", origem: "humano" }, { role: "user", content: "Carla" },
+        { role: "assistant", content: "Ela está passando por avaliações?", origem: "humano" },
+        { role: "user", content: "Vai participar do campeonato Mineiro feminino." }];
+    }, generate: async (config, historico) => {
+      assert.match(config.AI_SYSTEM_PROMPT, /Nome confirmado pelo próprio cliente: Carla/);
+      assert.ok(historico.some(t => t.content === "Ela está passando por avaliações?"));
+      return "Carla, podemos continuar falando sobre a preparação para o campeonato.";
+    }, registrarEnvio: async () => {}, send: async (_config, _numero, texto) => { saidas.push(texto); return "saida-contexto"; } });
+    assert.deepEqual(saidas, ["Carla, podemos continuar falando sobre a preparação para o campeonato."]);
+    assert.equal((await messageStore(client, "sem-posse", mensagem).read())?.status, "enviada");
+    assert.ok(await client.ttl(`atendeia:{evolution}:history:${mensagem.conversation}`) > 99 * 86400);
+  } finally {
+    await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive,
+      `atendeia:{evolution}:history:${mensagem.conversation}`, `atendeia:{evolution}:name:${mensagem.conversation}`,
+      `atendeia:{evolution}:reply:${mensagem.identity}`);
+    client.disconnect();
+  }
+});
+
 test("botão pausa só a instância; gatilho de cliente ou eco não libera; manual libera", { skip: !process.env.TEST_REDIS_URL }, async () => {
   const url = process.env.TEST_REDIS_URL!; const alvo = new URL(url);
   assert.ok(["localhost", "127.0.0.1"].includes(alvo.hostname) && alvo.pathname === "/15");

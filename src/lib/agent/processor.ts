@@ -2,7 +2,7 @@ import type { AgentConfig } from "./config";
 import type { IncomingMessage } from "./message";
 import { digest } from "./message";
 import { ProviderError, type Turn, type RespostaGerada } from "./providers";
-import { extrairNomeInformado, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
+import { extrairNomeInformado, nomeInformadoNoHistorico, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
 import { avisoParaWellington } from "./transferencia";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean }
@@ -63,13 +63,14 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const candidato = extrairNomeInformado(transcript ?? message.text, historico);
       const apresentacaoExplicita = extrairNomeInformado(transcript ?? message.text, []);
       const informado = mesmoNome(candidato, persona) && !apresentacaoExplicita ? null : candidato;
-      const salvo = await port.contactName?.() ?? null;
+      const salvo = nomeInformadoNoHistorico(historico) ?? await port.contactName?.() ?? null;
       const confirmadoNoHistorico = historico.some(turno => turno.role === "user" && mesmoNome(extrairNomeInformado(turno.content, []), salvo));
       const nome = informado ?? (mesmoNome(salvo, persona) && !confirmadoNoHistorico ? null : salvo);
       if (informado && port.rememberName) await port.rememberName(informado);
-      const instrucoes = `${instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0)}\nNão use o nome da assistente como rótulo ou prefixo das mensagens. Preserve a apresentação natural no início da conversa.`;
+      else if (nome && port.rememberName) await port.rememberName(nome);
+      const instrucoes = `${instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0)}\nNão use o nome da assistente como rótulo ou prefixo das mensagens.${historico.length ? "\nNão reinicie o atendimento. Continue do último assunto, dúvida ou pergunta pendente no histórico, inclusive o atendimento humano. Uma saudação ou mensagem curta como '?' pede continuidade. Não repita apresentação, acolhimento inicial ou perguntas já respondidas. A configuração atual da persona e do prompt prevalece sobre o histórico." : " Preserve a apresentação natural no início da conversa."}`;
       // Preservar o histórico armazenado, mas não ensinar novamente uma persona ou roteiro antigo.
-      const contextoAtual = persona ? historico.filter(turno => turno.role === "user" || turno.revisao === revisao) : historico;
+      const contextoAtual = persona ? historico.filter(turno => turno.role === "user" || turno.origem === "humano" || turno.revisao === revisao) : historico;
       const saudacao = /^(?:oi+|ol[aá]+|bom dia|boa tarde|boa noite)[\s!.😊👋]*$/iu.test((transcript ?? message.text).trim());
       if (!nome && !historico.length && !message.midia && saudacao && config.openingMessages?.length) partes = config.openingMessages;
       const avisoWellington = avisoParaWellington(config, transcript ?? message.text);
@@ -80,7 +81,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
         transferencia = true;
         reply = avisoWellington ?? (config.atendimento.transferNotice.replace(/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu, nome?.split(" ")[0] ?? "").trim()
           || "Vou encaminhar seu atendimento para nossa equipe.");
-      } else reply = partes ? gerada : removerRotuloDaPersona(respostaComNome(gerada, nome), persona);
+      } else reply = partes ? gerada : removerRotuloDaPersona(respostaComNome(gerada, nome, historico.length === 0), persona);
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
@@ -92,7 +93,8 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   }
   if (!await port.enabled()) return "pausada";
   if (!state.partes && !state.transferencia && /\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(state.reply!)) {
-    state = { ...state, reply: respostaComNome(state.reply!, await port.contactName?.() ?? null) };
+    const historico = await port.history();
+    state = { ...state, reply: respostaComNome(state.reply!, nomeInformadoNoHistorico(historico) ?? await port.contactName?.() ?? null, historico.length === 0) };
     await port.write(state);
   }
   const semRotulo = state.transferencia || state.partes ? state.reply! : removerRotuloDaPersona(state.reply!, personaDoAgente(config.AI_SYSTEM_PROMPT));
@@ -118,7 +120,8 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   }
   // Estado e histórico são confirmados juntos. Se falhar, permanece "enviando".
   await port.complete({ ...state, status: "enviada" }, [
-    { role: "user", content: state.transcript ?? message.text, revisao }, { role: "assistant", content: state.reply!, revisao },
+    { role: "user", content: state.transcript ?? message.text, revisao, origem: "cliente", identidade: message.identity, instante: message.timestamp * 1000 },
+    { role: "assistant", content: state.reply!, revisao, origem: "ia", identidade: digest(`${config.EVOLUTION_INSTANCE_NAME}:${state.providerId}`), instante: Date.now() },
   ]);
   return "enviada";
 }

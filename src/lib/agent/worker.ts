@@ -20,6 +20,9 @@ import { registrarEnvioIa } from "../operacao/atribuir-ia";
 import { pausaManualAtiva, pausarTransferencia, mensagemBloqueadaPorPausa } from "./pausa";
 import { transferirAtendimento } from "../operacao/transferir";
 import { instanciaPausada } from "./pausa-instancia";
+import { historicoDaConversa, mesclarHistorico } from "./historico";
+import type { IncomingMessage } from "./message";
+import type { Turn } from "./providers";
 
 const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
@@ -31,10 +34,12 @@ function report(status: string) {
 const dependenciasPadrao = { settings: effectiveSettings, generate: generateReply, send: sendReply,
   transferir: (instancia: string, numero: string, destino: string) => transferirAtendimento(db(), instancia, numero, destino),
   registrarEnvio: (instancia: string, id: string) => registrarEnvioIa(db(), instancia, id),
-  chatbot: (instancia: string) => chatbotDaInstancia(db(), instancia) };
+  chatbot: (instancia: string) => chatbotDaInstancia(db(), instancia),
+  historico: (instancia: string, mensagem: IncomingMessage) => historicoDaConversa(db(), instancia, mensagem) };
 export async function runAgentTick(substituicoes: Partial<typeof dependenciasPadrao> = {}) {
   const dependencies = { ...dependenciasPadrao, ...substituicoes,
-    chatbot: substituicoes.chatbot ?? (Object.keys(substituicoes).length ? async () => null : dependenciasPadrao.chatbot) };
+    chatbot: substituicoes.chatbot ?? (Object.keys(substituicoes).length ? async () => null : dependenciasPadrao.chatbot),
+    historico: substituicoes.historico ?? (Object.keys(substituicoes).length ? async (): Promise<Turn[]> => [] : dependenciasPadrao.historico) };
   const settings = await dependencies.settings();
   if (!settings.REDIS_URL) { report("Redis não configurado"); return; }
   const client = agentRedis(settings.REDIS_URL);
@@ -76,6 +81,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         const store = messageStore(client, token, message);
         result = await instanciaPausada(client, instancia, message.timestamp) || await mensagemBloqueadaPorPausa(client, message.conversation, message.timestamp) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
+          history: async () => mesclarHistorico(await dependencies.historico(instancia, message), await store.history()),
           registrarParte: async id => {
             await followups.outgoing(instancia, id);
             await dependencies.registrarEnvio(instancia, id);

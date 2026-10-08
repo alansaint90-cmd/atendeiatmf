@@ -1,6 +1,6 @@
 import type { Turn } from "./providers";
 
-const perguntaNome = /(?:qual\s+(?:(?:é|e)\s+)?(?:o\s+)?seu\s+nome|como\s+(?:posso|devo)\s+(?:te|lhe)\s+chamar|como\s+(?:você\s+)?prefere\s+ser\s+chamad[oa])/iu;
+const perguntaNome = /(?:qual\s+(?:(?:é|e)\s+)?(?:o\s+)?seu\s+nome|(?:posso|poderia)\s+saber\s+(?:o\s+)?seu\s+nome|como\s+(?:posso|devo)\s+(?:te|lhe)\s+chamar|como\s+(?:você\s+)?prefere\s+ser\s+chamad[oa])/iu;
 const marcadorNome = /\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu;
 const palavrasQueNaoSaoNome = new Set([
   "oi", "olá", "ola", "sim", "não", "nao", "obrigado", "obrigada", "quero", "gostaria",
@@ -28,16 +28,24 @@ export function extrairNomeInformado(texto: string, historico: Turn[]): string |
   return nomeValido(resposta);
 }
 
-export function instrucoesComNome(instrucoes: string, nome: string | null, primeiroContato: boolean) {
-  if (nome) return `${instrucoes}\n\nNome confirmado pelo próprio cliente: ${nome}. Use o primeiro nome naturalmente nesta resposta. Substitua qualquer marcador de nome pelo nome confirmado.`;
-  return `${instrucoes}\n\n${primeiroContato ? "Na primeira resposta, apresente-se e pergunte o nome do cliente antes de avançar na conversa." : "O nome do cliente ainda não foi confirmado; pergunte como ele prefere ser chamado."} Nunca envie marcadores de modelo ao cliente.`;
+export function nomeInformadoNoHistorico(historico: Turn[]): string | null {
+  let confirmado: string | null = null;
+  for (let i = 0; i < historico.length; i++) if (historico[i].role === "user") {
+    confirmado = extrairNomeInformado(historico[i].content, historico.slice(0, i)) ?? confirmado;
+  }
+  return confirmado;
 }
 
-export function respostaComNome(resposta: string, nome: string | null): string {
+export function instrucoesComNome(instrucoes: string, nome: string | null, primeiroContato: boolean) {
+  if (nome) return `${instrucoes}\n\nNome confirmado pelo próprio cliente: ${nome}. Use o primeiro nome naturalmente nesta resposta. Substitua qualquer marcador de nome pelo nome confirmado.`;
+  return `${instrucoes}\n\n${primeiroContato ? "Na primeira resposta, apresente-se e pergunte o nome do cliente antes de avançar na conversa." : "O atendimento já começou. Não reinicie a apresentação nem repita a pergunta de nome; dê continuidade ao assunto anterior, sem inventar o nome do cliente."} Nunca envie marcadores de modelo ao cliente.`;
+}
+
+export function respostaComNome(resposta: string, nome: string | null, primeiroContato = true): string {
   if (!nome) {
     const limpa = resposta.split("\n").filter(linha => !/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(linha)).join("\n").trim();
-    const texto = limpa || "Olá! 😊 Seja bem-vindo(a).";
-    return perguntaNome.test(texto) ? texto : `${texto}\n\nAh, antes de começarmos, qual é o seu nome?`;
+    const texto = limpa || (primeiroContato ? "Olá! 😊 Seja bem-vindo(a)." : "Como posso ajudar a continuar o atendimento?");
+    return !primeiroContato || perguntaNome.test(texto) ? texto : `${texto}\n\nAh, antes de começarmos, qual é o seu nome?`;
   }
   const tratamento = nome.split(" ")[0];
   const preenchida = resposta.replace(marcadorNome, tratamento).trim();

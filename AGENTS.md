@@ -188,6 +188,12 @@ essa regra e a migração 0009 corrige o trecho legado já armazenado.
 O agente pergunta o nome no início da conversa, guarda somente o nome informado
 pelo cliente no Redis por até 100 dias e usa o primeiro nome nas respostas seguintes.
 Não enviar marcadores como `[NOME]` ao WhatsApp nem presumir o nome de exibição.
+Retomada consulta os últimos 40 textos de até 100 dias no PostgreSQL por chip e
+cliente, incluindo intervenção humana e entradas durante a pausa, sem respondê-las
+retroativamente. Mescla com Redis por identidade; o cache também dura 100 dias.
+Falas humanas permanecem no contexto, mas revisões antigas da IA ficam fora.
+Recupera somente nome informado no histórico; não repete apresentação ou pergunta
+de nome numa conversa em andamento. A persona e o prompt atuais têm prioridade.
 Abertura opcional por chatbot usa até dois balões literais do painel, somente em
 saudação inicial sem histórico nem nome confirmado. Cada balão registra seu ID e
 revalida a pausa; entrega incerta nunca repete partes. Não duplicar a pergunta de nome.
