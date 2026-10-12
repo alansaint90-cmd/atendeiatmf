@@ -6,6 +6,7 @@ import { pausaInstanciaKey } from "../agent/pausa-instancia";
 import { db } from "../db/client";
 import { chatbotDaInstancia } from "../chatbots/server-repository";
 import { gatilhoRetomada } from "../chatbots/gatilho-retorno";
+import { z } from "zod";
 
 export const streamKey = "atendeia:{evolution}:events";
 // Atomic deduplication and enqueue. Capacity failures never silently discard data.
@@ -60,7 +61,10 @@ async function getRedis(url: string): Promise<Redis> {
 
 export async function enqueueEvolutionEvent(event: EvolutionEvent, url: string): Promise<"queued" | "duplicate"> {
   const client = await getRedis(url);
-  const chatbot = await chatbotDaInstancia(db(), event.instance);
+  // Só uma saída manual precisa ler o gatilho; entradas/status não dependem do cadastro.
+  const itens = Array.isArray(event.data) ? event.data : [event.data];
+  const manual = event.event === "messages.upsert" && itens.some(item => z.object({ key: z.object({ fromMe: z.literal(true) }) }).safeParse(item).success);
+  const chatbot = manual ? await chatbotDaInstancia(db(), event.instance) : null;
   return enqueueEvolutionEventWithClient(client, event, chatbot?.returnTrigger ?? gatilhoRetomada);
 }
 

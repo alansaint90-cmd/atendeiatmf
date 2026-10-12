@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 149 |
+| Arquivos TS/TSX | 150 |
 | Tabelas (Drizzle) | 31 |
 | Server Actions (arquivos) | 12 |
 | Rotas de API | 6 |
@@ -88,6 +88,7 @@ lib/
     config.ts
     controle-instancia.ts
     controle-pausa.ts
+    fila.ts
     fluxos.ts
     historico.ts
     message.ts

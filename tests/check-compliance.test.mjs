@@ -198,6 +198,16 @@ try {
     ["worker sem pausa manual reprova", reprova("agent/worker.ts", "pausa-manual")],
     ["pedido direto condicionado ao prompt reprova", reprova("agent/transferencia.ts", "pausa-manual")],
     ["worker sem seleção da instância reprova", reprova("agent/worker.ts", "isolamento-instancias")],
+    ["fila exige alternância, ordem por chip e posse", () => {
+      const arquivo = join(dir, "src/lib/agent/fila.ts");
+      const correto = "primeiros.has(instancia); instancias.indexOf(ultimaInstancia); assertResult(await client.eval(owned));";
+      for (const [conteudo, esperado] of [[correto, true], [correto.replace("primeiros.has(instancia)", ""), false],
+        [correto.replace("instancias.indexOf(ultimaInstancia)", ""), false], [correto.replace("assertResult(await client.eval(owned))", ""), false]]) {
+        writeFileSync(arquivo, conteudo, "utf8");
+        const resultado = spawnSync(process.execPath, [AUDITOR, "--json", "--file", arquivo], { cwd: dir, encoding: "utf8" });
+        assert.equal(JSON.parse(resultado.stdout).ok, esperado);
+      }
+    }],
     ["configuração sem terceiro chip reprova", reprova("evolution/instancias.ts", "isolamento-instancias")],
     ["separação que ignora canais antigos reprova", reprova("chatbots/instancias.ts", "isolamento-instancias")],
     ["salvamento sem separação transacional e versão reprova", reprova("chatbots/server-repository.ts", "isolamento-instancias")],

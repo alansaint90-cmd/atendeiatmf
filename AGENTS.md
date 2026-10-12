@@ -181,6 +181,11 @@ O agente de respostas segue ADR-0003. Código em `src/lib/agent/`; ativação ex
 por ATENDEIA_WORKER_ENABLED e AI_ENABLED. Não iniciar testes locais com credenciais
 de produção. Testes de provedores usam mocks. Teste Redis usa apenas serviço local
 descartável no banco 15. Nunca repetir automaticamente entrega incerta.
+A fila alterna as instâncias mantendo o evento mais antigo de cada chip. Falha em
+um chatbot não monopoliza os outros; pendente é preservado e o diagnóstico registra
+somente etapa e instância, sem erro privado. Status da Evolution não consulta chatbot;
+entrada do cliente não depende do cadastro para enfileirar. Saída manual continua
+consultando o gatilho atual antes de registrar pausa/retomada, sem fallback em erro.
 Para a Thaís/TMF, atendimento e mentoria com Wellington Junior são exclusivamente
 individuais. Não reintroduzir oferta coletiva no prompt salvo ou nas instruções
 montadas; o grupo de WhatsApp do evento é um assunto distinto. O auditor fiscaliza

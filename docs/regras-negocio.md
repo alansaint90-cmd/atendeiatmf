@@ -23,6 +23,7 @@
 - Toda leitura e gravação passa pela validação centralizada. Dados inválidos não são substituídos automaticamente.
 - Uma gravação é recusada se outro usuário ou aba alterou os dados desde a leitura. A versão é conferida na transação do banco; o usuário deve recarregar antes de tentar novamente.
 - O painel exige sessão individual. A página Configurações, a consulta de integrações e o estado do agente são exclusivos do super administrador; o gerente configura o chatbot SDR em Chatbot IA. Respostas por IA dependem da ativação explícita no servidor e nas configurações.
+- A fila alterna as instâncias mantendo a ordem dos eventos de cada chip. Uma falha no cadastro ou processamento de um número não impede a tentativa nos demais. O evento com erro permanece pendente e preserva o diário de entrega; envio incerto nunca é repetido. Diagnóstico e log informam etapa e instância sem texto, credenciais ou erro privado. Confirmações de leitura/conexão não carregam chatbot; a entrada do cliente é enfileirada sem depender de sua configuração. Saídas manuais consultam o gatilho atual antes de registrar controle; falha nessa consulta não libera nem modifica a pausa.
 
 ## Credenciais de integrações
 

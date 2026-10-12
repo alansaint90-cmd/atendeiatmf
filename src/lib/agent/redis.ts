@@ -3,6 +3,7 @@ import Redis from "ioredis";
 export const agentKeys = {
   lock: "atendeia:{evolution}:agent-lock", heartbeat: "atendeia:{evolution}:agent-status",
   archive: "atendeia:{evolution}:processed", group: "atendeia-agent-v1", consumer: "serial",
+  lastInstance: "atendeia:{evolution}:agent-last-instance",
 };
 export function agentRedis(url: string) {
   const client = new Redis(url, { lazyConnect: true, connectTimeout: 5000, commandTimeout: 5000,

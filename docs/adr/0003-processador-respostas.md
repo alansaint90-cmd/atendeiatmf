@@ -29,6 +29,18 @@ de mudar checkpoints, confirmar histórico ou arquivar/confirmar a fila. A execu
 serial favorece consistência em instalação pequena; aumentar paralelismo exige
 particionar por conversa e rever a recuperação, não apenas aumentar réplicas.
 
+Revisão em 2026-10-12: selecionar sempre o primeiro pendente permitia que um erro
+de leitura do chatbot monopolizasse a fila compartilhada dos três chips. O consumidor
+fixo reserva os eventos disponíveis dentro da capacidade de 1000 e alterna a instância
+selecionada, escolhendo sempre o evento mais antigo daquele chip. O último chip
+selecionado persiste no Redis sob a mesma lease. Mantém execução serial, ordem por
+chip, recuperação após reinício e o diário que impede repetir entrega incerta.
+Erro não confirma nem descarta o evento; diagnóstico registra etapa fixa e instância,
+sem expor a exceção do driver. Não consulta chatbot para confirmações de leitura ou
+conexão. No recebimento, só saídas manuais precisam consultar o gatilho do chatbot;
+mensagens do cliente entram mesmo se o cadastro estiver indisponível. Uma falha na
+consulta do gatilho manual continua recusando a entrada, sem liberar pausa indevida.
+
 Saída manual individual `fromMe=true` registra no Redis, junto com a entrada
 autenticada na fila, uma pausa de 30 minutos para aquela conversa. O prazo usa
 o horário do evento e só aumenta com uma saída manual mais recente. O marcador

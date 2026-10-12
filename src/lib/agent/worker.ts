@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
 import { effectiveSettings } from "../settings/repository";
 import { evolutionEventSchema } from "../evolution/schema";
 import { streamKey } from "../evolution/queue";
@@ -23,8 +22,8 @@ import { instanciaPausada } from "./pausa-instancia";
 import { historicoDaConversa, mesclarHistorico } from "./historico";
 import type { IncomingMessage } from "./message";
 import type { Turn } from "./providers";
+import { lerEventoDaFila } from "./fila";
 
-const streamResult = z.array(z.tuple([z.string(), z.array(z.tuple([z.string(), z.array(z.string())]))]));
 let started = false;
 let lastLog = "";
 function report(status: string) {
@@ -40,13 +39,17 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
   const dependencies = { ...dependenciasPadrao, ...substituicoes,
     chatbot: substituicoes.chatbot ?? (Object.keys(substituicoes).length ? async () => null : dependenciasPadrao.chatbot),
     historico: substituicoes.historico ?? (Object.keys(substituicoes).length ? async (): Promise<Turn[]> => [] : dependenciasPadrao.historico) };
-  const settings = await dependencies.settings();
+  const settings = await dependencies.settings().catch(() => null);
+  if (!settings) { report("falha_leitura_configuracoes; confira banco, migrações e chave de criptografia no servidor"); return false; }
   if (!settings.REDIS_URL) { report("Redis não configurado"); return; }
   const client = agentRedis(settings.REDIS_URL);
   const token = randomUUID();
+  let etapa = "conexao_redis";
+  let instancia = "";
   try {
     await client.connect();
     if (!await client.set(agentKeys.lock, token, "PX", 120000, "NX")) return;
+    etapa = "configuracao";
     const config = agentBaseConfigSchema.safeParse(settings);
     const status = settings.AI_ENABLED !== "true" ? "desativado" : config.success ? "ativo" : "configuracao_incompleta";
     const previous = await client.get(agentKeys.heartbeat);
@@ -56,25 +59,21 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
     report(status);
     if (!config.success) return;
     const followups = followupStore(client, token);
-    try { await client.xgroup("CREATE", streamKey, agentKeys.group, "0", "MKSTREAM"); }
-    catch (error) { if (!(error instanceof Error) || !error.message.includes("BUSYGROUP")) throw error; }
-    // Consumidor fixo + lease global recuperam o primeiro pendente antes de ler novos.
-    let raw = await client.xreadgroup("GROUP", agentKeys.group, agentKeys.consumer, "COUNT", 1, "STREAMS", streamKey, "0");
-    let entries = streamResult.parse(raw ?? [])[0]?.[1] ?? [];
-    if (!entries.length) {
-      raw = await client.xreadgroup("GROUP", agentKeys.group, agentKeys.consumer, "COUNT", 1, "STREAMS", streamKey, ">");
-      entries = streamResult.parse(raw ?? [])[0]?.[1] ?? [];
-    }
+    etapa = "leitura_fila";
+    const selecionado = await lerEventoDaFila(client, token);
+    const entries = selecionado ? [selecionado] : [];
     for (const [id, fields] of entries) {
       const payload = fields[fields.indexOf("payload") + 1] ?? "{}";
       let value: unknown;
       try { value = JSON.parse(payload); } catch { value = null; }
       const parsed = evolutionEventSchema.safeParse(value);
-      const instancia = parsed.success ? parsed.data.instance : "";
+      instancia = parsed.success ? parsed.data.instance : "";
       const configuracaoInstancia = settingsDaInstancia(settings, instancia);
-      const chatbot = configuracaoInstancia ? await dependencies.chatbot(instancia) : null;
+      etapa = "leitura_chatbot";
+      const chatbot = configuracaoInstancia && parsed.success && parsed.data.event === "messages.upsert" ? await dependencies.chatbot(instancia) : null;
       const config = configurarAgente(configuracaoInstancia, chatbot);
       const followupConfig = followupDaInstancia(settings, instancia);
+      etapa = "observacao_followup";
       if (parsed.success && config.success) await followups.observe(parsed.data, instancia);
       const message = parsed.success && configuracaoInstancia ? incomingMessage(parsed.data, instancia, Date.now(), chatbot?.transferMedia) : null;
       let result = "ignorada";
@@ -82,6 +81,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       let lastFlow: string | null = null;
       if (message && !config.success) result = !chatbot ? "chatbot_nao_vinculado" : !chatbot.context.trim() ? "prompt_ausente" : "configuracao_incompleta";
       if (message && config.success) {
+        etapa = "processamento_mensagem";
         const store = messageStore(client, token, message);
         result = await instanciaPausada(client, instancia, message.timestamp) || await mensagemBloqueadaPorPausa(client, message.conversation, message.timestamp) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
@@ -119,6 +119,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
           }
         }
       }
+      etapa = "confirmacao_evento";
       if (message) await client.set(agentKeys.heartbeat, JSON.stringify({ status: "ativo", at: new Date().toISOString(),
         lastResult: result, lastCode, lastFlow, lastInstance: instancia, lastAt: new Date().toISOString() }), "EX", 180);
       if (result !== "repetir" && result !== "pausada") {
@@ -128,9 +129,10 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       report(result);
       return result !== "repetir" && result !== "pausada";
     }
+    etapa = "processamento_followup";
     const job = await followups.due();
     if (job) {
-      const instancia = job.instance ?? settings.EVOLUTION_INSTANCE_NAME ?? "";
+      instancia = job.instance ?? settings.EVOLUTION_INSTANCE_NAME ?? "";
       const chatbot = settingsDaInstancia(settings, instancia) ? await dependencies.chatbot(instancia) : null;
       const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
       if (!config.success) { await followups.finish(job, "cancelado"); return; }
@@ -160,6 +162,14 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         },
       });
     }
+  } catch {
+    // Erro do driver pode incluir credenciais ou texto. Expor somente a etapa fixa.
+    const lastCode = `falha_${etapa}`;
+    report(`${lastCode}${instancia ? ` na instância ${instancia}` : ""}; evento preservado para nova tentativa`);
+    if (client.status === "ready") await client.eval(owned + "redis.call('SET', KEYS[2], ARGV[2], 'EX', 180); return 1",
+      2, agentKeys.lock, agentKeys.heartbeat, token, JSON.stringify({ status: "falha", at: new Date().toISOString(),
+        lastResult: "falha_processamento", lastCode, lastInstance: instancia || null, lastAt: new Date().toISOString() })).catch(() => {});
+    return false;
   } finally {
     if (client.status === "ready") await client.eval(owned + "redis.call('DEL', KEYS[1]); return 1", 1, agentKeys.lock, token).catch(() => {});
     client.disconnect();
