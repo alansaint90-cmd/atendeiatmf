@@ -185,7 +185,8 @@ Para a Thaís/TMF, atendimento e mentoria com Wellington Junior são exclusivame
 individuais. Não reintroduzir oferta coletiva no prompt salvo ou nas instruções
 montadas; o grupo de WhatsApp do evento é um assunto distinto. O auditor fiscaliza
 essa regra e a migração 0009 corrige o trecho legado já armazenado.
-O agente pergunta o nome no início da conversa, guarda somente o nome informado
+O agente pergunta o nome no início sem condicionar a resposta ao pedido específico
+do cliente ao fornecimento do nome. Guarda somente o nome informado
 pelo cliente no Redis por até 100 dias e usa o primeiro nome nas respostas seguintes.
 Não enviar marcadores como `[NOME]` ao WhatsApp nem presumir o nome de exibição.
 Retomada consulta os últimos 40 textos de até 100 dias no PostgreSQL por chip e
@@ -243,6 +244,11 @@ Gerente ou superior configura o prompt do chatbot SDR em Chatbot IA; apenas esse
 chatbot vinculado à instância fornece instruções para respostas. AI_SYSTEM_PROMPT
 legado pode ser lido para compatibilidade, mas não é exibido, editado nem usado.
 Não embutir roteiros comerciais ou catálogos de produtos no modelo inicial do chatbot.
+O fluxo adicional de levaelava para a promoção de R$ 13,90 recebe o pedido sobre
+a promoção da madrugada (00h às 06h), explica a lavagem noturna e envia o endereço
+e Maps do prompt atual. Fica em Fluxos inteligentes, editável no painel; conserva
+o prompt principal e os outros números. Após a recepção, segue a próxima pergunta
+pelo atendimento normal, sem repetir o fluxo automaticamente nem inventar localização.
 Dados antigos do navegador não podem ser importados automaticamente para o servidor.
 Persona, gênero e tom atuais prevalecem sobre exemplos e histórico antigo. Respostas
 da IA levam a revisão das instruções; revisões antigas não voltam ao contexto do modelo.

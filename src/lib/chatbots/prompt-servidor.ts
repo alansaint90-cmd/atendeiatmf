@@ -26,6 +26,7 @@ export function montarInstrucoesDoAgente(chatbot: Chatbot | null): string {
     `Somente se não houver orientação aplicável para responder: ${chatbot.fallback}`,
     `Transferência humana: ${chatbot.transferHuman ? `habilitada para ${chatbot.destination}. Siga primeiro o procedimento específico do prompt para o pedido do cliente; acione transferir_para_humano quando esse procedimento determinar o encaminhamento, quando o cliente insistir em falar diretamente com uma pessoa ou quando não houver orientação aplicável. O servidor enviará o aviso salvo; não invente confirmação de transferência.` : "desabilitada. Não prometa transferir nem diga que transferiu."}`,
     "Fluxos inteligentes:",
+    "Acione cada fluxo somente quando a intenção do cliente corresponder ao gatilho cadastrado. Para esse pedido, siga as instruções específicas do fluxo; nas próximas mensagens, continue pelo prompt principal conforme a nova pergunta, sem repetir a recepção do fluxo automaticamente.",
     fluxos,
     "CONFIGURAÇÃO ATUAL — prevalece sobre exemplos do prompt e falas anteriores:",
     `Seu nome é ${chatbot.persona}. Apresente-se exclusivamente com esse nome, no gênero ${chatbot.gender}. O identificador ${chatbot.identifier} é interno, não é o nome do cliente.`,

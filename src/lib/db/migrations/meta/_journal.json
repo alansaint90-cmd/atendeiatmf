@@ -78,6 +78,13 @@
       "when": 1791316625636,
       "tag": "0010_abertura_levaelava",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791806400000,
+      "tag": "0011_promocao_madrugada_levaelava",
+      "breakpoints": true
     }
   ]
 }

@@ -97,6 +97,7 @@ const CASOS = {
   "src/components/chatbots/page.tsx": "export const importar = () => localStorage.getItem('antigo');",
   "src/lib/chatbots/prompt-servidor.ts": "export const montar = (contextoGeral) => contextoGeral;",
   "src/lib/agent/processor.ts": "export const processar = (resposta) => enviar(resposta);",
+  "src/lib/agent/nome.ts": "export const instrucoesComNome = () => 'Pergunte o nome antes de responder o pedido';",
   "src/lib/agent/providers.ts": "export const generateReply = () => ({ transferir: true });",
   "src/lib/agent/store.ts": "export const historico = (cliente) => cliente.lrange('history', 0, -1);",
   "src/lib/agent/worker.ts": "export const runAgentTick = async () => true;",
@@ -167,8 +168,20 @@ try {
     ["importação automática do navegador reprova", reprova("chatbots/page.tsx", "prompt-legado")],
     ["orquestrador no prompt do chatbot reprova", reprova("chatbots/prompt-servidor.ts", "orquestrador-legado")],
     ["instrução individual ausente reprova", reprova("chatbots/prompt-servidor.ts", "mentoria-individual")],
+    ["prompt exige instruções dos fluxos e acionamento por intenção", () => {
+      const arquivo = join(dir, "src/lib/chatbots/prompt-servidor.ts");
+      const correto = 'export const instrucoes = "exclusivamente individuais; Antes do fallback ou da transferência; Acione cada fluxo somente"; export const fluxos = chatbot.flows.map(f => f.description);';
+      try {
+        for (const [conteudo, esperado] of [[correto, true], [correto.replace("Acione cada fluxo somente", ""), false], [correto.replace("chatbot.flows.map", "outraFonte.map"), false]]) {
+          writeFileSync(arquivo, conteudo, "utf8");
+          const resultado = spawnSync(process.execPath, [AUDITOR, "--json", "--file", arquivo], { cwd: dir, encoding: "utf8" });
+          assert.equal(JSON.parse(resultado.stdout).ok, esperado);
+        }
+      } finally { writeFileSync(arquivo, CASOS["src/lib/chatbots/prompt-servidor.ts"], "utf8"); }
+    }],
     ["transferência sem revisão do prompt reprova", reprova("agent/providers.ts", "mentoria-individual")],
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
+    ["pedido condicionado ao nome reprova", reprova("agent/nome.ts", "nome-cliente")],
     ["nome sem persistência separada reprova", reprova("agent/store.ts", "nome-cliente")],
     ["worker sem contexto persistido reprova", reprova("agent/worker.ts", "nome-cliente")],
     ["worker sem pausa manual reprova", reprova("agent/worker.ts", "pausa-manual")],

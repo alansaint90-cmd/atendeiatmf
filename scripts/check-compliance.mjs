@@ -396,11 +396,11 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
       msg: "O contexto geral legado não pode compor as instruções do chatbot." });
   }
-  if ((rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content))) || (rel === "src/lib/agent/providers.ts" && (!/return revisarTransferencia\(config, history, text, request, signal\)/.test(content) || !/config.AI_SYSTEM_PROMPT.includes\(trecho\)/.test(content)))) {
+  if ((rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content) || !/Acione cada fluxo somente/.test(content) || !/chatbot.flows.map/.test(content))) || (rel === "src/lib/agent/providers.ts" && (!/return revisarTransferencia\(config, history, text, request, signal\)/.test(content) || !/config.AI_SYSTEM_PROMPT.includes\(trecho\)/.test(content)))) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
-      msg: "As instruções devem afirmar a mentoria individual e priorizar o prompt antes de fallback ou transferência." });
+      msg: "As instruções devem preservar mentoria individual, usar os fluxos cadastrados por intenção e priorizar o prompt antes de fallback ou transferência." });
   }
-  if (rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content))) {
+  if ((rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content))) || (rel === "src/lib/agent/nome.ts" && !/não condicione a explicação ao fornecimento do nome/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O processador deve tratar o nome, filtrar revisões antigas e registrar cada balão da abertura antes de continuar." });
   }

@@ -38,7 +38,7 @@ export function nomeInformadoNoHistorico(historico: Turn[]): string | null {
 
 export function instrucoesComNome(instrucoes: string, nome: string | null, primeiroContato: boolean) {
   if (nome) return `${instrucoes}\n\nNome confirmado pelo próprio cliente: ${nome}. Use o primeiro nome naturalmente nesta resposta. Substitua qualquer marcador de nome pelo nome confirmado.`;
-  return `${instrucoes}\n\n${primeiroContato ? "Na primeira resposta, apresente-se e pergunte o nome do cliente antes de avançar na conversa." : "O atendimento já começou. Não reinicie a apresentação nem repita a pergunta de nome; dê continuidade ao assunto anterior, sem inventar o nome do cliente."} Nunca envie marcadores de modelo ao cliente.`;
+  return `${instrucoes}\n\n${primeiroContato ? "Na primeira resposta, apresente-se e pergunte o nome do cliente uma única vez. Se houver um pedido específico, responda a ele conforme o prompt e os fluxos na mesma resposta; não condicione a explicação ao fornecimento do nome." : "O atendimento já começou. Não reinicie a apresentação nem repita a pergunta de nome; dê continuidade ao assunto anterior, sem inventar o nome do cliente."} Nunca envie marcadores de modelo ao cliente.`;
 }
 
 export function respostaComNome(resposta: string, nome: string | null, primeiroContato = true): string {
