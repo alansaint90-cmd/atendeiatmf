@@ -9,7 +9,7 @@ import { transcribeAudio } from "./audio";
 import { processMessage } from "./processor";
 import { agentRedis, agentKeys, owned } from "./redis";
 import { finishEvent, messageStore } from "./store";
-import { followupDaInstancia, settingsDaInstancia } from "../evolution/instancias";
+import { followupDaInstancia, settingsDaInstancia, instanciasConfiguradas } from "../evolution/instancias";
 import { followupStore } from "../followups/queue";
 import { configuracaoPermiteFollowup, processFollowup } from "../followups/processor";
 import { executarAgendamentos } from "../agendamentos/worker";
@@ -60,7 +60,7 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
     if (!config.success) return;
     const followups = followupStore(client, token);
     etapa = "leitura_fila";
-    const selecionado = await lerEventoDaFila(client, token);
+    const selecionado = await lerEventoDaFila(client, token, instanciasConfiguradas(settings));
     const entries = selecionado ? [selecionado] : [];
     for (const [id, fields] of entries) {
       const payload = fields[fields.indexOf("payload") + 1] ?? "{}";

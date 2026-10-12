@@ -32,7 +32,8 @@ particionar por conversa e rever a recuperação, não apenas aumentar réplicas
 Revisão em 2026-10-12: selecionar sempre o primeiro pendente permitia que um erro
 de leitura do chatbot monopolizasse a fila compartilhada dos três chips. O consumidor
 fixo reserva os eventos disponíveis dentro da capacidade de 1000 e alterna a instância
-selecionada, escolhendo sempre o evento mais antigo daquele chip. O último chip
+selecionada na ordem fixa dos chips configurados, escolhendo o evento mais antigo
+daquele chip. Esvaziar uma instância não muda a ordem da alternância. O último chip
 selecionado persiste no Redis sob a mesma lease. Mantém execução serial, ordem por
 chip, recuperação após reinício e o diário que impede repetir entrega incerta.
 Erro não confirma nem descarta o evento; diagnóstico registra etapa fixa e instância,
