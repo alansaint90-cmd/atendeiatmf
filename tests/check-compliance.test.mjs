@@ -181,6 +181,17 @@ try {
     }],
     ["transferência sem revisão do prompt reprova", reprova("agent/providers.ts", "mentoria-individual")],
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
+    ["processador exige gatilho salvo e instruções do fluxo ativado", () => {
+      const arquivo = join(dir, "src/lib/agent/processor.ts");
+      const correto = 'extrairNomeInformado; respostaComNome; turno.revisao === revisao; await port.registrarParte(); fluxoAcionado(config.flows, transcript ?? message.text); instrucoesDoFluxo(); avisoParaWellington(config, transcript ?? message.text);';
+      try {
+        for (const [conteudo, esperado] of [[correto, true], [correto.replace("fluxoAcionado", "outro"), false], [correto.replace("instrucoesDoFluxo", "outro"), false]]) {
+          writeFileSync(arquivo, conteudo, "utf8");
+          const resultado = spawnSync(process.execPath, [AUDITOR, "--json", "--file", arquivo], { cwd: dir, encoding: "utf8" });
+          assert.equal(JSON.parse(resultado.stdout).ok, esperado);
+        }
+      } finally { writeFileSync(arquivo, CASOS["src/lib/agent/processor.ts"], "utf8"); }
+    }],
     ["pedido condicionado ao nome reprova", reprova("agent/nome.ts", "nome-cliente")],
     ["nome sem persistência separada reprova", reprova("agent/store.ts", "nome-cliente")],
     ["worker sem contexto persistido reprova", reprova("agent/worker.ts", "nome-cliente")],

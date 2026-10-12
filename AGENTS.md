@@ -249,6 +249,11 @@ a promoção da madrugada (00h às 06h), explica a lavagem noturna e envia o end
 e Maps do prompt atual. Fica em Fluxos inteligentes, editável no painel; conserva
 o prompt principal e os outros números. Após a recepção, segue a próxima pergunta
 pelo atendimento normal, sem repetir o fluxo automaticamente nem inventar localização.
+Frases de ativação dos fluxos ficam salvas no chatbot (até 20 por fluxo) e são
+reconhecidas antes da geração, tolerando caixa, acentos, pontuação e R$ opcional.
+O fluxo correspondente recebe prioridade somente na mensagem atual, com o prompt
+principal disponível. Gatilho de cliente nunca libera pausa humana ou da instância.
+Diagnóstico identifica instância, fluxo acionado, pausa e ausência de chatbot/prompt.
 Dados antigos do navegador não podem ser importados automaticamente para o servidor.
 Persona, gênero e tom atuais prevalecem sobre exemplos e histórico antigo. Respostas
 da IA levam a revisão das instruções; revisões antigas não voltam ao contexto do modelo.

@@ -85,6 +85,13 @@
       "when": 1791806400000,
       "tag": "0011_promocao_madrugada_levaelava",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791846000000,
+      "tag": "0012_gatilho_promocional_levaelava",
+      "breakpoints": true
     }
   ]
 }

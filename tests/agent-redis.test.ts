@@ -11,6 +11,7 @@ import type { EvolutionEvent } from "../src/lib/evolution/schema";
 import { defaultFollowup } from "../src/lib/followups/schema";
 import { followupStore, followupQueue } from "../src/lib/followups/queue";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
+import type { Chatbot } from "../src/lib/chatbots/schema";
 import { pausaManualAtiva, pausaManualKey, pausaManualParaEvento } from "../src/lib/agent/pausa";
 import type { Turn } from "../src/lib/agent/providers";
 import { pausaInstanciaKey, instanciaPausada, pausarInstancia } from "../src/lib/agent/pausa-instancia";
@@ -45,6 +46,50 @@ test("worker recupera atendimento humano persistido mesmo sem histórico Redis",
     await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive,
       `atendeia:{evolution}:history:${mensagem.conversation}`, `atendeia:{evolution}:name:${mensagem.conversation}`,
       `atendeia:{evolution}:reply:${mensagem.identity}`);
+    client.disconnect();
+  }
+});
+
+test("worker diagnostica terceiro número sem chatbot, fluxo acionado e pausa sem envio", { skip: !process.env.TEST_REDIS_URL }, async () => {
+  const url = process.env.TEST_REDIS_URL!; const alvo = new URL(url);
+  assert.ok(["localhost", "127.0.0.1"].includes(alvo.hostname) && alvo.pathname === "/15");
+  const client = agentRedis(url); await client.connect();
+  const instancia = `fluxo-${randomUUID()}`;
+  const evento = (): EvolutionEvent => ({ instance: instancia, event: "messages.upsert", data: {
+    key: { id: randomUUID(), fromMe: false, remoteJid: "551199998888@s.whatsapp.net", remoteJidAlt: "551199998888@s.whatsapp.net", addressingMode: "lid" },
+    messageTimestamp: Math.floor(Date.now() / 1000), message: { conversation: "quero saber sobre a promoção de 13,90" } } });
+  const mensagens: NonNullable<ReturnType<typeof incomingMessage>>[] = [];
+  let chatbot: Chatbot | null = null; let envios = 0;
+  const dependencies = { settings: async () => ({ AI_ENABLED: "true" as const, OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "modelo",
+    EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste", EVOLUTION_INSTANCE_NAME: "principal-teste",
+    EVOLUTION_THIRD_INSTANCE_NAME: instancia, REDIS_URL: url }),
+    chatbot: async (chip: string) => { assert.equal(chip, instancia); return chatbot; }, registrarEnvio: async () => {},
+    generate: async (config: AgentConfig) => { assert.match(config.AI_SYSTEM_PROMPT, /FLUXO ATIVADO PARA ESTA MENSAGEM: Promoção/); return "R$ 13,90 das 00h às 06h."; },
+    send: async () => { envios++; return randomUUID(); } };
+  const processar = async () => {
+    const recebido = evento(); mensagens.push(incomingMessage(recebido, instancia)!);
+    await enqueueEvolutionEventWithClient(client, recebido);
+    await runAgentTick(dependencies);
+    return JSON.parse((await client.get(agentKeys.heartbeat))!);
+  };
+  try {
+    assert.equal((await processar()).lastResult, "chatbot_nao_vinculado");
+    assert.equal(envios, 0);
+    chatbot = { ...chatbotExample, context: "" };
+    assert.equal((await processar()).lastResult, "prompt_ausente");
+    chatbot = { ...chatbotExample, context: "Prompt atual", flows: [{ name: "Promoção", description: "Procedimento da campanha",
+      triggers: ["quero saber sobre a promoção de 13,90"] }] };
+    const ativo = await processar();
+    assert.equal(ativo.lastResult, "enviada"); assert.equal(ativo.lastFlow, "Promoção"); assert.equal(ativo.lastInstance, instancia);
+    assert.equal(envios, 1);
+    await pausarInstancia(client, instancia);
+    const pausado = await processar();
+    assert.equal(pausado.lastResult, "pausa_manual"); assert.equal(pausado.lastFlow, null); assert.equal(envios, 1);
+  } finally {
+    await client.del(streamKey, agentKeys.lock, agentKeys.heartbeat, agentKeys.archive, pausaInstanciaKey(instancia));
+    for (const mensagem of mensagens) await client.del(`atendeia:{evolution}:reply:${mensagem.identity}`,
+      `atendeia:{evolution}:history:${mensagem.conversation}`, `atendeia:{evolution}:name:${mensagem.conversation}`,
+      `atendeia:{evolution}:followup:${mensagem.conversation}`);
     client.disconnect();
   }
 });

@@ -10,6 +10,22 @@ da promoção da madrugada. Não altera schema, prompt principal, persona ou abe
 Não há catálogo comercial no worker nem nova IA para selecionar o fluxo: a
 intenção e os procedimentos são instruções salvas e editáveis pelo gerente.
 
+Revisão em 2026-10-12: a descrição sozinha deixava o reconhecimento do gatilho
+ao modelo. Cada fluxo passa a aceitar frases explícitas opcionais no cadastro.
+O processador compara a mensagem atual (ou transcrição) às frases do chatbot
+da instância e acrescenta o procedimento correspondente ao fim das instruções,
+com prioridade para esse pedido. Normaliza caixa, acentos, pontuação e R$ opcional,
+preservando o valor. Não busca substrings, não aceita negação adicionada à frase
+e não mantém fluxo ativo na próxima pergunta. Fluxos sem frases continuam sendo
+orientações semânticas. Não há recepção comercial codificada no processador.
+
+A migração 0012 preenche as frases do fluxo legado sem substituir descrição editada
+ou lista de frases já configurada. Se o cadastro não existia ao executar 0011,
+acrescenta o fluxo ao vínculo atual, com a mesma separação, versão e auditoria.
+O estado de entrega registra o nome do fluxo; o diagnóstico informa instância e
+bloqueios sem expor conteúdo ou credenciais. Reconhecimento nunca contorna pausa:
+somente o gatilho manual do atendente libera atendimento, conforme ADR-0014.
+
 As instruções de nome não condicionam a explicação do pedido ao nome do cliente;
 ele continua sendo perguntado uma única vez no primeiro contato. As instruções
 gerais delimitam o fluxo ao pedido correspondente e retomam o

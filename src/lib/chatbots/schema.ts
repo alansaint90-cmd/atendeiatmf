@@ -13,7 +13,8 @@ export const chatbotSchema = z.object({
   destination: z.enum(["Atendimento humano", "Comercial", "Suporte", "Financeiro"]),
   transferNotice: z.string().max(10000), closingPhrase: z.string().max(500),
   returnTrigger: z.string().trim().min(1, "Preencha a frase do gatilho de retorno.").max(500).refine(texto => /[\p{L}\p{N}]/u.test(texto), "O gatilho precisa conter letras ou números.").optional(),
-  flows: z.array(z.object({ name, description: z.string().trim().min(1).max(10000) })).max(50),
+  flows: z.array(z.strictObject({ name, description: z.string().trim().min(1).max(10000),
+    triggers: z.array(z.string().trim().min(1, "Preencha a frase de ativação.").max(500, "Cada frase de ativação aceita até 500 caracteres.").refine(texto => /[\p{L}\p{N}]/u.test(texto), "O gatilho do fluxo precisa conter letras ou números.")).max(20, "Cadastre até 20 frases de ativação por fluxo.").optional() })).max(50),
   temperature: z.number().min(0).max(1), contextRevision: z.string().optional(),
 });
 export type Chatbot = z.infer<typeof chatbotSchema>;

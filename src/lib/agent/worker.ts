@@ -50,9 +50,9 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
     const config = agentBaseConfigSchema.safeParse(settings);
     const status = settings.AI_ENABLED !== "true" ? "desativado" : config.success ? "ativo" : "configuracao_incompleta";
     const previous = await client.get(agentKeys.heartbeat);
-    const last = previous ? JSON.parse(previous) as { lastResult?: string; lastCode?: string; lastAt?: string } : {};
+    const last = previous ? JSON.parse(previous) as { lastResult?: string; lastCode?: string; lastAt?: string; lastInstance?: string; lastFlow?: string } : {};
     await client.set(agentKeys.heartbeat, JSON.stringify({ status, at: new Date().toISOString(),
-      lastResult: last.lastResult, lastCode: last.lastCode, lastAt: last.lastAt }), "EX", 180);
+      lastResult: last.lastResult, lastCode: last.lastCode, lastAt: last.lastAt, lastInstance: last.lastInstance, lastFlow: last.lastFlow }), "EX", 180);
     report(status);
     if (!config.success) return;
     const followups = followupStore(client, token);
@@ -71,12 +71,16 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
       try { value = JSON.parse(payload); } catch { value = null; }
       const parsed = evolutionEventSchema.safeParse(value);
       const instancia = parsed.success ? parsed.data.instance : "";
-      const chatbot = settingsDaInstancia(settings, instancia) ? await dependencies.chatbot(instancia) : null;
-      const config = configurarAgente(settingsDaInstancia(settings, instancia), chatbot);
+      const configuracaoInstancia = settingsDaInstancia(settings, instancia);
+      const chatbot = configuracaoInstancia ? await dependencies.chatbot(instancia) : null;
+      const config = configurarAgente(configuracaoInstancia, chatbot);
       const followupConfig = followupDaInstancia(settings, instancia);
       if (parsed.success && config.success) await followups.observe(parsed.data, instancia);
-      const message = parsed.success && config.success ? incomingMessage(parsed.data, instancia, Date.now(), config.data.atendimento?.transferMedia) : null;
+      const message = parsed.success && configuracaoInstancia ? incomingMessage(parsed.data, instancia, Date.now(), chatbot?.transferMedia) : null;
       let result = "ignorada";
+      let lastCode: string | null = null;
+      let lastFlow: string | null = null;
+      if (message && !config.success) result = !chatbot ? "chatbot_nao_vinculado" : !chatbot.context.trim() ? "prompt_ausente" : "configuracao_incompleta";
       if (message && config.success) {
         const store = messageStore(client, token, message);
         result = await instanciaPausada(client, instancia, message.timestamp) || await mensagemBloqueadaPorPausa(client, message.conversation, message.timestamp) ? "pausa_manual" : await processMessage(message, config.data, {
@@ -102,6 +106,8 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         });
         if (result === "pausada" && await pausaManualAtiva(client, message.conversation)) result = "pausa_manual";
         const state = await store.read();
+        lastCode = state?.code ?? null;
+        lastFlow = state?.fluxo ?? null;
         if (state?.status === "enviada" && state.providerId) {
           // Estados antigos não registravam cada parte antes da confirmação.
           if (!state.providerIds?.includes(state.providerId)) {
@@ -112,9 +118,9 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
             await followups.schedule(message, followupConfig);
           }
         }
-        await client.set(agentKeys.heartbeat, JSON.stringify({ status: "ativo", at: new Date().toISOString(),
-          lastResult: result, lastCode: state?.code ?? null, lastAt: new Date().toISOString() }), "EX", 180);
       }
+      if (message) await client.set(agentKeys.heartbeat, JSON.stringify({ status: "ativo", at: new Date().toISOString(),
+        lastResult: result, lastCode, lastFlow, lastInstance: instancia, lastAt: new Date().toISOString() }), "EX", 180);
       if (result !== "repetir" && result !== "pausada") {
         const archive = JSON.stringify({ event: parsed.success ? parsed.data.event : "invalido", message });
         await finishEvent(client, token, id, archive, result);

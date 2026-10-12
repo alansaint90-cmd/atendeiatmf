@@ -4,8 +4,9 @@ import { digest } from "./message";
 import { ProviderError, type Turn, type RespostaGerada } from "./providers";
 import { extrairNomeInformado, nomeInformadoNoHistorico, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
 import { avisoParaWellington } from "./transferencia";
+import { fluxoAcionado, instrucoesDoFluxo } from "./fluxos";
 
-export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean }
+export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
@@ -49,6 +50,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     let reply: string;
     let transferencia = false;
     let partes: string[] | undefined;
+    let fluxo: string | undefined;
     try {
       if (message.audio && !transcript) {
         if (!port.transcribe) throw new ProviderError("audio_transcricao_indisponivel");
@@ -59,6 +61,8 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
         if (!await port.enabled()) return "pausada";
       }
       const historico = await port.history();
+      const acionado = fluxoAcionado(config.flows, transcript ?? message.text);
+      fluxo = acionado?.name;
       const persona = personaDoAgente(config.AI_SYSTEM_PROMPT);
       const candidato = extrairNomeInformado(transcript ?? message.text, historico);
       const apresentacaoExplicita = extrairNomeInformado(transcript ?? message.text, []);
@@ -68,11 +72,11 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const nome = informado ?? (mesmoNome(salvo, persona) && !confirmadoNoHistorico ? null : salvo);
       if (informado && port.rememberName) await port.rememberName(informado);
       else if (nome && port.rememberName) await port.rememberName(nome);
-      const instrucoes = `${instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0)}\nNão use o nome da assistente como rótulo ou prefixo das mensagens.${historico.length ? "\nNão reinicie o atendimento. Continue do último assunto, dúvida ou pergunta pendente no histórico, inclusive o atendimento humano. Uma saudação ou mensagem curta como '?' pede continuidade. Não repita apresentação, acolhimento inicial ou perguntas já respondidas. A configuração atual da persona e do prompt prevalece sobre o histórico." : " Preserve a apresentação natural no início da conversa."}`;
+      const instrucoes = instrucoesDoFluxo(`${instrucoesComNome(config.AI_SYSTEM_PROMPT, nome, historico.length === 0)}\nNão use o nome da assistente como rótulo ou prefixo das mensagens.${historico.length ? "\nNão reinicie o atendimento. Continue do último assunto, dúvida ou pergunta pendente no histórico, inclusive o atendimento humano. Uma saudação ou mensagem curta como '?' pede continuidade. Não repita apresentação, acolhimento inicial ou perguntas já respondidas. A configuração atual da persona e do prompt prevalece sobre o histórico." : " Preserve a apresentação natural no início da conversa."}`, acionado);
       // Preservar o histórico armazenado, mas não ensinar novamente uma persona ou roteiro antigo.
       const contextoAtual = persona ? historico.filter(turno => turno.role === "user" || turno.origem === "humano" || turno.revisao === revisao) : historico;
       const saudacao = /^(?:oi+|ol[aá]+|bom dia|boa tarde|boa noite)[\s!.😊👋]*$/iu.test((transcript ?? message.text).trim());
-      if (!nome && !historico.length && !message.midia && saudacao && config.openingMessages?.length) partes = config.openingMessages;
+      if (!acionado && !nome && !historico.length && !message.midia && saudacao && config.openingMessages?.length) partes = config.openingMessages;
       const avisoWellington = avisoParaWellington(config, transcript ?? message.text);
       const gerada = partes ? partes.join("\n\n") : avisoWellington || (message.midia && config.atendimento?.transferMedia) ? { transferir: true }
         : await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, contextoAtual, transcript ?? message.text);
@@ -85,10 +89,10 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
-      await port.write({ status: attempts >= 3 ? "falhou" : "gerando", attempts, code, configHash, transcript });
+      await port.write({ status: attempts >= 3 ? "falhou" : "gerando", attempts, code, configHash, transcript, fluxo });
       return attempts >= 3 ? "falhou" : "repetir";
     }
-    state = { status: "gerada", attempts, reply, partes, configHash, transcript, transferencia };
+    state = { status: "gerada", attempts, reply, partes, configHash, transcript, transferencia, fluxo };
     await port.write(state);
   }
   if (!await port.enabled()) return "pausada";

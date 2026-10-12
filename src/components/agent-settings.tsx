@@ -18,7 +18,7 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
       const response = await fetch("/api/settings/agent", { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Falha ao consultar agente.");
-      setDiagnostic(`Processador: ${result.workerEnabled ? "habilitado" : "desabilitado no servidor"}. Respostas: ${result.enabled ? "ativadas" : "desativadas"}. Fila: ${result.queued}. Estado: ${result.worker?.status ?? "sem sinal do processador"}. Último resultado: ${result.worker?.lastResult ?? "nenhum"}. Código: ${result.worker?.lastCode ?? "nenhum"}.`);
+      setDiagnostic(`Processador: ${result.workerEnabled ? "habilitado" : "desabilitado no servidor"}. Respostas: ${result.enabled ? "ativadas" : "desativadas"}. Fila: ${result.queued}. Estado: ${result.worker?.status ?? "sem sinal do processador"}. Último resultado: ${result.worker?.lastResult ?? "nenhum"}. Código: ${result.worker?.lastCode ?? "nenhum"}. Instância: ${result.worker?.lastInstance ?? "nenhuma"}. Fluxo acionado: ${result.worker?.lastFlow ?? "nenhum"}.${result.worker?.lastResult === "pausa_manual" ? " A IA está pausada. O atendente deve enviar manualmente a frase de retorno configurada no chatbot; depois, o cliente pode repetir o pedido." : ""}`);
     } catch (error) { setError(errorMessage(error)); }
     finally { setLoading(false); }
   }, []);
@@ -34,5 +34,6 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
     <small>As respostas usam somente o prompt do chatbot SDR configurado em Chatbot IA. Sem um chatbot com prompt vinculado à instância, o agente não responde. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
     {loading && <p role="status">Consultando agente e fila…</p>}
     {diagnostic && <p role="status">{diagnostic}</p>}{error && <p role="alert">{error}</p>}
+    <button type="button" className="secondary" disabled={loading} onClick={() => void check()}>Atualizar diagnóstico</button>
   </fieldset>;
 }

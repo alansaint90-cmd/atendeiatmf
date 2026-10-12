@@ -400,9 +400,9 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
       msg: "As instruções devem preservar mentoria individual, usar os fluxos cadastrados por intenção e priorizar o prompt antes de fallback ou transferência." });
   }
-  if ((rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content))) || (rel === "src/lib/agent/nome.ts" && !/não condicione a explicação ao fornecimento do nome/.test(content))) {
+  if ((rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content) || !/fluxoAcionado\(config.flows, transcript \?\? message.text\)/.test(content) || !/instrucoesDoFluxo\(/.test(content))) || (rel === "src/lib/agent/nome.ts" && !/não condicione a explicação ao fornecimento do nome/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
-      msg: "O processador deve tratar o nome, filtrar revisões antigas e registrar cada balão da abertura antes de continuar." });
+      msg: "O processador deve tratar nome, revisões, registrar cada balão e reconhecer gatilhos dos fluxos salvos." });
   }
   if ((rel === "src/lib/agent/store.ts" && (!/\bcontactName\b[\s\S]*\brememberName\b/.test(content) || !/EXPIRE', KEYS\[3\], 8640000/.test(content))) || (rel === "src/lib/agent/worker.ts" && !/mesclarHistorico\(await dependencies.historico/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,

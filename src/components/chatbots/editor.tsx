@@ -21,7 +21,8 @@ export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Pro
   return <dialog ref={dialog} className="bot-dialog" aria-labelledby="bot-title" onCancel={onClose}>
     <form className="bot-form" onSubmit={event => {
       event.preventDefault();
-      const parsed = chatbotSchema.safeParse({ ...draft, openingMessages: draft.openingMessages?.map(texto => texto.trim()).filter(Boolean) });
+      const parsed = chatbotSchema.safeParse({ ...draft, openingMessages: draft.openingMessages?.map(texto => texto.trim()).filter(Boolean),
+        flows: draft.flows.map(fluxo => ({ ...fluxo, triggers: fluxo.triggers?.map(frase => frase.trim()).filter(Boolean) })) });
       if (!parsed.success) { setValidation(parsed.error.issues[0].message); return; }
       setValidation(""); onSave(parsed.data);
     }}>
@@ -55,7 +56,8 @@ export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Pro
         </section>
         <section className="bot-section"><h2>Fluxos inteligentes</h2><p>Descreva quando cada fluxo deve ser acionado durante a conversa.</p>{draft.flows.map((flow, index) => <div className="bot-flow-row" key={index}>
           <label>Nome do fluxo<input data-flow-name value={flow.name} required onChange={e => update("flows", draft.flows.map((item, i) => i === index ? { ...item, name: e.target.value } : item))} /></label>
-          <label>Quando acionar este fluxo?<textarea data-flow-description value={flow.description} required onChange={e => update("flows", draft.flows.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} /></label>
+          <div className="grid gap-3"><label>Frases de ativação (uma por linha)<textarea rows={3} value={flow.triggers?.join("\n") ?? ""} onChange={e => update("flows", draft.flows.map((item, i) => i === index ? { ...item, triggers: e.target.value.split("\n") } : item))} /><small>Até 20 frases completas. O sistema reconhece variações de maiúsculas, acentos e pontuação. Sem frases, a IA identifica a intenção pela descrição.</small></label>
+          <label>Quando acionar este fluxo?<textarea data-flow-description value={flow.description} required onChange={e => update("flows", draft.flows.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} /></label></div>
           <button type="button" className="secondary" onClick={() => update("flows", draft.flows.filter((_, i) => i !== index))}>Remover</button>
         </div>)}<button type="button" className="primary" data-add-flow disabled={draft.flows.length >= 50} onClick={() => update("flows", [...draft.flows, { name: "", description: "" }])}>+ Adicionar fluxo</button></section>
         <section className="bot-section"><h2>Temperatura</h2><p>Valores menores priorizam precisão. Valores maiores aumentam a variedade das respostas. Sugestão: 0,5 para uso geral, próximo de 0 para cálculos e 0,8 para comunicação criativa.</p><label className="bot-temperature">Criatividade das respostas<output>{draft.temperature.toFixed(1).replace(".", ",")}</output><input name="temperature" type="range" min="0" max="1" step="0.1" value={draft.temperature} onChange={e => update("temperature", Number(e.target.value))} /></label><div className="bot-range-labels"><span>0 · Mais preciso</span><span>1 · Mais criativo</span></div></section>
