@@ -38,7 +38,8 @@ jobs:
       - run: pnpm ai-marks
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm exec tsx --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./scripts/relatorio-testes-ci.mjs --test-reporter-destination=stdout tests/*.test.ts
+      - run: pnpm test:ui
       - run: pnpm docs:check
       - run: pnpm build
 # Deploy permanece no EasyPanel. Nenhum reset/SSH/PM2 é executado por este workflow.
