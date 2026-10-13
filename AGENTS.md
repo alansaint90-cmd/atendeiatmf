@@ -5,6 +5,11 @@
 
 ## Contexto
 
+Recuperação de senha usa SMTP com TLS e origem fixa. O pedido público não confirma
+existência da conta. Link de 15 minutos, hash no banco e consumo único transacional
+com versão do usuário. Não ativa contas nem altera papéis/passkeys. Redefinir revoga
+sessões, desafios e convites; aplica a política central. Nunca expor token em logs.
+
 Sistema de atendimento e configuração de chatbots para WhatsApp, integrado à Evolution. Credenciais e dados de atendimento devem ser preservados; a interface ainda contém módulos demonstrativos.
 
 ## Stack (fechada — não reabrir sem ADR)

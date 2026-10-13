@@ -73,3 +73,17 @@ até haver integração de cobrança, exibe o estado indisponível sem simular d
 
 Testes usam banco descartável e provedores simulados; não enviam WhatsApp real.
 O scanner de actions exige sessão e await na guarda de permissão, incluindo aliases.
+
+### Recuperação por e-mail (2026-10-13)
+
+O endpoint público `/api/auth/recuperacao` usa origem fixa, JSON limitado, controles por
+conta/origem e resposta genérica com piso de tempo. O envio SMTP ocorre após a
+resposta, sem revelar existência da conta pelo tempo de entrega. SMTP exige TLS;
+sem configuração o serviço informa indisponibilidade para todos os endereços.
+Tokens de 32 bytes são armazenados somente como hash na tabela aditiva
+atendeia_users_recuperacoes (migração 0013), válidos por 15 minutos. A autorização
+para redefinir é o token de uso único e a versão da conta ativa; não exige sessão
+prévia. Usuário travado e consumo condicional serializam links concorrentes.
+Troca e auditoria são atômicas, revogam sessões/convites/desafios/outros links e
+preservam passkeys e privilégios. Não há login automático. A política de senha
+existente permanece centralizada. O fragmento do link é removido antes do POST.

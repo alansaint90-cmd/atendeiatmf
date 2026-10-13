@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 function mensagemFalha(status: number): string {
   if (status === 401 || status === 403) return "E-mail ou senha incorretos.";
@@ -79,5 +80,6 @@ export function FormularioLogin() {
       <CampoSenha id="login-senha" titulo="Senha" valor={senha} aoAlterar={setSenha} />
       <button type="submit" className="primary" disabled={carregando}>{carregando ? "Entrando…" : "Entrar"}</button>
     </form>
+    <Link href="/recuperar-senha">Esqueci minha senha</Link>
   </section>;
 }

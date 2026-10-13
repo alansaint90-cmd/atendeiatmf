@@ -1,5 +1,14 @@
 # Regras do protótipo
 
+## Recuperação de senha
+
+- A entrada oferece “Esqueci minha senha”. Conta ativa com senha pode solicitar link por e-mail; a resposta é igual para conta inexistente, suspensa ou limitada. O pedido não altera senha nem encerra sessões.
+- SMTP exige TLS, remetente e credenciais no ambiente. Sem configuração, a tela informa indisponibilidade. AUTH_ORIGIN define a origem do link. Falhas de entrega são registradas sem destinatário, token ou credenciais.
+- Token aleatório de 32 bytes, hash no banco, validade de 15 minutos e consumo único transacional. A versão do usuário invalida o link após mudanças de conta. O link usa fragmento removido pela tela, evitando token nos logs HTTP.
+- Redefinir aplica a política central, audita e revoga sessões, desafios, convites e outros links. Preserva papel, passkeys e estado da conta; não cria sessão automaticamente. Há limites por conta, token e origem confiável.
+
+## Atendimento
+
 - O agente usa exclusivamente a configuração do chatbot SDR vinculado à instância Evolution: persona, missão, prompt de atendimento, fallback, transferência e fluxos. O contexto geral legado do orquestrador pode continuar armazenado para compatibilidade, mas não é exibido nem enviado à IA. Sem chatbot com prompt, o worker não responde. Alterações do chatbot salvas por gerente ou super administrador valem para as próximas mensagens processadas.
 - Pedido direto de falar com Welington ou Wellington usa uma regra local: registra o encaminhamento para o setor cadastrado, cancela follow-ups, pausa e envia “Vou transferir seu atendimento para o Wellington. Aguarde alguns instantes, por favor.”. Não depende da presença do nome no prompt, da opção genérica de transferência ou do modelo. Perguntas informativas e pedidos negados não acionam essa regra; as demais transferências mantêm as opções do painel. Falha no registro não envia confirmação e entrega incerta não é repetida.
 - No início da conversa, o agente pergunta o nome do cliente se ele ainda não se apresentou, sem condicionar a resposta a um pedido específico ao fornecimento do nome. Depois de informado, usa o primeiro nome nas respostas seguintes. O nome confirmado fica no Redis por até 100 dias, separado do histórico curto; uma apresentação explícita pode corrigi-lo. Marcadores de modelo, como `[NOME]`, nunca são enviados ao WhatsApp. Sem nome confirmado, o agente pede como chamar o cliente em vez de inventar um nome.
@@ -37,7 +46,7 @@
 
 ## Estrutura PostgreSQL
 
-- A instalação atual é de uma única empresa. O schema Drizzle em `src/lib/db/schema.ts` define usuários, sessões, departamentos, membros, contatos, etiquetas, vínculos de etiquetas, chatbots, fluxos, canais, conversas, mensagens, campanhas, destinatários e auditoria. Com as extensões de identidade, CRM, agendamentos e recibos de webhook, mais as tabelas de configuração e migrações, são 32 tabelas.
+- A instalação atual é de uma única empresa. O schema Drizzle em `src/lib/db/schema.ts` define usuários, sessões, departamentos, membros, contatos, etiquetas, vínculos de etiquetas, chatbots, fluxos, canais, conversas, mensagens, campanhas, destinatários e auditoria. Com as extensões de identidade, recuperação de senha, CRM, agendamentos e recibos de webhook, mais as tabelas de configuração e migrações, são 34 tabelas no banco migrado.
 - As migrações SQL versionadas são aplicadas pelo servidor na inicialização, quando existe `DATABASE_URL`, ou pelo comando `pnpm db:migrate`. O banco deve existir (PostgreSQL 16) e o usuário deve poder criar tabelas. Não há conexão nem alteração do banco durante o build.
 - O Docker inclui os arquivos de migração. A aplicação usa uma transação e trava PostgreSQL para serializar deploys; checksum impede editar uma migração já aplicada. Novas mudanças exigem novas migrações (`pnpm db:generate`). Não executar `drizzle-kit push` sobre produção.
 - O bootstrap preserva as tabelas e os valores de credenciais das versões anteriores. As migrações não importam os exemplos da interface ou prompts salvos no navegador.

@@ -92,6 +92,13 @@
       "when": 1791846000000,
       "tag": "0012_gatilho_promocional_levaelava",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791925498619,
+      "tag": "0013_recuperacao_senha",
+      "breakpoints": true
     }
   ]
 }

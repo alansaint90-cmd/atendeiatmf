@@ -35,7 +35,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { join, extname, relative, basename, resolve } from "node:path";
 import { colunasDasFabricas } from "./colunas-fabricas.mjs";
-
+import { recuperacaoInsegura } from "./auditar-recuperacao.mjs";
 const ROOT = process.cwd();
 const MAX_LINES = 500;
 
@@ -345,6 +345,7 @@ function analyzeFile(file) {
   }
   const ext = extname(file);
   const rel = relative(ROOT, file).replace(/\\/g, "/");
+  if (recuperacaoInsegura(rel, content)) findings.push({ level: "error", id: "recuperacao-senha", file: rel, line: 1, msg: "Recuperação exige origem, limites, token com validade e consumo único, versão, auditoria e revogação." });
   const lines = content.split("\n");
 
   const isentoDeTamanho = ISENTOS_DE_TAMANHO.some((p) => rel.startsWith(p));

@@ -4,6 +4,7 @@ import type { Chatbot } from "../chatbots/schema";
 import { colunasAuditoria, instante } from "./schema/_compartilhado";
 export * from "./schema/identidade";
 export * from "./schema/crm";
+export * from "./schema/usuarios-recuperacoes";
 
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

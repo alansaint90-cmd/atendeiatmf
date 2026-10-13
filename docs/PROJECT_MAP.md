@@ -6,11 +6,11 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 150 |
-| Tabelas (Drizzle) | 31 |
+| Arquivos TS/TSX | 156 |
+| Tabelas (Drizzle) | 32 |
 | Server Actions (arquivos) | 12 |
-| Rotas de API | 6 |
-| Paginas | 4 |
+| Rotas de API | 7 |
+| Paginas | 5 |
 | Componentes | 19 |
 
 ## Arvore (profundidade 3)
@@ -31,6 +31,9 @@ app/
     _components/
     page.tsx
   perfil/
+    _components/
+    page.tsx
+  recuperar-senha/
     _components/
     page.tsx
   error.tsx
@@ -108,6 +111,7 @@ lib/
     contexto.ts
     cookies.ts
     desafios.ts
+    email-recuperacao.ts
     login-senha.ts
     origem-http.ts
     papeis.ts
@@ -115,6 +119,7 @@ lib/
     passkeys.ts
     permissoes.ts
     provisionamento-proprietario.ts
+    recuperacao.ts
     repositorio.ts
     rotas-painel.ts
     senhas.ts
@@ -235,6 +240,9 @@ instrumentation.ts
 ### `atendeia_auth_limites` — src/lib/db/schema/identidade.ts
 `id`, `tentativas`
 
+### `atendeia_users_recuperacoes` — src/lib/db/schema/usuarios-recuperacoes.ts
+`id`, `userId`, `tokenHash`, `versaoUsuario`, `expiraEm`, `usadoEm`, `modified_by`
+
 ### `usuarios` — src/lib/db/schema/usuarios.ts
 `id`, `nome`, `email`, `papel`, `ativo`
 
@@ -298,6 +306,7 @@ _(colunas nao detectadas)_
 |------|---------|
 | `/api/auth/login` | POST |
 | `/api/auth/passkey` | POST |
+| `/api/auth/recuperacao` | POST |
 | `/api/settings/agent` | GET |
 | `/api/settings/evolution-webhook` | POST |
 | `/api/settings/integrations` | GET, PUT |
@@ -324,3 +333,4 @@ _(colunas nao detectadas)_
 - `src/app/entrar/page.tsx`
 - `src/app/page.tsx`
 - `src/app/perfil/page.tsx`
+- `src/app/recuperar-senha/page.tsx`
