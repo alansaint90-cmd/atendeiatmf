@@ -10,6 +10,7 @@ import "@/styles/marca.css";
 import "@/styles/conta-menu.css";
 import "@/styles/perfil.css";
 import "@/styles/painel-operacional.css";
+import "@/styles/design-atende.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 export const metadata: Metadata = { title: "Atende AI | Atendimento inteligente", description: "Atendimento inteligente, resultados reais. Centralize conversas e configure seus assistentes com Atende AI." };
