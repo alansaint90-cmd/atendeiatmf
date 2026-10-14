@@ -99,6 +99,13 @@
       "when": 1791925498619,
       "tag": "0013_recuperacao_senha",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791930000000,
+      "tag": "0014_campanha_clara",
+      "breakpoints": true
     }
   ]
 }

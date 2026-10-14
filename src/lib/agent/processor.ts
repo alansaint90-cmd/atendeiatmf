@@ -5,8 +5,9 @@ import { ProviderError, type Turn, type RespostaGerada } from "./providers";
 import { extrairNomeInformado, nomeInformadoNoHistorico, instrucoesComNome, respostaComNome, personaDoAgente, mesmoNome, removerRotuloDaPersona } from "./nome";
 import { avisoParaWellington } from "./transferencia";
 import { fluxoAcionado, instrucoesDoFluxo } from "./fluxos";
+import { partesDoFluxo } from "./sequencia";
 
-export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string }
+export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string; chaveFluxo?: string; fluxoReservado?: boolean }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
@@ -20,6 +21,7 @@ export interface ProcessingPort {
   generate(config: AgentConfig, history: Turn[], text: string): Promise<RespostaGerada>;
   send(config: AgentConfig, number: string, text: string): Promise<string>;
   registrarParte?(id: string): Promise<void>;
+  reservarFluxo?(chave: string): Promise<boolean>;
 }
 
 export async function processMessage(message: IncomingMessage, config: AgentConfig, port: ProcessingPort): Promise<string> {
@@ -51,6 +53,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     let transferencia = false;
     let partes: string[] | undefined;
     let fluxo: string | undefined;
+    let chaveFluxo: string | undefined;
     try {
       if (message.audio && !transcript) {
         if (!port.transcribe) throw new ProviderError("audio_transcricao_indisponivel");
@@ -61,8 +64,12 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
         if (!await port.enabled()) return "pausada";
       }
       const historico = await port.history();
-      const acionado = fluxoAcionado(config.flows, transcript ?? message.text);
+      const acionado = fluxoAcionado(config.flows?.filter(f => !f.sequencia || f.sequencia.instancia === config.EVOLUTION_INSTANCE_NAME), transcript ?? message.text);
       fluxo = acionado?.name;
+      if (acionado?.sequencia) {
+        partes = partesDoFluxo(acionado, config.contextoPrincipal ?? "");
+        chaveFluxo = acionado.sequencia.chave;
+      }
       const persona = personaDoAgente(config.AI_SYSTEM_PROMPT);
       const candidato = extrairNomeInformado(transcript ?? message.text, historico);
       const apresentacaoExplicita = extrairNomeInformado(transcript ?? message.text, []);
@@ -89,13 +96,26 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";
+      if (code === "fluxo_maps_pendente") {
+        await port.write({ status: "falhou", attempts, code, configHash, transcript, fluxo });
+        return "fluxo_pendente_configuracao";
+      }
       await port.write({ status: attempts >= 3 ? "falhou" : "gerando", attempts, code, configHash, transcript, fluxo });
       return attempts >= 3 ? "falhou" : "repetir";
     }
-    state = { status: "gerada", attempts, reply, partes, configHash, transcript, transferencia, fluxo };
+    state = { status: "gerada", attempts, reply, partes, configHash, transcript, transferencia, fluxo, chaveFluxo };
     await port.write(state);
   }
   if (!await port.enabled()) return "pausada";
+  if (state.chaveFluxo && !state.fluxoReservado) {
+    if (!port.reservarFluxo) throw new ProviderError("fluxo_reserva_indisponivel");
+    if (!await port.reservarFluxo(state.chaveFluxo)) {
+      await port.write({ ...state, status: "falhou", code: "fluxo_ja_iniciado" });
+      return "fluxo_ja_iniciado";
+    }
+    state = { ...state, fluxoReservado: true };
+    await port.write(state);
+  }
   if (!state.partes && !state.transferencia && /\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/iu.test(state.reply!)) {
     const historico = await port.history();
     state = { ...state, reply: respostaComNome(state.reply!, nomeInformadoNoHistorico(historico) ?? await port.contactName?.() ?? null, historico.length === 0) };

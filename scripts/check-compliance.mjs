@@ -35,7 +35,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { join, extname, relative, basename, resolve } from "node:path";
 import { colunasDasFabricas } from "./colunas-fabricas.mjs";
-import { recuperacaoInsegura } from "./auditar-recuperacao.mjs";
+import { recuperacaoInsegura } from "./auditar-recuperacao.mjs"; import { sequenciaInsegura } from "./auditar-sequencia.mjs";
 const ROOT = process.cwd();
 const MAX_LINES = 500;
 
@@ -346,8 +346,8 @@ function analyzeFile(file) {
   const ext = extname(file);
   const rel = relative(ROOT, file).replace(/\\/g, "/");
   if (recuperacaoInsegura(rel, content)) findings.push({ level: "error", id: "recuperacao-senha", file: rel, line: 1, msg: "Recuperação exige origem, limites, token com validade e consumo único, versão, auditoria e revogação." });
+  if (sequenciaInsegura(rel, content)) findings.push({ level: "error", id: "sequencia-segura", file: rel, line: 1, msg: "Sequência exige chip correto, reserva exclusiva, Maps configurado e isolamento do prompt orgânico." });
   const lines = content.split("\n");
-
   const isentoDeTamanho = ISENTOS_DE_TAMANHO.some((p) => rel.startsWith(p));
   if (lines.length > MAX_LINES && !isentoDeTamanho) {
     findings.push({
@@ -397,11 +397,11 @@ function analyzeFile(file) {
     findings.push({ level: "error", id: "orquestrador-legado", file: rel, line: 1,
       msg: "O contexto geral legado não pode compor as instruções do chatbot." });
   }
-  if ((rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content) || !/Acione cada fluxo somente/.test(content) || !/chatbot.flows.map/.test(content))) || (rel === "src/lib/agent/providers.ts" && (!/return revisarTransferencia\(config, history, text, request, signal\)/.test(content) || !/config.AI_SYSTEM_PROMPT.includes\(trecho\)/.test(content)))) {
+  if ((rel === "src/lib/chatbots/prompt-servidor.ts" && (!/exclusivamente individuais/.test(content) || !/Antes do fallback ou da transferência/.test(content) || !/Acione cada fluxo somente/.test(content) || !/chatbot.flows[\s\S]*?\.map/.test(content))) || (rel === "src/lib/agent/providers.ts" && (!/return revisarTransferencia\(config, history, text, request, signal\)/.test(content) || !/config.AI_SYSTEM_PROMPT.includes\(trecho\)/.test(content)))) {
     findings.push({ level: "error", id: "mentoria-individual", file: rel, line: 1,
       msg: "As instruções devem preservar mentoria individual, usar os fluxos cadastrados por intenção e priorizar o prompt antes de fallback ou transferência." });
   }
-  if ((rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content) || !/fluxoAcionado\(config.flows, transcript \?\? message.text\)/.test(content) || !/instrucoesDoFluxo\(/.test(content))) || (rel === "src/lib/agent/nome.ts" && !/não condicione a explicação ao fornecimento do nome/.test(content))) {
+  if ((rel === "src/lib/agent/processor.ts" && (!/\bextrairNomeInformado\b[\s\S]*\brespostaComNome\b/.test(content) || !/turno.revisao === revisao/.test(content) || !/await port.registrarParte/.test(content) || !/fluxoAcionado\(config.flows[\s\S]*?, transcript \?\? message.text\)/.test(content) || !/instrucoesDoFluxo\(/.test(content))) || (rel === "src/lib/agent/nome.ts" && !/não condicione a explicação ao fornecimento do nome/.test(content))) {
     findings.push({ level: "error", id: "nome-cliente", file: rel, line: 1,
       msg: "O processador deve tratar nome, revisões, registrar cada balão e reconhecer gatilhos dos fluxos salvos." });
   }

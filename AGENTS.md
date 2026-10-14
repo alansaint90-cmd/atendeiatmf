@@ -5,6 +5,13 @@
 
 ## Contexto
 
+Campanha da Clara em levaelava usa somente o gatilho específico cadastrado e quatro
+balões literais, sem coleta de nome. A sequência não integra o prompt orgânico.
+Maps vem do prompt atual; ausência ou ambiguidade deixa configuração pendente.
+Reserva Redis sem expiração por chip/cliente/fluxo impede nova recepção, mesmo
+após expirar o diário. Pausa e entrega incerta interrompem os balões sem repetição.
+O prompt, a abertura e os fluxos orgânicos permanecem intactos.
+
 Recuperação de senha usa SMTP com TLS e origem fixa. O pedido público não confirma
 existência da conta. Link de 15 minutos, hash no banco e consumo único transacional
 com versão do usuário. Não ativa contas nem altera papéis/passkeys. Redefinir revoga

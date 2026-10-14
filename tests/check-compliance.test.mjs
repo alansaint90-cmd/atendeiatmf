@@ -170,9 +170,9 @@ try {
     ["instrução individual ausente reprova", reprova("chatbots/prompt-servidor.ts", "mentoria-individual")],
     ["prompt exige instruções dos fluxos e acionamento por intenção", () => {
       const arquivo = join(dir, "src/lib/chatbots/prompt-servidor.ts");
-      const correto = 'export const instrucoes = "exclusivamente individuais; Antes do fallback ou da transferência; Acione cada fluxo somente"; export const fluxos = chatbot.flows.map(f => f.description);';
+      const correto = 'export const instrucoes = "exclusivamente individuais; Antes do fallback ou da transferência; Acione cada fluxo somente"; export const fluxos = chatbot.flows.filter(fluxo => !fluxo.sequencia).map(f => f.description);';
       try {
-        for (const [conteudo, esperado] of [[correto, true], [correto.replace("Acione cada fluxo somente", ""), false], [correto.replace("chatbot.flows.map", "outraFonte.map"), false]]) {
+        for (const [conteudo, esperado] of [[correto, true], [correto.replace("Acione cada fluxo somente", ""), false], [correto.replace("chatbot.flows", "outraFonte"), false]]) {
           writeFileSync(arquivo, conteudo, "utf8");
           const resultado = spawnSync(process.execPath, [AUDITOR, "--json", "--file", arquivo], { cwd: dir, encoding: "utf8" });
           assert.equal(JSON.parse(resultado.stdout).ok, esperado);
@@ -183,7 +183,7 @@ try {
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
     ["processador exige gatilho salvo e instruções do fluxo ativado", () => {
       const arquivo = join(dir, "src/lib/agent/processor.ts");
-      const correto = 'extrairNomeInformado; respostaComNome; turno.revisao === revisao; await port.registrarParte(); fluxoAcionado(config.flows, transcript ?? message.text); instrucoesDoFluxo(); avisoParaWellington(config, transcript ?? message.text);';
+      const correto = 'extrairNomeInformado; respostaComNome; turno.revisao === revisao; await port.registrarParte(); fluxoAcionado(config.flows, transcript ?? message.text); instrucoesDoFluxo(); avisoParaWellington(config, transcript ?? message.text); sequencia.instancia === config.EVOLUTION_INSTANCE_NAME; await port.reservarFluxo(state.chaveFluxo); fluxo_maps_pendente; fluxoReservado: true;';
       try {
         for (const [conteudo, esperado] of [[correto, true], [correto.replace("fluxoAcionado", "outro"), false], [correto.replace("instrucoesDoFluxo", "outro"), false]]) {
           writeFileSync(arquivo, conteudo, "utf8");

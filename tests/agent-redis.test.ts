@@ -1,5 +1,6 @@
 import test from "node:test";
 import "./fixtures/agent-fila-redis";
+import "./fixtures/campanha-redis";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { agentRedis, agentKeys } from "../src/lib/agent/redis";

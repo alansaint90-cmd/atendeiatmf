@@ -12,6 +12,12 @@ export function messageStore(client: Redis, token: string, message: IncomingMess
   const historyKey = `atendeia:{evolution}:history:${message.conversation}`;
   const nameKey = `atendeia:{evolution}:name:${message.conversation}`;
   return {
+    async reservarFluxo(chave: string): Promise<boolean> {
+      // Sem expiração: cortar o histórico ou expirar o diário não repete a campanha.
+      const key = `atendeia:{evolution}:fluxo:${message.conversation}:${chave}`;
+      return Number(await client.eval(owned + "return redis.call('SET', KEYS[2], ARGV[2], 'NX') and 1 or 0",
+        2, agentKeys.lock, key, token, message.identity)) === 1;
+    },
     async contactName(): Promise<string | null> {
       return client.get(nameKey);
     },

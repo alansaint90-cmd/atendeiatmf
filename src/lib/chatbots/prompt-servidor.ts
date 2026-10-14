@@ -10,7 +10,7 @@ export function montarInstrucoesDoAgente(chatbot: Chatbot | null): string {
       .replace(/Se responder individual:/giu, "Sobre o atendimento individual:")
     : chatbot.context;
   const fluxos = chatbot.flows.length
-    ? chatbot.flows.map(fluxo => `- ${fluxo.name}: ${fluxo.description}${fluxo.triggers?.length ? `\nFrases de ativação: ${fluxo.triggers.join("; ")}` : ""}`).join("\n")
+    ? chatbot.flows.filter(fluxo => !fluxo.sequencia).map(fluxo => `- ${fluxo.name}: ${fluxo.description}${fluxo.triggers?.length ? `\nFrases de ativação: ${fluxo.triggers.join("; ")}` : ""}`).join("\n")
     : "Nenhum fluxo específico cadastrado.";
   return [
     "CONFIGURAÇÃO DO CHATBOT SDR:",

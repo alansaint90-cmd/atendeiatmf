@@ -16,6 +16,7 @@ export const agentConfigSchema = agentBaseConfigSchema.extend({
   AI_SYSTEM_PROMPT: z.string().trim().min(1).max(200000),
   openingMessages: chatbotSchema.shape.openingMessages,
   flows: chatbotSchema.shape.flows.optional(),
+  contextoPrincipal: z.string().optional(),
   atendimento: z.object({ transferHuman: z.boolean(), transferMedia: z.boolean(),
     destination: z.string(), transferNotice: z.string() }).optional(),
 });
@@ -27,6 +28,7 @@ export function configurarAgente(settings: unknown, chatbot: Chatbot | null) {
     AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(chatbot),
     openingMessages: chatbot?.openingMessages,
     flows: chatbot?.flows,
+    contextoPrincipal: chatbot?.context,
     atendimento: chatbot ? { transferHuman: chatbot.transferHuman, transferMedia: chatbot.transferMedia,
       destination: chatbot.destination, transferNotice: chatbot.transferNotice } : undefined } : {});
 }

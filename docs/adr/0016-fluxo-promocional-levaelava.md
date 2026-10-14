@@ -41,3 +41,26 @@ Cadastro inválido ou limite de 50 fluxos interrompe a migração sem alteraçã
 
 Testes usam PostgreSQL isolado via PGlite e provedores simulados. Nenhum envio real,
 mudança de credencial ou deploy de produção é realizado nesta implementação.
+
+## Campanha paga da Clara — 2026-10-13
+
+A migração aditiva 0014 cadastra um fluxo distinto com quatro mensagens literais
+em `sequencia`, restrito a levaelava. Gatilho é a frase completa do anúncio,
+normalizada pelo comparador existente. Nenhum campo anterior é substituído.
+Sequências literais ficam fora das instruções do modelo, para não contaminar
+saudações, perguntas genéricas ou o fluxo orgânico da promoção.
+
+O processador genérico resolve `{{GOOGLE_MAPS}}` somente a partir de uma URL Google
+Maps já presente no prompt principal. Ausência ou múltiplas URLs diferentes deixam
+o evento com diagnóstico de configuração pendente, sem iniciar a sequência.
+Os textos comerciais ficam no cadastro, não no worker. Os quatro balões usam os
+checkpoints de ADR-0013, registrando cada saída e respeitando a pausa.
+
+Antes do primeiro envio, reserva atomicamente a chave instância/cliente/fluxo no
+Redis, sob a lease existente. Não expira: a campanha não se repete por corte do
+histórico, atualização do prompt ou expiração do diário. Eventos posteriores do
+mesmo gatilho não reiniciam a apresentação. Queda entre reserva e checkpoint pode
+suprimir o envio, preferindo conferência manual a duplicação. Redis persistente,
+AOF e noeviction continuam obrigatórios; perda desse armazenamento perde a reserva.
+Uma nova mensagem comum segue o atendimento original. Não modifica o gatilho de
+retorno nem libera atendimento humano. Testes validam separadamente os dois fluxos.

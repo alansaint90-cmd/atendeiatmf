@@ -14,6 +14,8 @@ export const chatbotSchema = z.object({
   transferNotice: z.string().max(10000), closingPhrase: z.string().max(500),
   returnTrigger: z.string().trim().min(1, "Preencha a frase do gatilho de retorno.").max(500).refine(texto => /[\p{L}\p{N}]/u.test(texto), "O gatilho precisa conter letras ou números.").optional(),
   flows: z.array(z.strictObject({ name, description: z.string().trim().min(1).max(10000),
+    sequencia: z.strictObject({ chave: z.string().regex(/^[a-z0-9-]{1,80}$/), instancia: name,
+      mensagens: z.array(z.string().trim().min(1).max(3000)).min(1).max(4) }).optional(),
     triggers: z.array(z.string().trim().min(1, "Preencha a frase de ativação.").max(500, "Cada frase de ativação aceita até 500 caracteres.").refine(texto => /[\p{L}\p{N}]/u.test(texto), "O gatilho do fluxo precisa conter letras ou números.")).max(20, "Cadastre até 20 frases de ativação por fluxo.").optional() })).max(50),
   temperature: z.number().min(0).max(1), contextRevision: z.string().optional(),
 });
