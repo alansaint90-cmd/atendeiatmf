@@ -31,8 +31,11 @@ pausa Redis acontece antes da confirmação. Uma falha de commit após o Redis p
 deixar a instância conservadoramente pausada, sem confirmação falsa ao usuário.
 Consulta de estado permite verificar a situação; não existe transação distribuída.
 
-O botão exige confirmação de três segundos e não libera por outro botão. O mesmo
-gatilho manual libera a instância. Pausa cancela ciclos da instância; os demais
+O botão exige confirmação de três segundos. Quando a instância está pausada,
+fica roxo com o texto “Retomar atendimento com IA”. A action `retomarIaInstancia`
+valida sessão, permissão, instância e versão, audita `ia_retomada` e salva a barreira
+temporal no Redis. Não remove pausas individuais por intervenção humana.
+O mesmo gatilho manual também libera a instância. Pausa cancela ciclos da instância; os demais
 números permanecem ativos. O worker revalida ambas as pausas antes de respostas e
 follow-ups. Retomada não inicia ciclos antigos. Uma chamada externa já iniciada
 não pode ser cancelada com garantia; entrega incerta continua sem repetição.

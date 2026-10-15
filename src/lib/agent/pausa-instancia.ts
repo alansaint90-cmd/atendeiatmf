@@ -3,6 +3,11 @@ import { digest } from "./message";
 import { controlePausa, mensagemAnteriorARetomada } from "./controle-pausa";
 
 export const pausaInstanciaKey = (instancia: string) => `atendeia:{evolution}:instance-pause:${digest(instancia)}`;
+export async function retomarInstancia(client: Redis, instancia: string, instante = Date.now()) {
+  await client.set(pausaInstanciaKey(instancia), JSON.stringify({
+    pausada: false, instante, eventoId: `painel:${instante}`,
+  }));
+}
 export async function instanciaPausada(client: Redis, instancia: string, timestamp?: number) {
   const estado = await client.get(pausaInstanciaKey(instancia));
   return controlePausa(estado) || (timestamp !== undefined && mensagemAnteriorARetomada(estado, timestamp));

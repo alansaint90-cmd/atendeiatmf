@@ -6,6 +6,26 @@ import { drizzle } from "drizzle-orm/pglite";
 import { applyMigrations } from "../src/lib/db/migrate";
 import { registrarPausaDaInstancia } from "../src/lib/agent/controle-instancia";
 import { controlePausa, mensagemAnteriorARetomada } from "../src/lib/agent/controle-pausa";
+import type Redis from "ioredis";
+import { retomarInstancia, instanciaPausada, pausaInstanciaKey } from "../src/lib/agent/pausa-instancia";
+
+test("retomada mantém barreira para fila antiga e preserva outras pausas", async () => {
+  const dados = new Map<string, string>([
+    [pausaInstanciaKey("chip-a"), JSON.stringify({ pausada: true, instante: 1000, eventoId: "pausa" })],
+    [pausaInstanciaKey("chip-b"), JSON.stringify({ pausada: true, instante: 1000, eventoId: "pausa" })],
+    ["pausa-cliente", "humano"],
+  ]);
+  const redis = {
+    set: async (chave: string, valor: string) => { dados.set(chave, valor); return "OK"; },
+    get: async (chave: string) => dados.get(chave) ?? null,
+  } as unknown as Redis;
+  await retomarInstancia(redis, "chip-a", 2000);
+  assert.equal(await instanciaPausada(redis, "chip-a"), false);
+  assert.equal(await instanciaPausada(redis, "chip-a", 1), true);
+  assert.equal(await instanciaPausada(redis, "chip-a", 3), false);
+  assert.equal(await instanciaPausada(redis, "chip-b"), true);
+  assert.equal(dados.get("pausa-cliente"), "humano");
+});
 
 test("pausa permanente não expira e a retomada não responde mensagens anteriores", () => {
   const pausada = JSON.stringify({ pausada: true, instante: 1000, eventoId: "humano" });
@@ -34,5 +54,11 @@ test("pausar instância exige versão atual e audita somente o canal selecionado
     await assert.rejects(registrarPausaDaInstancia(banco, "chip-a", 1, usuario, async () => { throw new Error("Redis indisponível"); }), /Redis/);
     const depois = await cliente.query<{ version: number }>("SELECT version FROM atendeia_channels WHERE instance_name='chip-a' AND is_deleted=false");
     assert.equal(depois.rows[0].version, 1);
+    const retomada = await registrarPausaDaInstancia(banco, "chip-a", 1, usuario, async () => { chamadas++; }, false);
+    assert.deepEqual(retomada, { pausada: false, versao: 2 });
+    const retomadas = await cliente.query("SELECT id FROM atendeia_audit_logs WHERE action='ia_retomada' AND modified_by=$1", [usuario]);
+    assert.equal(retomadas.rows.length, 1);
+    const outro = await cliente.query<{ version: number }>("SELECT version FROM atendeia_channels WHERE instance_name='chip-b'");
+    assert.equal(outro.rows[0].version, 0);
   } finally { await cliente.close(); }
 });

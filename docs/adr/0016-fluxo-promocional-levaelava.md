@@ -24,7 +24,7 @@ ou lista de frases já configurada. Se o cadastro não existia ao executar 0011,
 acrescenta o fluxo ao vínculo atual, com a mesma separação, versão e auditoria.
 O estado de entrega registra o nome do fluxo; o diagnóstico informa instância e
 bloqueios sem expor conteúdo ou credenciais. Reconhecimento nunca contorna pausa:
-somente o gatilho manual do atendente libera atendimento, conforme ADR-0014.
+o gatilho manual libera atendimento humano; o botão de retomada libera somente a pausa da instância, conforme ADR-0014.
 
 As instruções de nome não condicionam a explicação do pedido ao nome do cliente;
 ele continua sendo perguntado uma única vez no primeiro contato. As instruções

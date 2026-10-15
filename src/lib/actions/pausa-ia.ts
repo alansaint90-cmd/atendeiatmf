@@ -7,13 +7,27 @@ import { executar, ErroDeNegocio } from "../acao";
 import { effectiveSettings } from "../settings/repository";
 import { instanciasConfiguradas } from "../evolution/instancias";
 import { agentRedis } from "../agent/redis";
-import { instanciaPausada, pausarInstancia } from "../agent/pausa-instancia";
+import { instanciaPausada, pausarInstancia, retomarInstancia } from "../agent/pausa-instancia";
 import { db } from "../db/client";
 import { linhas } from "../db/porta";
 import { registrarPausaDaInstancia } from "../agent/controle-instancia";
 
 const instanciaSchema = z.string().min(1).max(100).regex(/^[\p{L}\p{N}_. -]+$/u);
 const pausaSchema = z.strictObject({ instancia: instanciaSchema, versao: z.number().int().nonnegative() });
+
+export async function retomarIaInstancia(entrada: unknown) {
+  return executar(async () => {
+    const sessao = await exigirSessao(); await exigirPermissao(sessao, "admin");
+    const { instancia, versao } = pausaSchema.parse(entrada);
+    const settings = await effectiveSettings();
+    if (!settings.REDIS_URL || !instanciasConfiguradas(settings).includes(instancia)) throw new ErroDeNegocio("Instância indisponível para controle da IA.");
+    const client = agentRedis(settings.REDIS_URL);
+    try {
+      await client.connect();
+      return await registrarPausaDaInstancia(db(), instancia, versao, sessao.userId, () => retomarInstancia(client, instancia), false);
+    } finally { client.disconnect(); }
+  });
+}
 
 export async function consultarPausaIa(entrada: unknown) {
   return executar(async () => {
