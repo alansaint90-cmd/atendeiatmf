@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 157 |
+| Arquivos TS/TSX | 158 |
 | Tabelas (Drizzle) | 32 |
 | Server Actions (arquivos) | 12 |
 | Rotas de API | 7 |
@@ -99,6 +99,7 @@ lib/
     pausa-instancia.ts
     pausa.ts
     processor.ts
+    promocao-baloes.ts
     providers.ts
     redis.ts
     sequencia.ts
@@ -193,6 +194,7 @@ styles/
   automation.css
   base.css
   conta-menu.css
+  design-atende.css
   features.css
   improvements.css
   layout.css

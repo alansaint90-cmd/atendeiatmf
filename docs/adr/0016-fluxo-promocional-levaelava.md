@@ -64,3 +64,13 @@ suprimir o envio, preferindo conferência manual a duplicação. Redis persisten
 AOF e noeviction continuam obrigatórios; perda desse armazenamento perde a reserva.
 Uma nova mensagem comum segue o atendimento original. Não modifica o gatilho de
 retorno nem libera atendimento humano. Testes validam separadamente os dois fluxos.
+
+## Divisão da promoção original — 2026-10-14
+
+O fluxo original “Promoção da madrugada — R$ 13,90” passa a gerar três campos
+validados: acolhimento com promoção, endereço e CTA. O servidor acrescenta o Maps
+do prompt ao endereço e entrega cada campo como um balão usando os checkpoints
+existentes. Não separa por parágrafo, pois endereço e link devem ficar juntos.
+Resposta fora do formato é falha de geração, nunca texto bruto para o WhatsApp.
+Não há migração nem alteração do cadastro; a regra é restrita a esse fluxo em
+levaelava. A campanha distinta de quatro balões permanece inalterada.

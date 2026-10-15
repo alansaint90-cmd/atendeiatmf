@@ -6,6 +6,7 @@ import { extrairNomeInformado, nomeInformadoNoHistorico, instrucoesComNome, resp
 import { avisoParaWellington } from "./transferencia";
 import { fluxoAcionado, instrucoesDoFluxo } from "./fluxos";
 import { partesDoFluxo } from "./sequencia";
+import { dividirPromocao, instrucoesPromocaoBaloes, partesDaPromocao } from "./promocao-baloes";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string; chaveFluxo?: string; fluxoReservado?: boolean }
 export interface ProcessingPort {
@@ -85,14 +86,18 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const saudacao = /^(?:oi+|ol[aá]+|bom dia|boa tarde|boa noite)[\s!.😊👋]*$/iu.test((transcript ?? message.text).trim());
       if (!acionado && !nome && !historico.length && !message.midia && saudacao && config.openingMessages?.length) partes = config.openingMessages;
       const avisoWellington = avisoParaWellington(config, transcript ?? message.text);
+      const promocaoEmBaloes = dividirPromocao(config.EVOLUTION_INSTANCE_NAME, acionado);
       const gerada = partes ? partes.join("\n\n") : avisoWellington || (message.midia && config.atendimento?.transferMedia) ? { transferir: true }
-        : await port.generate({ ...config, AI_SYSTEM_PROMPT: instrucoes }, contextoAtual, transcript ?? message.text);
+        : await port.generate({ ...config, AI_SYSTEM_PROMPT: promocaoEmBaloes ? `${instrucoes}\n${instrucoesPromocaoBaloes}` : instrucoes }, contextoAtual, transcript ?? message.text);
       if (typeof gerada !== "string") {
         if (!config.atendimento || !(avisoWellington || config.atendimento.transferHuman || (message.midia && config.atendimento.transferMedia)) || !port.transferir) throw new ProviderError("transferencia_indisponivel");
         transferencia = true;
         reply = avisoWellington ?? (config.atendimento.transferNotice.replace(/\[(?:NOME|NOME DO CLIENTE)\]|\{NOME\}/giu, nome?.split(" ")[0] ?? "").trim()
           || "Vou encaminhar seu atendimento para nossa equipe.");
-      } else reply = partes ? gerada : removerRotuloDaPersona(respostaComNome(gerada, nome, historico.length === 0), persona);
+      } else {
+        if (promocaoEmBaloes) partes = partesDaPromocao(gerada, config.contextoPrincipal ?? "");
+        reply = partes ? partes.join("\n\n") : removerRotuloDaPersona(respostaComNome(gerada, nome, historico.length === 0), persona);
+      }
     }
     catch (error) {
       const code = error instanceof ProviderError ? error.code : "geracao_falhou";

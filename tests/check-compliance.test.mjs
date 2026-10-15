@@ -183,7 +183,7 @@ try {
     ["resposta sem tratamento de nome reprova", reprova("agent/processor.ts", "nome-cliente")],
     ["processador exige gatilho salvo e instruções do fluxo ativado", () => {
       const arquivo = join(dir, "src/lib/agent/processor.ts");
-      const correto = 'extrairNomeInformado; respostaComNome; turno.revisao === revisao; await port.registrarParte(); fluxoAcionado(config.flows, transcript ?? message.text); instrucoesDoFluxo(); avisoParaWellington(config, transcript ?? message.text); sequencia.instancia === config.EVOLUTION_INSTANCE_NAME; await port.reservarFluxo(state.chaveFluxo); fluxo_maps_pendente; fluxoReservado: true;';
+      const correto = 'extrairNomeInformado; respostaComNome; turno.revisao === revisao; await port.registrarParte(); fluxoAcionado(config.flows, transcript ?? message.text); instrucoesDoFluxo(); avisoParaWellington(config, transcript ?? message.text); sequencia.instancia === config.EVOLUTION_INSTANCE_NAME; await port.reservarFluxo(state.chaveFluxo); fluxo_maps_pendente; fluxoReservado: true; partes = partesDaPromocao(gerada, prompt);';
       try {
         for (const [conteudo, esperado] of [[correto, true], [correto.replace("fluxoAcionado", "outro"), false], [correto.replace("instrucoesDoFluxo", "outro"), false]]) {
           writeFileSync(arquivo, conteudo, "utf8");

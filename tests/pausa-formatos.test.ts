@@ -8,6 +8,38 @@ import { ehGatilhoRetomada } from "../src/lib/chatbots/gatilho-retorno";
 import { chatbotSchema } from "../src/lib/chatbots/schema";
 import { chatbotExample } from "../src/lib/chatbots/defaults";
 
+test("retomada aceita formatação e emojis sem aceitar palavras extras", () => {
+  const frase = "Se precisar de algo mais, é só falar.";
+  for (const texto of ["*Se precisar de algo mais, é só falar.*", "Se precisar de algo mais, é só falar. 😊", "Se precisar de algo mais — é só falar!", "Se precisar de algo mais, é só fa\u200blar."]) {
+    assert.equal(ehGatilhoRetomada(texto, frase), true);
+  }
+  assert.equal(ehGatilhoRetomada(`Não. ${frase}`, frase), false);
+  assert.equal(ehGatilhoRetomada(`O cliente disse: ${frase}`, frase), false);
+});
+
+test("mensagem manual temporária ou sincronizada retoma pelo texto real, nunca pela citação", async () => {
+  const client = { get: async () => null } as unknown as Redis;
+  const frase = "Pode contar comigo.";
+  const evento = (message: unknown, fromMe = true): EvolutionEvent => ({ event: "messages.upsert", instance: "thaistmf01", data: {
+    key: { id: "retomada", fromMe, remoteJid: "5511999999999@s.whatsapp.net" },
+    messageTimestamp: Math.floor(Date.now() / 1000), message } });
+  for (const message of [
+    { ephemeralMessage: { message: { extendedTextMessage: { text: frase } } } },
+    { deviceSentMessage: { message: { conversation: frase } } },
+    { conversation: "", extendedTextMessage: { text: frase } },
+  ]) {
+    assert.equal((await pausasManuaisParaEvento(client, evento(message), frase))[0].pausada, false);
+    assert.deepEqual(await pausasManuaisParaEvento(client, evento(message, false), frase), []);
+  }
+  const citado = { extendedTextMessage: { text: "Continuo atendendo", contextInfo: { quotedMessage: { conversation: frase } } } };
+  assert.equal((await pausasManuaisParaEvento(client, evento(citado), frase))[0].pausada, true);
+  for (const message of [
+    { reactionMessage: { text: frase } },
+    { protocolMessage: { editedMessage: { conversation: frase } } },
+    { ephemeralMessage: { message: { conversation: "Estou verificando seu atendimento." } } },
+  ]) assert.equal((await pausasManuaisParaEvento(client, evento(message), frase))[0].pausada, true);
+});
+
 test("gatilho salvo substitui a frase padrão e exige texto completo manual", async () => {
   const client = { get: async () => null } as unknown as Redis;
   const frase = "Pode contar comigo.";

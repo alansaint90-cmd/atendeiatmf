@@ -39,3 +39,9 @@ não pode ser cancelada com garantia; entrega incerta continua sem repetição.
 
 Não altera schema, não requer variável de ambiente nova e não apaga históricos.
 Testes usam banco descartável, mocks e Redis local no banco 15.
+
+Revisão em 2026-10-15: a comparação normaliza formatação, símbolos e caracteres
+invisíveis, preservando todas as palavras da frase. Extração com limite de oito
+níveis aceita somente envelopes próprios de mensagens temporárias/sincronizadas;
+citações, reações e protocolos nunca liberam a IA. Texto simples vazio permite
+ler o texto estendido. Controle e enfileiramento continuam no Lua existente.

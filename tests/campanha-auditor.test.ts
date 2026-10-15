@@ -6,6 +6,8 @@ import { sequenciaInsegura } from "../scripts/auditar-sequencia.mjs";
 test("auditor protege reserva, Maps e isolamento orgânico da campanha", () => {
   for (const [arquivo, trecho] of [
     ["src/lib/agent/processor.ts", "await port.reservarFluxo(state.chaveFluxo)"],
+    ["src/lib/agent/processor.ts", "partes = partesDaPromocao(gerada,"],
+    ["src/lib/agent/promocao-baloes.ts", "instancia === \"levaelava\""],
     ["src/lib/agent/store.ts", "'NX'"],
     ["src/lib/chatbots/prompt-servidor.ts", "filter(fluxo => !fluxo.sequencia)"],
   ]) {

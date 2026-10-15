@@ -5,6 +5,15 @@
 
 ## Contexto
 
+Retomada manual aceita formatação, emojis e caracteres invisíveis na frase completa,
+sem aceitar palavras extras. Extrai somente texto próprio de envelopes temporários
+ou sincronizados; nunca usa citação, reação ou protocolo como gatilho.
+
+O gatilho do fluxo “Promoção da madrugada — R$ 13,90” em levaelava envia três
+balões validados: boas-vindas e promoção, endereço com Maps do prompt e CTA.
+Reutiliza os checkpoints de entrega; formato inválido nunca vira bloco único.
+Preserva o fluxo distinto da campanha de quatro balões e as outras instâncias.
+
 Campanha da Clara em levaelava usa somente o gatilho específico cadastrado e quatro
 balões literais, sem coleta de nome. A sequência não integra o prompt orgânico.
 Maps vem do prompt atual; ausência ou ambiguidade deixa configuração pendente.

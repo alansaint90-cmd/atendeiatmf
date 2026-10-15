@@ -25,8 +25,26 @@ const aliasKey = (conversation: string) => `atendeia:{evolution}:contact-alias:$
 const endereco = /^(?:[1-9]\d{6,14}@s\.whatsapp\.net|\d{1,30}@lid)$/;
 const eventoManualSchema = z.object({ key: z.object({ id: z.string().min(1).max(200), fromMe: z.boolean(),
   remoteJid: z.string().regex(endereco), remoteJidAlt: z.string().optional() }),
-  messageTimestamp: z.coerce.number().positive(), message: z.object({ conversation: z.string().optional(),
-    extendedTextMessage: z.object({ text: z.string().optional() }).optional() }).optional() });
+  messageTimestamp: z.coerce.number().positive(), message: z.record(z.string(), z.unknown()).optional() });
+
+// Desembrulhar somente conteúdo próprio; citações, protocolos e reações não são gatilhos.
+export function textoDoControleManual(message: unknown): string {
+  let atual = message;
+  for (let profundidade = 0; profundidade < 8; profundidade++) {
+    const objeto = z.record(z.string(), z.unknown()).safeParse(atual);
+    if (!objeto.success) return "";
+    const direto = z.string().safeParse(objeto.data.conversation);
+    if (direto.success && direto.data.trim()) return direto.data;
+    const estendido = z.object({ text: z.string() }).safeParse(objeto.data.extendedTextMessage);
+    if (estendido.success && estendido.data.text.trim()) return estendido.data.text;
+    const envelope = ["ephemeralMessage", "deviceSentMessage", "viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"]
+      .map(chave => z.object({ message: z.record(z.string(), z.unknown()) }).safeParse(objeto.data[chave]))
+      .find(resultado => resultado.success);
+    if (!envelope?.success) return "";
+    atual = envelope.data.message;
+  }
+  return "";
+}
 
 export interface ControleManual { conversation: string; instante: number; pausada: boolean; eventoId: string; outgoingKey: string }
 
@@ -51,7 +69,7 @@ export async function pausasManuaisParaEvento(client: Redis, event: EvolutionEve
     }
     for (const conversation of new Set(conversas)) pausas.push({ conversation,
       instante: messageTimestamp * 1000, eventoId: key.id,
-      pausada: !ehGatilhoRetomada(message?.conversation ?? message?.extendedTextMessage?.text ?? "", frase),
+      pausada: !ehGatilhoRetomada(textoDoControleManual(message), frase),
       outgoingKey: `atendeia:{evolution}:outgoing:${digest(`${event.instance}:${key.id}`)}` });
   }
   return pausas;
@@ -62,7 +80,7 @@ export function pausaManualParaEvento(event: EvolutionEvent, frase = gatilhoReto
   if (!atual?.fromMe) return null;
   const mensagem = eventoManualSchema.safeParse(event.data);
   return { conversation: atual.conversation, instante: atual.timestamp * 1000,
-    pausada: !ehGatilhoRetomada(mensagem.success ? mensagem.data.message?.conversation ?? mensagem.data.message?.extendedTextMessage?.text ?? "" : "", frase),
+    pausada: !ehGatilhoRetomada(mensagem.success ? textoDoControleManual(mensagem.data.message) : "", frase),
     outgoingKey: `atendeia:{evolution}:outgoing:${atual.identity}` };
 }
 
