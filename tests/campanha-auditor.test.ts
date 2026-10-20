@@ -7,8 +7,11 @@ test("auditor protege reserva, Maps e isolamento orgânico da campanha", () => {
   for (const [arquivo, trecho] of [
     ["src/lib/agent/processor.ts", "await port.reservarFluxo(state.chaveFluxo)"],
     ["src/lib/agent/processor.ts", "partes = partesDaPromocao(gerada,"],
+    ["src/lib/agent/processor.ts", "filtrarLocalizacao("],
+    ["src/lib/agent/processor.ts", "localizacaoNoHistorico(historico)"],
     ["src/lib/agent/promocao-baloes.ts", "instancia === \"levaelava\""],
     ["src/lib/agent/store.ts", "'NX'"],
+    ["src/lib/agent/store.ts", "async marcarLocalizacao"],
     ["src/lib/chatbots/prompt-servidor.ts", "filter(fluxo => !fluxo.sequencia)"],
   ]) {
     const fonte = readFileSync(arquivo, "utf8");

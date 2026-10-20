@@ -6,7 +6,7 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 158 |
+| Arquivos TS/TSX | 159 |
 | Tabelas (Drizzle) | 32 |
 | Server Actions (arquivos) | 12 |
 | Rotas de API | 7 |
@@ -17,7 +17,6 @@
 
 ```
 app/
-  (app)/
   api/
     auth/
     settings/
@@ -94,6 +93,7 @@ lib/
     fila.ts
     fluxos.ts
     historico.ts
+    localizacao.ts
     message.ts
     nome.ts
     pausa-instancia.ts
@@ -323,7 +323,7 @@ _(colunas nao detectadas)_
 - `src/lib/actions/followups.ts`: `carregarFollowups()`, `salvarFollowups()`
 - `src/lib/actions/operacao.ts`: `carregarOperacao()`
 - `src/lib/actions/painel.ts`: `carregarPainel()`
-- `src/lib/actions/pausa-ia.ts`: `consultarPausaIa()`, `pausarIaInstancia()`
+- `src/lib/actions/pausa-ia.ts`: `retomarIaInstancia()`, `consultarPausaIa()`, `pausarIaInstancia()`
 - `src/lib/actions/perfil.ts`: `carregarMeuPerfil()`, `salvarMeuPerfil()`
 - `src/lib/actions/seguranca.ts`: `trocarMinhaSenha()`, `minhasPasskeys()`, `removerMinhaPasskey()`
 - `src/lib/actions/sessoes.ts`: `minhasSessoes()`, `encerrarMinhaSessao()`, `sairDoSistema()`

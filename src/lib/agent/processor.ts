@@ -7,6 +7,7 @@ import { avisoParaWellington } from "./transferencia";
 import { fluxoAcionado, instrucoesDoFluxo } from "./fluxos";
 import { partesDoFluxo } from "./sequencia";
 import { dividirPromocao, instrucoesPromocaoBaloes, partesDaPromocao } from "./promocao-baloes";
+import { contemMaps, filtrarLocalizacao, instrucoesLocalizacao, localizacaoNoHistorico } from "./localizacao";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string; chaveFluxo?: string; fluxoReservado?: boolean }
 export interface ProcessingPort {
@@ -23,6 +24,8 @@ export interface ProcessingPort {
   send(config: AgentConfig, number: string, text: string): Promise<string>;
   registrarParte?(id: string): Promise<void>;
   reservarFluxo?(chave: string): Promise<boolean>;
+  localizacaoEnviada?(): Promise<boolean>;
+  marcarLocalizacao?(): Promise<void>;
 }
 
 export async function processMessage(message: IncomingMessage, config: AgentConfig, port: ProcessingPort): Promise<string> {
@@ -65,6 +68,9 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
         if (!await port.enabled()) return "pausada";
       }
       const historico = await port.history();
+      const controlarMaps = config.EVOLUTION_INSTANCE_NAME === "levaelava";
+      const mapsEnviado = controlarMaps && (await port.localizacaoEnviada?.() || localizacaoNoHistorico(historico));
+      if (mapsEnviado) await port.marcarLocalizacao?.();
       const acionado = fluxoAcionado(config.flows?.filter(f => !f.sequencia || f.sequencia.instancia === config.EVOLUTION_INSTANCE_NAME), transcript ?? message.text);
       fluxo = acionado?.name;
       if (acionado?.sequencia) {
@@ -88,7 +94,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       const avisoWellington = avisoParaWellington(config, transcript ?? message.text);
       const promocaoEmBaloes = dividirPromocao(config.EVOLUTION_INSTANCE_NAME, acionado);
       const gerada = partes ? partes.join("\n\n") : avisoWellington || (message.midia && config.atendimento?.transferMedia) ? { transferir: true }
-        : await port.generate({ ...config, AI_SYSTEM_PROMPT: promocaoEmBaloes ? `${instrucoes}\n${instrucoesPromocaoBaloes}` : instrucoes }, contextoAtual, transcript ?? message.text);
+        : await port.generate({ ...config, AI_SYSTEM_PROMPT: `${promocaoEmBaloes ? `${instrucoes}\n${instrucoesPromocaoBaloes}` : instrucoes}${controlarMaps ? `\n${instrucoesLocalizacao(Boolean(mapsEnviado), transcript ?? message.text)}` : ""}` }, contextoAtual, transcript ?? message.text);
       if (typeof gerada !== "string") {
         if (!config.atendimento || !(avisoWellington || config.atendimento.transferHuman || (message.midia && config.atendimento.transferMedia)) || !port.transferir) throw new ProviderError("transferencia_indisponivel");
         transferencia = true;
@@ -97,6 +103,14 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
       } else {
         if (promocaoEmBaloes) partes = partesDaPromocao(gerada, config.contextoPrincipal ?? "");
         reply = partes ? partes.join("\n\n") : removerRotuloDaPersona(respostaComNome(gerada, nome, historico.length === 0), persona);
+        if (controlarMaps) {
+          partes = filtrarLocalizacao(partes ?? [reply], Boolean(mapsEnviado), transcript ?? message.text);
+          reply = partes.join("\n\n");
+          if (!reply) {
+            await port.write({ status: "falhou", attempts, code: "localizacao_ja_enviada", configHash, transcript, fluxo });
+            return "localizacao_ja_enviada";
+          }
+        }
       }
     }
     catch (error) {
@@ -138,6 +152,7 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     // Reserva antes de cada saída; entrega incerta nunca é repetida.
     if (state.transferencia) await port.transferir!(config.atendimento!.destination);
     try {
+      if (config.EVOLUTION_INSTANCE_NAME === "levaelava" && contemMaps(partes[indice])) await port.marcarLocalizacao?.();
       state.providerId = await port.send(config, message.number, partes[indice]);
       await port.registrarParte?.(state.providerId);
     } catch (error) {

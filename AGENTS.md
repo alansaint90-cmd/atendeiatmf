@@ -5,6 +5,13 @@
 
 ## Contexto
 
+Em levaelava, o Maps é enviado espontaneamente uma vez por cliente. Marca Redis
+por instância/conversa, sem expiração, impede repetição após corte do histórico.
+Histórico de saída já contendo Maps também inicializa a marca. Pedido explícito
+de localização permite reenvio; CTA não oferece localização que acabou de enviar.
+A reserva antecede a chamada externa: entrega incerta não autoriza repetição.
+Demais instâncias, prompts salvos e regras de pausa permanecem intactos.
+
 Retomada manual aceita formatação, emojis e caracteres invisíveis na frase completa,
 sem aceitar palavras extras. Extrai somente texto próprio de envelopes temporários
 ou sincronizados; nunca usa citação, reação ou protocolo como gatilho.

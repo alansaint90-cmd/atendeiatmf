@@ -74,3 +74,19 @@ existentes. Não separa por parágrafo, pois endereço e link devem ficar juntos
 Resposta fora do formato é falha de geração, nunca texto bruto para o WhatsApp.
 Não há migração nem alteração do cadastro; a regra é restrita a esse fluxo em
 levaelava. A campanha distinta de quatro balões permanece inalterada.
+
+## Localização sem repetição — 2026-10-20
+
+Respostas geradas e sequências de levaelava consultam uma marca Redis sem TTL por
+instância/conversa, antes de filtrar o histórico por revisão do prompt. Saídas
+anteriores com Maps inicializam a marca, inclusive atendimento humano. O modelo
+recebe a orientação e uma barreira final remove Maps/CTA repetidos; o balão
+dedicado ao endereço é omitido se a localização já foi enviada. O primeiro fluxo
+mantém sua sequência e o Maps do prompt, sem alterar o cadastro.
+
+Pedido explícito permite reenvio; mera menção ou recusa não permite. A marca é
+reservada sob a lease antes da chamada externa: falha incerta não autoriza outro
+envio espontâneo. Isso pode suprimir um Maps cuja entrega não foi confirmada,
+mas o cliente pode solicitar novamente. Checkpoints e pausas continuam valendo.
+Não há migração nem alteração dos outros chips. Persistência depende do Redis
+com AOF/noeviction; após perda do Redis, a recuperação usa o histórico disponível.

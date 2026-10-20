@@ -11,7 +11,16 @@ export function messageStore(client: Redis, token: string, message: IncomingMess
   const stateKey = `atendeia:{evolution}:reply:${message.identity}`;
   const historyKey = `atendeia:{evolution}:history:${message.conversation}`;
   const nameKey = `atendeia:{evolution}:name:${message.conversation}`;
+  const mapsKey = `atendeia:{evolution}:maps:${message.conversation}`;
   return {
+    async localizacaoEnviada(): Promise<boolean> {
+      return await client.get(mapsKey) !== null;
+    },
+    async marcarLocalizacao() {
+      // Reserva conservadora sem TTL: entrega incerta não autoriza outro envio espontâneo.
+      await assertResult(await client.eval(owned + "redis.call('SET', KEYS[2], ARGV[2]); return 1",
+        2, agentKeys.lock, mapsKey, token, message.identity));
+    },
     async reservarFluxo(chave: string): Promise<boolean> {
       // Sem expiração: cortar o histórico ou expirar o diário não repete a campanha.
       const key = `atendeia:{evolution}:fluxo:${message.conversation}:${chave}`;

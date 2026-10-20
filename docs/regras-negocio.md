@@ -80,6 +80,8 @@
 
 ## Agente de respostas de texto
 
+- Em `levaelava`, respostas e sequências não repetem espontaneamente o Google Maps para o mesmo cliente. O histórico de saída e uma marca Redis sem expiração, isolada por instância/conversa, registram o envio. Pedido explícito de localização (inclusive em áudio transcrito) permite reenvio. O CTA não oferece novamente a localização enviada no mesmo conjunto de balões. A reserva precede a chamada externa para não repetir entrega incerta; perda do Redis limita a recuperação ao histórico disponível. As outras instâncias não recebem esse filtro.
+
 - Pedido direto de falar/conversar com Wellington (também Welington), presente no prompt e com transferência habilitada, encaminha ao setor do painel e envia “Vou transferir seu atendimento para o Wellington. Aguarde alguns instantes, por favor.” após registrar a transferência. Mantém a pausa de 30 minutos, sem bloquear o próprio aviso. Perguntas informativas continuam no prompt; outros chatbots preservam seu aviso. Não confirma transferência se o registro falhar nem repete entrega incerta.
 
 - Uma proposta de transferência textual é revisada antes de alterar a conversa ou pausar a IA. A revisão recebe o mesmo prompt e histórico, considera variações de grafia de pessoas conhecidas e devolve resposta quando houver orientação aplicável. Encaminhamento exige trecho literal do prompt que o autorize; revisão inválida não envia aviso nem transfere. A revisão ocorre apenas quando o modelo propõe a ação e compartilha os 45 segundos da geração. Mídias com transferência habilitada seguem a ação direta existente.
