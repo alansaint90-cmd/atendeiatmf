@@ -14,6 +14,7 @@ export const agentBaseConfigSchema = settingsSchema.extend({
 });
 export const agentConfigSchema = agentBaseConfigSchema.extend({
   AI_SYSTEM_PROMPT: z.string().trim().min(1).max(200000),
+  voz: chatbotSchema.shape.voz,
   openingMessages: chatbotSchema.shape.openingMessages,
   flows: chatbotSchema.shape.flows.optional(),
   contextoPrincipal: z.string().optional(),
@@ -26,6 +27,7 @@ export function configurarAgente(settings: unknown, chatbot: Chatbot | null) {
   const base = agentBaseConfigSchema.safeParse(settings);
   return agentConfigSchema.safeParse(base.success ? { ...base.data,
     AI_SYSTEM_PROMPT: montarInstrucoesDoAgente(chatbot),
+    voz: base.data.EVOLUTION_INSTANCE_NAME === "levaelava" ? chatbot?.voz : undefined,
     openingMessages: chatbot?.openingMessages,
     flows: chatbot?.flows,
     contextoPrincipal: chatbot?.context,

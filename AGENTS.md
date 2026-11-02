@@ -5,6 +5,19 @@
 
 ## Contexto
 
+Voz da levaelava é opcional e desligada. Exige ATENDEIA_VOICE_ENABLED=true,
+configuração habilitada e homologada no chatbot; somente responde a áudio recebido.
+Gera primeiro o texto comercial e narra literalmente por gpt-realtime-2.1-mini em
+conexão Realtime curta, sem ferramentas/histórico comercial e sem endpoint Speech.
+Confere a transcrição da saída, converte PCM para Ogg/Opus mono com FFmpeg e usa
+PTT somente em Evolution 2.3.7/WHATSAPP-BAILEYS verificados em runtime. Sem suporte,
+mantém texto. Valores, URLs, endereços, procedimentos e respostas longas ficam em texto.
+Divulga voz de IA antes do áudio. Uma saída por tick; áudio só em memória, apagado
+ao terminar. Checkpoints distinguem síntese, envio e aceitação por ID. Síntese
+interrompida ou rejeição confirmada permite texto; envio incerto nunca é repetido.
+Não realizar síntese paga, teste WhatsApp, publicação ou ativação sem autorização
+específica. Homologação auditiva e PTT em dispositivo continuam pendentes.
+
 Em levaelava, o Maps é enviado espontaneamente uma vez por cliente. Marca Redis
 por instância/conversa, sem expiração, impede repetição após corte do histórico.
 Histórico de saída já contendo Maps também inicializa a marca. Pedido explícito

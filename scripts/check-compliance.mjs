@@ -36,6 +36,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { join, extname, relative, basename, resolve } from "node:path";
 import { colunasDasFabricas } from "./colunas-fabricas.mjs";
 import { recuperacaoInsegura } from "./auditar-recuperacao.mjs"; import { sequenciaInsegura } from "./auditar-sequencia.mjs";
+import { vozInsegura } from "./auditar-voz.mjs";
 const ROOT = process.cwd();
 const MAX_LINES = 500;
 
@@ -347,6 +348,7 @@ function analyzeFile(file) {
   const rel = relative(ROOT, file).replace(/\\/g, "/");
   if (recuperacaoInsegura(rel, content)) findings.push({ level: "error", id: "recuperacao-senha", file: rel, line: 1, msg: "Recuperação exige origem, limites, token com validade e consumo único, versão, auditoria e revogação." });
   if (sequenciaInsegura(rel, content)) findings.push({ level: "error", id: "sequencia-segura", file: rel, line: 1, msg: "Sequência exige chip correto, reserva exclusiva, Maps configurado e isolamento do prompt orgânico." });
+  if (vozInsegura(rel, content)) findings.push({ level: "error", id: "voz-segura", file: rel, line: 1, msg: "Voz exige liberação explícita, homologação, PTT, narração fiel e proteção contra entrega incerta." });
   const lines = content.split("\n");
   const isentoDeTamanho = ISENTOS_DE_TAMANHO.some((p) => rel.startsWith(p));
   if (lines.length > MAX_LINES && !isentoDeTamanho) {

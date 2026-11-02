@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { chatbotSchema, personalities, type Chatbot } from "@/lib/chatbots/schema";
 import { gatilhoRetomada } from "@/lib/chatbots/gatilho-retorno";
+import { VozChatbot } from "./voz-chatbot";
 
-interface Props { initial: Chatbot; creating: boolean; onSave: (bot: Chatbot) => void; onClose: () => void; error: string }
-export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Props) {
+interface Props { initial: Chatbot; creating: boolean; onSave: (bot: Chatbot) => void; onClose: () => void; error: string; instancia?: string }
+export function ChatbotEditor({ initial, creating, onSave, onClose, error, instancia }: Props) {
   const [draft, setDraft] = useState<Chatbot>(() => structuredClone(initial));
   const [validation, setValidation] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
@@ -43,6 +44,7 @@ export function ChatbotEditor({ initial, creating, onSave, onClose, error }: Pro
             update("openingMessages", mensagens);
           }} /></label>)}
         </section>
+        {instancia === "levaelava" && <VozChatbot valor={draft.voz} onChange={valor => update("voz", valor)} />}
         <section className="bot-section"><h2>Ajustes gerais</h2><p>Configure suas preferências de atendimento.</p><div className="bot-settings-grid">
           <label>Atraso na resposta (em segundos)<input name="delay" type="number" min="0" max="3600" step="1" required value={draft.delay} onChange={e => update("delay", e.target.valueAsNumber)} /><small>Digite 0 para responder imediatamente.</small></label>
           <label className="bot-switch"><input type="checkbox" checked={draft.transferMedia} onChange={e => update("transferMedia", e.target.checked)} />Transferir a conversa ao receber imagens ou documentos</label>

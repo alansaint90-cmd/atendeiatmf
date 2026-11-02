@@ -6,12 +6,12 @@
 
 | Metrica | Total |
 |---------|-------|
-| Arquivos TS/TSX | 159 |
+| Arquivos TS/TSX | 166 |
 | Tabelas (Drizzle) | 32 |
 | Server Actions (arquivos) | 12 |
 | Rotas de API | 7 |
 | Paginas | 5 |
-| Componentes | 19 |
+| Componentes | 20 |
 
 ## Arvore (profundidade 3)
 
@@ -48,6 +48,7 @@ components/
     editor.tsx
     page.tsx
     pausa-ia.tsx
+    voz-chatbot.tsx
   followups/
     page.tsx
   operacao/
@@ -187,6 +188,13 @@ lib/
     schema.ts
   validators/
     perfil.ts
+  voz/
+    codec.ts
+    configuracao.ts
+    entrega.ts
+    provedor.ts
+    realtime.ts
+    sintese.ts
   acao.ts
   use-hydrated.ts
   utils.ts

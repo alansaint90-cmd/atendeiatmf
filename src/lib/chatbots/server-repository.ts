@@ -54,7 +54,8 @@ export async function vincularChatbotAInstancia(tx: TransacaoSql, chatbotId: str
 
 export async function copiarChatbotParaInstancia(tx: TransacaoSql, base: Chatbot, instancia: string, usuario: string): Promise<ChatbotPersistido> {
   const id = randomUUID();
-  const configuracao = chatbotSchema.parse({ ...base, id, identifier: `${instancia.slice(0, 85)} - ${id.slice(0, 8)}` });
+  const configuracao = chatbotSchema.parse({ ...base, id, identifier: `${instancia.slice(0, 85)} - ${id.slice(0, 8)}`,
+    voz: instancia === "levaelava" ? base.voz : undefined });
   const [registro] = linhas<{ version: number }>(await tx.execute(sql`INSERT INTO atendeia_chatbots(id,identifier,enabled,configuration,modified_by)
     VALUES (${id},${configuracao.identifier},true,${JSON.stringify(configuracao)}::jsonb,${usuario}) RETURNING version`));
   await tx.execute(sql`INSERT INTO atendeia_audit_logs(modified_by,action,entity_type,entity_id,changed_fields)
@@ -66,6 +67,7 @@ export async function salvarChatbotServidor(banco: BancoSql, dados: {
   id: string | null; versao: number | null; configuracao: Chatbot; instancia: string; usuario: string;
 }): Promise<ChatbotPersistido> {
   const { id, versao, configuracao, instancia, usuario } = dados;
+  if (configuracao.voz?.habilitada && instancia !== "levaelava") throw new ErroDeNegocio("Respostas em voz estão disponíveis somente para levaelava.");
   return banco.transaction(async tx => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended('chatbots-instancias',0))`);
     if (id && instancia) {

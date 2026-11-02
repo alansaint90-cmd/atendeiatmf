@@ -33,6 +33,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "tests/**/*.ts",
+    "scripts/homologar-voz.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

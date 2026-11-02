@@ -31,7 +31,7 @@ export function AgentSettings({ values, disabled, onChange }: AgentSettingsProps
     <label>Respostas automáticas<select value={values.AI_ENABLED || "false"} onChange={event => onChange("AI_ENABLED", event.target.value)}>
       <option value="false">Desativadas</option><option value="true">Ativadas</option>
     </select></label>
-    <small>As respostas usam somente o prompt do chatbot SDR configurado em Chatbot IA. Sem um chatbot com prompt vinculado à instância, o agente não responde. Mensagens individuais recentes de texto e áudio são respondidas por texto. Áudios: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
+    <small>As respostas usam somente o prompt do chatbot SDR configurado em Chatbot IA. Sem um chatbot com prompt vinculado à instância, o agente não responde. O padrão é responder por texto. Na levaelava, respostas em voz a áudios recebidos podem ser configuradas em Chatbot IA após homologação e liberação no servidor. Áudios recebidos: até 10 MiB; mantenha Webhook Base64 desligado na Evolution.</small>
     {loading && <p role="status">Consultando agente e fila…</p>}
     {diagnostic && <p role="status">{diagnostic}</p>}{error && <p role="alert">{error}</p>}
     <button type="button" className="secondary" disabled={loading} onClick={() => void check()}>Atualizar diagnóstico</button>

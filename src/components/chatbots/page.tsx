@@ -6,6 +6,7 @@ import type { ChatbotPersistido } from "@/lib/chatbots/server-repository";
 import { type Chatbot } from "@/lib/chatbots/schema";
 import { ChatbotEditor } from "./editor";
 import { PausaIa } from "./pausa-ia";
+import { ModalConfirmacaoBlock } from "../modal-confirmacao-block";
 
 export function ChatbotsPage() {
   const [itens, setItens] = useState<ChatbotPersistido[] | null>(null);
@@ -18,6 +19,7 @@ export function ChatbotsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [editor, setEditor] = useState<{ bot: Chatbot; registro: ChatbotPersistido | null } | null>(null);
+  const [confirmarVoz, setConfirmarVoz] = useState<{ bot: Chatbot; registro: ChatbotPersistido | null } | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -84,7 +86,7 @@ export function ChatbotsPage() {
       setEditor({ registro: null, bot: { ...structuredClone(chatbotExample), id: crypto.randomUUID(), identifier: "", persona: "", mission: "", context: "", personalities: ["Profissional"] } });
     }}>+ Novo chatbot de IA</button></section>
     <article className="panel form-panel"><h2>Seus assistentes</h2><p className="bot-local-note">Cada número possui seu próprio prompt e configurações, salvos no servidor.</p>
-      <label>Número / instância<select value={instancia} disabled={saving || !!editor} onChange={event => {
+      <label>Número / instância<select value={instancia} disabled={saving || !!editor || !!confirmarVoz} onChange={event => {
         if (!discard()) return;
         const nome = event.target.value;
         const registro = itens.find(item => item.id === instancias.find(canal => canal.nome === nome)?.chatbotId);
@@ -104,7 +106,14 @@ export function ChatbotsPage() {
       <small>{context.length.toLocaleString("pt-BR")} caracteres{dirty ? " · Alterações não salvas" : ""}</small><div><button className="primary" disabled={saving}>{saving ? "Salvando…" : "Salvar prompt de atendimento"}</button></div>
     </form>}
     <p role="status">{message}</p><p role="alert" className="error-message">{error}</p>
-    {editor && <ChatbotEditor initial={editor.bot} creating={!editor.registro} error={error} onClose={() => { setEditor(null); setError(""); }} onSave={async bot => {
+    <ModalConfirmacaoBlock aberto={!!confirmarVoz} titulo="Habilitar respostas em voz da Leva e Lava"
+      mensagem={`Após a liberação no servidor, áudios recebidos poderão ser respondidos com voz gerada por IA, com cobrança por síntese. Links e dados copiáveis continuarão em texto.${error ? ` ${error}` : ""}`}
+      carregando={saving} onCancelar={() => { setEditor(confirmarVoz); setConfirmarVoz(null); }}
+      onConfirmar={() => { if (confirmarVoz) void persistir(confirmarVoz.bot, confirmarVoz.registro).then(ok => { if (ok) setConfirmarVoz(null); }); }} textoConfirmar="Salvar ativação de voz" />
+    {editor && <ChatbotEditor initial={editor.bot} instancia={instancia} creating={!editor.registro} error={error} onClose={() => { setEditor(null); setError(""); }} onSave={async bot => {
+      if (bot.voz?.habilitada && JSON.stringify(bot.voz) !== JSON.stringify(editor.registro?.configuracao.voz)) {
+        setConfirmarVoz({ bot, registro: editor.registro }); setEditor(null); return;
+      }
       if (await persistir(bot, editor.registro)) setEditor(null);
     }} />}
   </>;

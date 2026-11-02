@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { configuracaoVozSchema } from "../voz/configuracao";
 
 export const personalities = ["Vendedor", "Direto ao ponto", "Profissional", "Amigável", "Empático", "Descontraído"] as const;
 const name = z.string().trim().min(1, "Preencha o nome e o identificador.").max(100).regex(/^[^<>\x00-\x1f]+$/u, "O nome contém caracteres inválidos.");
 export const chatbotSchema = z.object({
   id: z.string().min(1).max(100), identifier: name, persona: name,
+  voz: configuracaoVozSchema.optional(),
   gender: z.enum(["Feminino", "Masculino", "Neutro"]),
   personalities: z.array(z.enum(personalities)).max(3).refine(items => new Set(items).size === items.length),
   mission: z.string().max(10000), context: z.string().max(200000),

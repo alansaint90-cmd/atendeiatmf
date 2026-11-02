@@ -8,8 +8,10 @@ import { fluxoAcionado, instrucoesDoFluxo } from "./fluxos";
 import { partesDoFluxo } from "./sequencia";
 import { dividirPromocao, instrucoesPromocaoBaloes, partesDaPromocao } from "./promocao-baloes";
 import { contemMaps, filtrarLocalizacao, instrucoesLocalizacao, localizacaoNoHistorico } from "./localizacao";
+import { planejarVoz, vozPermitida, type SaidaVoz } from "../voz/configuracao";
+import { entregarSaidaVoz } from "../voz/entrega";
 
-export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string; chaveFluxo?: string; fluxoReservado?: boolean }
+export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string; chaveFluxo?: string; fluxoReservado?: boolean; saidasVoz?: SaidaVoz[] }
 export interface ProcessingPort {
   read(): Promise<DeliveryState | null>;
   write(state: DeliveryState): Promise<void>;
@@ -26,6 +28,9 @@ export interface ProcessingPort {
   reservarFluxo?(chave: string): Promise<boolean>;
   localizacaoEnviada?(): Promise<boolean>;
   marcarLocalizacao?(): Promise<void>;
+  voiceEnabled?(): boolean;
+  prepareVoice?(config: AgentConfig, text: string): Promise<Buffer>;
+  sendVoice?(config: AgentConfig, number: string, audio: Buffer): Promise<string>;
 }
 
 export async function processMessage(message: IncomingMessage, config: AgentConfig, port: ProcessingPort): Promise<string> {
@@ -33,7 +38,9 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   if (state?.status === "enviada" || state?.status === "incerta" || state?.status === "falhou") return state.status;
   // Não repetir um envio cujo resultado se perdeu durante queda ou timeout.
   if (state?.status === "enviando") {
-    await port.write({ ...state, status: "incerta", code: "envio_interrompido" });
+    const indiceIncerto = state.providerIds?.length ?? 0;
+    await port.write({ ...state, status: "incerta", code: "envio_interrompido",
+      saidasVoz: state.saidasVoz?.map((saida, indice) => indice === indiceIncerto ? { ...saida, envio: "incerto" } : saida) });
     return "incerta";
   }
   if (!await port.enabled()) return "pausada";
@@ -146,7 +153,23 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
     await port.write(state);
   }
   const partes = state.partes ?? [state.reply!];
-  for (let indice = state.providerIds?.length ?? 0; indice < partes.length; indice++) {
+  if (!state.transferencia && !state.saidasVoz && !state.providerIds?.length
+    && vozPermitida(config.EVOLUTION_INSTANCE_NAME, config.voz, Boolean(message.audio), port.voiceEnabled?.() === true)) {
+    const saidasVoz = planejarVoz(partes);
+    if (saidasVoz) {
+      await port.write({ ...state, saidasVoz });
+      // Separar geração comercial e síntese em ticks distintos respeita a lease.
+      return "repetir";
+    }
+  }
+  if (state.saidasVoz) {
+    if (port.voiceEnabled?.() !== true) {
+      state = { ...state, saidasVoz: state.saidasVoz.map(saida => saida.tipo === "voz" ? { ...saida, tipo: "texto", geracao: "texto_alternativo" } : saida) };
+    }
+    const entrega = await entregarSaidaVoz(state, message, config, port);
+    state = entrega.state;
+    if (entrega.resultado) return entrega.resultado;
+  } else for (let indice = state.providerIds?.length ?? 0; indice < partes.length; indice++) {
     if (!await port.enabled()) return "pausada";
     await port.write({ ...state, status: "enviando" });
     // Reserva antes de cada saída; entrega incerta nunca é repetida.
