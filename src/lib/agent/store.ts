@@ -4,6 +4,7 @@ import type { IncomingMessage } from "./message";
 import type { DeliveryState } from "./processor";
 import type { Turn } from "./providers";
 import { streamKey } from "../evolution/queue";
+import type { EstadoAvisoVoz } from "../voz/configuracao";
 
 const retention = 30 * 86400;
 const nameRetention = 100 * 86400;
@@ -12,7 +13,23 @@ export function messageStore(client: Redis, token: string, message: IncomingMess
   const historyKey = `atendeia:{evolution}:history:${message.conversation}`;
   const nameKey = `atendeia:{evolution}:name:${message.conversation}`;
   const mapsKey = `atendeia:{evolution}:maps:${message.conversation}`;
+  const avisoKey = `atendeia:{evolution}:voice-disclosure:${message.conversation}`;
   return {
+    async estadoAvisoVoz(): Promise<EstadoAvisoVoz> {
+      const estado = await client.get(avisoKey);
+      return estado === null ? "pendente" : estado.startsWith("confirmado:") ? "confirmado" : "reservado";
+    },
+    async reservarAvisoVoz(): Promise<boolean> {
+      return Number(await client.eval(owned + `
+        local atual = redis.call('GET', KEYS[2])
+        if atual and atual ~= ARGV[2] then return 0 end
+        redis.call('SET', KEYS[2], ARGV[2]); return 1`,
+      2, agentKeys.lock, avisoKey, token, `reservado:${message.identity}`)) === 1;
+    },
+    async confirmarAvisoVoz(id: string) {
+      await assertResult(await client.eval(owned + "redis.call('SET', KEYS[2], ARGV[2]); return 1",
+        2, agentKeys.lock, avisoKey, token, `confirmado:${id}`));
+    },
     async localizacaoEnviada(): Promise<boolean> {
       return await client.get(mapsKey) !== null;
     },

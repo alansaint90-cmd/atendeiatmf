@@ -4,7 +4,7 @@ import { processMessage, type ProcessingPort, type DeliveryState } from "../src/
 import type { AgentConfig } from "../src/lib/agent/config";
 import { ProviderError } from "../src/lib/agent/providers";
 import { EnvioVozRecusado } from "../src/lib/voz/provedor";
-import { avisoVozIa, vozDesativada, numeroLiberadoParaVoz } from "../src/lib/voz/configuracao";
+import { avisoVozIa, avisoVozLegado, vozDesativada, numeroLiberadoParaVoz, type EstadoAvisoVoz } from "../src/lib/voz/configuracao";
 
 const config: AgentConfig = { AI_ENABLED: "true", OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "modelo",
   EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste", EVOLUTION_INSTANCE_NAME: "levaelava",
@@ -46,6 +46,43 @@ test("áudio recebido gera texto uma vez, divulga IA e envia voz com checkpoint 
   assert.equal(f.estado()?.saidasVoz?.[1].envio, "aceito");
   assert.equal(f.estado()?.reply, resposta); assert.equal(f.bytes.every(valor => valor === 0), true);
   await f.executar(); assert.equal(f.envios.length, 2); assert.equal(f.sinteses(), 1);
+});
+
+test("identifica voz uma vez na conversa e mantém os próximos áudios sem balão repetido", async () => {
+  let aviso: EstadoAvisoVoz = "pendente";
+  for (let indice = 0; indice < 2; indice++) {
+    const f = fixture();
+    f.port.estadoAvisoVoz = async () => aviso;
+    f.port.reservarAvisoVoz = async () => { assert.equal(aviso, "pendente"); aviso = "reservado"; return true; };
+    f.port.confirmarAvisoVoz = async id => { assert.equal(id, "texto-1"); aviso = "confirmado"; };
+    assert.equal(await f.executar(), "enviada");
+    assert.deepEqual(f.envios, indice === 0 ? [avisoVozIa, "voz"] : ["voz"]);
+    assert.equal(f.sinteses(), 1);
+  }
+});
+
+test("aviso legado confirmado no histórico evita novo aviso; fala do cliente não comprova divulgação", async () => {
+  for (const role of ["assistant", "user"] as const) {
+    const f = fixture(); let confirmado = false;
+    f.port.history = async () => [{ role, content: avisoVozLegado }];
+    f.port.confirmarAvisoVoz = async id => { assert.equal(id, "historico"); confirmado = true; };
+    if (role === "user") f.port.confirmarAvisoVoz = undefined;
+    assert.equal(await f.executar(), "enviada");
+    assert.equal(confirmado, role === "assistant");
+    assert.deepEqual(f.envios, role === "assistant" ? ["voz"] : [avisoVozIa, "voz"]);
+  }
+});
+
+test("envio incerto do primeiro aviso não repete identificação nem libera voz na próxima mensagem", async () => {
+  let aviso: EstadoAvisoVoz = "pendente";
+  const f = fixture();
+  f.port.estadoAvisoVoz = async () => aviso;
+  f.port.reservarAvisoVoz = async () => { aviso = "reservado"; return true; };
+  f.port.send = async () => { throw new ProviderError("envio_incerto"); };
+  assert.equal(await f.executar(), "incerta");
+  const proxima = fixture(); proxima.port.estadoAvisoVoz = async () => aviso;
+  assert.equal(await proxima.executar(), "enviada");
+  assert.deepEqual(proxima.envios, [resposta]); assert.equal(proxima.sinteses(), 0);
 });
 test("desligada, sem liberação do servidor, mensagem de texto e outro chip mantêm atendimento em texto", async () => {
   for (const caso of ["desligada", "servidor", "texto", "outro"]) {

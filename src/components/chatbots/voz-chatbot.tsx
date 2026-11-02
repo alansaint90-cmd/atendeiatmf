@@ -18,7 +18,7 @@ export function VozChatbot({ valor = vozDesativada, onChange }: VozChatbotProps)
         {vozes.map(voz => <option key={voz} value={voz}>{voz.charAt(0).toUpperCase() + voz.slice(1)}</option>)}
       </select></label>
     </div>
-    <p>Links, valores, endereços, procedimentos e respostas longas continuam em texto. Antes da voz, o cliente recebe um aviso de que ela é gerada por IA.</p>
+    <p>Links, valores, endereços, procedimentos e respostas longas continuam em texto. A identificação de voz gerada por IA aparece apenas no primeiro envio da conversa.</p>
     <label className="bot-switch"><input type="checkbox" checked={valor.homologada} onChange={event => onChange({ ...valor,
       homologada: event.target.checked, habilitada: event.target.checked ? valor.habilitada : false })} />
       Validei a pronúncia de “Leva e Lava” e a reprodução como mensagem de voz no WhatsApp com um destinatário de teste autorizado.

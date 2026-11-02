@@ -1,6 +1,6 @@
 # ADR-0017: Respostas em voz da Leva e Lava
 
-- Status: implementado para homologação; publicação e ativação pendentes de aprovação.
+- Status: publicado e em teste controlado no telefone autorizado; ativação geral não autorizada.
 - Data: 2026-11-01.
 - Regra confirmada pelo usuário: responder em voz somente quando o cliente mandar áudio.
 
@@ -33,7 +33,11 @@ texto. Essa comparação não substitui a homologação auditiva da pronúncia.
 
 ## Entrega e limites
 
-O plano conserva balões e envia um aviso explícito de IA antes da voz. Balões
+O plano conserva balões e envia um aviso explícito de IA somente antes da primeira
+voz da conversa. Marca Redis sem expiração por chip/cliente reserva esse aviso antes
+da chamada externa e confirma com o ID aceito. Histórico de saída com o aviso
+legado também confirma a divulgação. Aviso incerto bloqueia novas narrações e
+repetição do aviso; o atendimento continua em texto. Balões
 copiáveis ficam em texto; os curtos sem valores/URLs/endereço/procedimento podem
 virar voz. Não manda a transcrição inteira junto ao áudio. Avisos de transferência,
 follow-ups e agendamentos preservam o envio textual existente.
@@ -115,11 +119,16 @@ nunca deduzir telefone de LID. Reversão global continua disponível pela flag.
 
 ## Validação e limites de evidência
 
+Em 02/11/2026, após autorização específica, uma amostra avulsa foi aceita pelo
+provedor para o telefone de teste do usuário, que confirmou a pronúncia correta.
+A versão seguinte foi publicada com backup prévio e lista de telefone restrita,
+mantendo os demais clientes em texto. Nenhum número pessoal fica no repositório.
+
 Testes automatizados usam provedores simulados e banco PostgreSQL descartável.
 Teste de codec usa um tom sintético local, codifica e decodifica com FFmpeg para
 confirmar Ogg/Opus reproduzível. Não prova a pronúncia, nem apresentação PTT em um
-aparelho. Esses dois testes continuam pendentes de autorização. Não foram feitas
-sínteses pagas, envios reais nem ativação/publicação de produção.
+aparelho. A amostra real autorizada acima complementa a validação automatizada;
+os testes locais continuam sem credenciais de produção ou envios reais.
 
 Saída real da validação final local:
 
@@ -145,6 +154,17 @@ Os 12 testes pulados exigem Redis real descartável e `TEST_REDIS_URL`; não foi
 usado Redis de produção. Não foi construída a imagem Docker nesta máquina.
 
 ## Fontes oficiais consultadas
+
+Validação do aviso único em 02/11/2026:
+
+```text
+pnpm verificar: saída 0
+  auditor: 166 arquivos sem violações; barreiras: 51/51
+  Node: 183 aprovados, 0 falhas, 12 pulados (Redis descartável indisponível)
+  Vitest: 54 aprovados em 17 arquivos
+  documentação: 0 referências quebradas e 0 lacunas
+pnpm build: saída 0; compilação em 10,2 s; seis páginas estáticas
+```
 
 Validação da restrição gradual em 02/11/2026: `pnpm verificar` terminou com
 código 0 (180 testes Node aprovados, 12 dependentes de Redis descartável pulados,

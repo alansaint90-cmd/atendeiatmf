@@ -44,6 +44,10 @@ export async function entregarSaidaVoz(state: DeliveryState, message: IncomingMe
     if (saida.tipo === "voz" && port.voiceEnabled?.() !== true) {
       saida.tipo = "texto"; saida.geracao = "texto_alternativo";
     }
+    if (saida.avisoVoz && port.reservarAvisoVoz && !await port.reservarAvisoVoz()) {
+      state = { ...state, code: "voz_aviso_reservado" }; await salvar("falhou");
+      return { state, resultado: "falhou" };
+    }
     saida.envio = "enviando"; await salvar("enviando");
     let aceito = false;
     try {
@@ -54,6 +58,7 @@ export async function entregarSaidaVoz(state: DeliveryState, message: IncomingMe
       saida.envio = "aceito";
       state = { ...state, providerId: id, providerIds: [...(state.providerIds ?? []), id] };
       await salvar("enviando");
+      if (saida.avisoVoz) await port.confirmarAvisoVoz?.(id);
       await port.registrarParte?.(id);
     } catch (erro) {
       if (!aceito && saida.tipo === "voz" && erro instanceof EnvioVozRecusado) {

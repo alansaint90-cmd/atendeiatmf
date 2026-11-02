@@ -15,11 +15,15 @@ conexão Realtime curta, sem ferramentas/histórico comercial e sem endpoint Spe
 Confere a transcrição da saída, converte PCM para Ogg/Opus mono com FFmpeg e usa
 PTT somente em Evolution 2.3.7/WHATSAPP-BAILEYS verificados em runtime. Sem suporte,
 mantém texto. Valores, URLs, endereços, procedimentos e respostas longas ficam em texto.
-Divulga voz de IA antes do áudio. Uma saída por tick; áudio só em memória, apagado
+Divulga voz de IA somente no primeiro envio da conversa, com marca Redis sem TTL
+isolada por chip/cliente. Reserva antes do envio e confirma somente com ID aceito.
+Aviso incerto não repete nem permite voz; mantém texto. Histórico de saída contendo
+o aviso anterior inicializa a confirmação sem novo balão. Uma saída por tick; áudio só em memória, apagado
 ao terminar. Checkpoints distinguem síntese, envio e aceitação por ID. Síntese
 interrompida ou rejeição confirmada permite texto; envio incerto nunca é repetido.
 Não realizar síntese paga, teste WhatsApp, publicação ou ativação sem autorização
-específica. Homologação auditiva e PTT em dispositivo continuam pendentes.
+específica. O usuário validou a amostra no WhatsApp; a ativação atual de teste
+permanece restrita ao telefone autorizado, sem liberar voz aos outros clientes.
 
 Em levaelava, o Maps é enviado espontaneamente uma vez por cliente. Marca Redis
 por instância/conversa, sem expiração, impede repetição após corte do histórico.

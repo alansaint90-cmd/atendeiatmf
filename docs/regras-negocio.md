@@ -9,6 +9,8 @@
 
 ## Atendimento
 
+- A identificação de voz gerada por IA aparece uma única vez por instância/conversa. Marca Redis persistente distingue reserva de aceitação por ID; nenhuma mensagem posterior repete o aviso confirmado, mesmo com histórico curto. Saída do agente no histórico contendo exatamente o aviso atual ou legado inicializa a confirmação. Fala do cliente não vale como prova. Envio incerto do aviso mantém as próximas respostas em texto, sem repetir o balão nem liberar voz sem identificação confirmada.
+
 - Homologação gradual de voz: `ATENDEIA_VOICE_ALLOWED_NUMBERS` opcional limita a narração aos telefones E.164 exatos separados por vírgula, sem inferir equivalência entre telefone e LID. Lista vazia ou inválida bloqueia todos; variável ausente mantém a habilitação normal da instância. A lista não ativa voz sozinha: continuam obrigatórias a liberação global, a homologação/configuração do chatbot `levaelava` e a entrada em áudio. Demais clientes e mensagens de texto preservam a resposta textual. Revalida a restrição antes de enviar uma narração já preparada.
 
 - Retomada manual normaliza também formatação do WhatsApp, emojis e caracteres invisíveis. Continua exigindo a frase completa, sem palavras extras, enviada pelo atendente. O webhook lê texto próprio em envelopes temporários/sincronizados com profundidade limitada; citações, reações e protocolos não fornecem gatilho. `conversation` vazio não oculta `extendedTextMessage.text`. A validação de autoria, instância e antiguidade permanece ativa.

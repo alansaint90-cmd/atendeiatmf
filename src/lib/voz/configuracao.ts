@@ -13,7 +13,13 @@ export const configuracaoVozSchema = z.strictObject({
 });
 export type ConfiguracaoVoz = z.infer<typeof configuracaoVozSchema>;
 export const vozDesativada: ConfiguracaoVoz = { habilitada: false, modo: "audio_recebido", voz: "marin", homologada: false };
-export const avisoVozIa = "A mensagem de voz a seguir foi gerada por inteligência artificial.";
+export const avisoVozIa = "Uso voz gerada por inteligência artificial neste atendimento.";
+export const avisoVozLegado = "A mensagem de voz a seguir foi gerada por inteligência artificial.";
+export type EstadoAvisoVoz = "pendente" | "reservado" | "confirmado";
+export function avisoVozNoHistorico(historico: { role: string; content: string }[]): boolean {
+  return historico.some(turno => turno.role === "assistant"
+    && [avisoVozIa, avisoVozLegado].some(aviso => turno.content.trim() === aviso));
+}
 /** Restrição opcional do servidor: configuração inválida nunca libera todos os clientes. */
 export function numeroLiberadoParaVoz(numero: string, restricao: string | undefined): boolean {
   if (restricao === undefined) return true;
@@ -26,6 +32,7 @@ export interface SaidaVoz {
   texto: string;
   geracao?: "pendente" | "gerando" | "pronta" | "texto_alternativo";
   envio?: "enviando" | "aceito" | "recusado" | "incerto";
+  avisoVoz?: boolean;
 }
 export function vozPermitida(instancia: string, config: ConfiguracaoVoz | undefined, recebeuAudio: boolean, liberada: boolean): boolean {
   return liberada && instancia === "levaelava" && config?.habilitada === true
@@ -35,7 +42,7 @@ export function textoParaFala(texto: string): string {
   // Só normaliza apresentação. Não resume, traduz nem acrescenta conteúdo comercial.
   return texto.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "").replace(/&/gu, " e ").replace(/[*_~`#]/gu, "").replace(/\s+/gu, " ").trim();
 }
-export function planejarVoz(partes: string[]): SaidaVoz[] | null {
+export function planejarVoz(partes: string[], incluirAviso = true): SaidaVoz[] | null {
   const saidas: SaidaVoz[] = partes.map(texto => {
     const fala = textoParaFala(texto);
     // Informações copiáveis e procedimentos continuam nos balões de texto existentes.
@@ -43,5 +50,6 @@ export function planejarVoz(partes: string[]): SaidaVoz[] | null {
     return !copiavel && fala.length >= 8 && fala.length <= 600
       ? { tipo: "voz", texto, geracao: "pendente" } : { tipo: "texto", texto };
   });
-  return saidas.some(saida => saida.tipo === "voz") ? [{ tipo: "texto", texto: avisoVozIa }, ...saidas] : null;
+  return saidas.some(saida => saida.tipo === "voz")
+    ? [...(incluirAviso ? [{ tipo: "texto" as const, texto: avisoVozIa, avisoVoz: true }] : []), ...saidas] : null;
 }

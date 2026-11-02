@@ -14,6 +14,8 @@ test("auditor bloqueia remoção das guardas de voz, fidelidade, PTT e envio inc
     ["src/lib/voz/sintese.ts", "await verificarProvedorVoz(config)"],
     ["src/lib/voz/provedor.ts", "encoding: false"],
     ["src/lib/voz/entrega.ts", "erro instanceof EnvioVozRecusado"],
+    ["src/lib/voz/entrega.ts", "port.reservarAvisoVoz()"],
+    ["src/lib/agent/store.ts", "voice-disclosure:"],
   ]) {
     const fonte = readFileSync(arquivo, "utf8");
     assert.equal(vozInsegura(arquivo, fonte), false, arquivo);

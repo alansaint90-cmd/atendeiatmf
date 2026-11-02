@@ -8,7 +8,7 @@ import { fluxoAcionado, instrucoesDoFluxo } from "./fluxos";
 import { partesDoFluxo } from "./sequencia";
 import { dividirPromocao, instrucoesPromocaoBaloes, partesDaPromocao } from "./promocao-baloes";
 import { contemMaps, filtrarLocalizacao, instrucoesLocalizacao, localizacaoNoHistorico } from "./localizacao";
-import { planejarVoz, vozPermitida, type SaidaVoz } from "../voz/configuracao";
+import { planejarVoz, vozPermitida, avisoVozNoHistorico, type SaidaVoz, type EstadoAvisoVoz } from "../voz/configuracao";
 import { entregarSaidaVoz } from "../voz/entrega";
 
 export interface DeliveryState { status: "gerando" | "gerada" | "enviando" | "enviada" | "incerta" | "falhou"; attempts: number; reply?: string; partes?: string[]; providerIds?: string[]; transcript?: string; code?: string; configHash?: string; providerId?: string; transferencia?: boolean; fluxo?: string; chaveFluxo?: string; fluxoReservado?: boolean; saidasVoz?: SaidaVoz[] }
@@ -29,6 +29,9 @@ export interface ProcessingPort {
   localizacaoEnviada?(): Promise<boolean>;
   marcarLocalizacao?(): Promise<void>;
   voiceEnabled?(): boolean;
+  estadoAvisoVoz?(): Promise<EstadoAvisoVoz>;
+  reservarAvisoVoz?(): Promise<boolean>;
+  confirmarAvisoVoz?(id: string): Promise<void>;
   prepareVoice?(config: AgentConfig, text: string): Promise<Buffer>;
   sendVoice?(config: AgentConfig, number: string, audio: Buffer): Promise<string>;
 }
@@ -155,7 +158,12 @@ export async function processMessage(message: IncomingMessage, config: AgentConf
   const partes = state.partes ?? [state.reply!];
   if (!state.transferencia && !state.saidasVoz && !state.providerIds?.length
     && vozPermitida(config.EVOLUTION_INSTANCE_NAME, config.voz, Boolean(message.audio), port.voiceEnabled?.() === true)) {
-    const saidasVoz = planejarVoz(partes);
+    let aviso = await port.estadoAvisoVoz?.() ?? "pendente";
+    if (aviso !== "confirmado" && avisoVozNoHistorico(await port.history())) {
+      await port.confirmarAvisoVoz?.("historico"); aviso = "confirmado";
+    }
+    // Aviso sem confirmação de aceitação não permite voz nem repetição automática.
+    const saidasVoz = aviso === "reservado" ? null : planejarVoz(partes, aviso !== "confirmado");
     if (saidasVoz) {
       await port.write({ ...state, saidasVoz });
       // Separar geração comercial e síntese em ticks distintos respeita a lease.
