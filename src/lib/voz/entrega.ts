@@ -21,6 +21,9 @@ export async function entregarSaidaVoz(state: DeliveryState, message: IncomingMe
   };
   const codigo = (erro: unknown) => erro instanceof ProviderError ? erro.code : "voz_falhou";
   try {
+    if (saida.tipo === "voz" && port.voiceEnabled?.() !== true) {
+      saida.tipo = "texto"; saida.geracao = "texto_alternativo";
+    }
     if (saida.tipo === "voz") {
       // Queda antes de começar o envio: usar o texto salvo em vez de refazer uma síntese paga.
       if (saida.geracao === "gerando" || saida.geracao === "pronta" || !port.prepareVoice || !port.sendVoice) {

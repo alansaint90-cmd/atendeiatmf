@@ -4,7 +4,7 @@ import { processMessage, type ProcessingPort, type DeliveryState } from "../src/
 import type { AgentConfig } from "../src/lib/agent/config";
 import { ProviderError } from "../src/lib/agent/providers";
 import { EnvioVozRecusado } from "../src/lib/voz/provedor";
-import { avisoVozIa, vozDesativada } from "../src/lib/voz/configuracao";
+import { avisoVozIa, vozDesativada, numeroLiberadoParaVoz } from "../src/lib/voz/configuracao";
 
 const config: AgentConfig = { AI_ENABLED: "true", OPENAI_API_KEY: "sk-test-only", OPENAI_MODEL: "modelo",
   EVOLUTION_API_URL: "https://example.invalid", EVOLUTION_API_KEY: "teste", EVOLUTION_INSTANCE_NAME: "levaelava",
@@ -57,6 +57,31 @@ test("desligada, sem liberação do servidor, mensagem de texto e outro chip man
     assert.equal(await f.executar(atual, entrada as typeof mensagem), "enviada");
     assert.deepEqual(f.envios, [resposta]); assert.equal(f.sinteses(), 0);
   }
+});
+
+test("lista de teste libera somente telefone exato e mantém demais clientes em texto", async () => {
+  assert.equal(numeroLiberadoParaVoz(mensagem.number, undefined), true);
+  for (const lista of ["", " ", "invalido", `${mensagem.number},invalido`, `${mensagem.number},`, "5511888888888"]) {
+    assert.equal(numeroLiberadoParaVoz(mensagem.number, lista), false);
+  }
+  assert.equal(numeroLiberadoParaVoz(mensagem.number, `5511888888888, ${mensagem.number}`), true);
+  for (const autorizado of [true, false]) {
+    const f = fixture();
+    f.port.voiceEnabled = () => numeroLiberadoParaVoz(mensagem.number, autorizado ? mensagem.number : "5511888888888");
+    assert.equal(await f.executar(), "enviada");
+    assert.equal(f.sinteses(), autorizado ? 1 : 0);
+    assert.deepEqual(f.envios, autorizado ? [avisoVozIa, "voz"] : [resposta]);
+  }
+});
+
+test("revogar telefone entre balões evita síntese paga e usa texto uma vez", async () => {
+  const f = fixture();
+  assert.equal(await processMessage(mensagem, config, f.port), "repetir");
+  assert.equal(await processMessage(mensagem, config, f.port), "repetir");
+  f.port.voiceEnabled = () => false;
+  assert.equal(await f.executar(), "enviada");
+  assert.equal(f.sinteses(), 0);
+  assert.deepEqual(f.envios, [avisoVozIa, resposta]);
 });
 test("falha na síntese usa o texto salvo uma vez, sem gerar outra resposta comercial", async () => {
   const f = fixture(); f.port.prepareVoice = async () => { throw new ProviderError("voz_realtime_timeout"); };

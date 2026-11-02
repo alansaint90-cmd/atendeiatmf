@@ -7,6 +7,8 @@ test("auditor bloqueia remoção das guardas de voz, fidelidade, PTT e envio inc
   for (const [arquivo, trecho] of [
     ["src/lib/voz/configuracao.ts", "instancia === \"levaelava\""],
     ["src/lib/voz/configuracao.ts", "habilitada: false"],
+    ["src/lib/voz/configuracao.ts", "numeros.success && numeros.data.includes(numero)"],
+    ["src/lib/agent/worker.ts", "numeroLiberadoParaVoz(message.number, process.env.ATENDEIA_VOICE_ALLOWED_NUMBERS)"],
     ["src/lib/voz/realtime.ts", "comparavel(transcrito) !== comparavel(fala)"],
     ["src/lib/voz/sintese.ts", "process.env.ATENDEIA_VOICE_ENABLED !== \"true\""],
     ["src/lib/voz/sintese.ts", "await verificarProvedorVoz(config)"],

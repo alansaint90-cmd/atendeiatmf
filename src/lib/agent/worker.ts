@@ -25,6 +25,7 @@ import type { Turn } from "./providers";
 import { lerEventoDaFila } from "./fila";
 import { prepararVoz } from "../voz/sintese";
 import { enviarVoz } from "../voz/provedor";
+import { numeroLiberadoParaVoz } from "../voz/configuracao";
 
 let started = false;
 let lastLog = "";
@@ -87,7 +88,8 @@ export async function runAgentTick(substituicoes: Partial<typeof dependenciasPad
         const store = messageStore(client, token, message);
         result = await instanciaPausada(client, instancia, message.timestamp) || await mensagemBloqueadaPorPausa(client, message.conversation, message.timestamp) ? "pausa_manual" : await processMessage(message, config.data, {
           ...store, generate: dependencies.generate, send: dependencies.send, transcribe: transcribeAudio,
-          voiceEnabled: () => process.env.ATENDEIA_VOICE_ENABLED === "true",
+          voiceEnabled: () => process.env.ATENDEIA_VOICE_ENABLED === "true"
+            && numeroLiberadoParaVoz(message.number, process.env.ATENDEIA_VOICE_ALLOWED_NUMBERS),
           prepareVoice: prepararVoz, sendVoice: enviarVoz,
           history: async () => mesclarHistorico(await dependencies.historico(instancia, message), await store.history()),
           registrarParte: async id => {

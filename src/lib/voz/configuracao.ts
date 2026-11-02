@@ -14,6 +14,13 @@ export const configuracaoVozSchema = z.strictObject({
 export type ConfiguracaoVoz = z.infer<typeof configuracaoVozSchema>;
 export const vozDesativada: ConfiguracaoVoz = { habilitada: false, modo: "audio_recebido", voz: "marin", homologada: false };
 export const avisoVozIa = "A mensagem de voz a seguir foi gerada por inteligência artificial.";
+/** Restrição opcional do servidor: configuração inválida nunca libera todos os clientes. */
+export function numeroLiberadoParaVoz(numero: string, restricao: string | undefined): boolean {
+  if (restricao === undefined) return true;
+  const numeros = z.array(z.string().regex(/^[1-9]\d{6,14}$/u)).min(1).max(20)
+    .safeParse(restricao.split(",").map(valor => valor.trim()));
+  return numeros.success && numeros.data.includes(numero);
+}
 export interface SaidaVoz {
   tipo: "texto" | "voz";
   texto: string;

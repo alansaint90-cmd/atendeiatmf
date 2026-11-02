@@ -7,6 +7,9 @@
 
 Voz da levaelava é opcional e desligada. Exige ATENDEIA_VOICE_ENABLED=true,
 configuração habilitada e homologada no chatbot; somente responde a áudio recebido.
+ATENDEIA_VOICE_ALLOWED_NUMBERS restringe opcionalmente a voz aos telefones exatos
+da lista E.164; lista vazia ou inválida bloqueia todos. Ausente preserva o modo
+normal do chatbot. A restrição é revalidada antes do envio; demais clientes usam texto.
 Gera primeiro o texto comercial e narra literalmente por gpt-realtime-2.1-mini em
 conexão Realtime curta, sem ferramentas/histórico comercial e sem endpoint Speech.
 Confere a transcrição da saída, converte PCM para Ogg/Opus mono com FFmpeg e usa

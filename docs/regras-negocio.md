@@ -9,6 +9,8 @@
 
 ## Atendimento
 
+- Homologação gradual de voz: `ATENDEIA_VOICE_ALLOWED_NUMBERS` opcional limita a narração aos telefones E.164 exatos separados por vírgula, sem inferir equivalência entre telefone e LID. Lista vazia ou inválida bloqueia todos; variável ausente mantém a habilitação normal da instância. A lista não ativa voz sozinha: continuam obrigatórias a liberação global, a homologação/configuração do chatbot `levaelava` e a entrada em áudio. Demais clientes e mensagens de texto preservam a resposta textual. Revalida a restrição antes de enviar uma narração já preparada.
+
 - Retomada manual normaliza também formatação do WhatsApp, emojis e caracteres invisíveis. Continua exigindo a frase completa, sem palavras extras, enviada pelo atendente. O webhook lê texto próprio em envelopes temporários/sincronizados com profundidade limitada; citações, reações e protocolos não fornecem gatilho. `conversation` vazio não oculta `extendedTextMessage.text`. A validação de autoria, instância e antiguidade permanece ativa.
 
 - O gatilho cadastrado do fluxo “Promoção da madrugada — R$ 13,90” em `levaelava` gera três balões: boas-vindas e explicação, endereço com o Maps oficial do prompt, CTA para aproveitar a promoção. O modelo fornece três campos validados; o servidor acrescenta o link ao segundo balão. Formato inválido não é enviado como texto bruto. Pausa é verificada entre partes, cada ID é registrado e eventos repetidos/entregas incertas não reenviam. Não altera a campanha distinta de quatro balões nem o atendimento dos outros chips.

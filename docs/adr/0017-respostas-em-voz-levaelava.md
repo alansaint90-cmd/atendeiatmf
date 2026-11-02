@@ -78,6 +78,16 @@ uma segunda migração; a implementação direta do adaptador Realtime evita iss
 
 ## Ativação e reversão
 
+Para liberação gradual após a amostra aprovada, o servidor pode definir
+`ATENDEIA_VOICE_ALLOWED_NUMBERS` com até 20 telefones E.164 exatos separados por
+vírgula. Variável vazia ou inválida bloqueia todas as narrações; ausente preserva
+o comportamento normal da habilitação do chatbot. A lista não substitui a flag
+global, a homologação, o modo de resposta a áudio ou as pausas. A verificação ocorre
+na criação do plano, antes da síntese e antes do envio. Se o telefone sair da lista,
+partes ainda não enviadas usam texto sem refazer a geração comercial. Registrar
+separadamente as formas de telefone explicitamente fornecidas pela Evolution;
+nunca deduzir telefone de LID. Reversão global continua disponível pela flag.
+
 1. Revisar código/testes e aprovar publicação. A entrega local não faz push/deploy.
 2. Homologar em ambiente isolado com Evolution 2.3.7/Baileys, uma instância chamada
    `levaelava` e número de teste controlado. Usar credenciais desse ambiente e um
@@ -135,6 +145,13 @@ Os 12 testes pulados exigem Redis real descartável e `TEST_REDIS_URL`; não foi
 usado Redis de produção. Não foi construída a imagem Docker nesta máquina.
 
 ## Fontes oficiais consultadas
+
+Validação da restrição gradual em 02/11/2026: `pnpm verificar` terminou com
+código 0 (180 testes Node aprovados, 12 dependentes de Redis descartável pulados,
+54 testes Vitest aprovados, auditor 166 arquivos sem violações e 51/51 checagens,
+documentação sem divergências). `pnpm build` terminou com código 0, compilação em
+29,4 s e seis páginas estáticas. Os testes adicionais comprovam a lista exata,
+a recusa de listas inválidas e a revogação antes da síntese sem chamada paga.
 
 - [OpenAI: Text to speech e encerramento](https://developers.openai.com/api/docs/guides/text-to-speech)
 - [OpenAI: depreciações](https://developers.openai.com/api/docs/deprecations)
