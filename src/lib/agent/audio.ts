@@ -57,6 +57,7 @@ export async function transcribeAudio(config: AgentConfig, message: IncomingMess
     body.set("file", new Blob([new Uint8Array(bytes)], { type: mime }), `mensagem.${extensao}`);
     body.set("model", "gpt-4o-mini-transcribe");
     body.set("response_format", "json");
+    if (config.EVOLUTION_INSTANCE_NAME === "levaelava") body.set("language", "pt");
     etapa = "openai_audio";
     const response = await request("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST", redirect: "error", signal: AbortSignal.timeout(25000),

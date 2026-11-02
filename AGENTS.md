@@ -5,6 +5,12 @@
 
 ## Contexto
 
+Na levaelava, transcrição de áudio informa language=pt. Resposta composta somente
+por espera (como “Aguarde que estou verificando”) não encerra o atendimento:
+revisa uma única vez com o mesmo prompt/histórico e prazo de 45 segundos; se
+continuar vazia de informação, pede esclarecimento sem prometer consulta futura.
+Não altera idioma nem respostas dos outros chips, nem narra um texto diferente.
+
 Voz da levaelava é opcional e desligada. Exige ATENDEIA_VOICE_ENABLED=true,
 configuração habilitada e homologada no chatbot; somente responde a áudio recebido.
 ATENDEIA_VOICE_ALLOWED_NUMBERS restringe opcionalmente a voz aos telefones exatos

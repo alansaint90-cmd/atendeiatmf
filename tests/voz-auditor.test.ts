@@ -5,6 +5,8 @@ import { vozInsegura } from "../scripts/auditar-voz.mjs";
 
 test("auditor bloqueia remoção das guardas de voz, fidelidade, PTT e envio incerto", () => {
   for (const [arquivo, trecho] of [
+    ["src/lib/agent/audio.ts", 'body.set("language", "pt")'],
+    ["src/lib/agent/providers.ts", "somenteEspera(resultado)"],
     ["src/lib/voz/configuracao.ts", "instancia === \"levaelava\""],
     ["src/lib/voz/configuracao.ts", "habilitada: false"],
     ["src/lib/voz/configuracao.ts", "numeros.success && numeros.data.includes(numero)"],

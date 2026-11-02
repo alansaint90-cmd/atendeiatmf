@@ -9,6 +9,8 @@
 
 ## Atendimento
 
+- `levaelava` informa português (`language=pt`) ao transcrever áudio. O agente entrega uma resposta útil ou uma pergunta de esclarecimento na própria mensagem; não simula uma consulta futura. Saída constituída apenas por espera passa por uma revisão limitada, mantendo prompt, histórico e prazo compartilhado de 45 segundos. Se persistir, pede ao cliente que repita ou escreva a dúvida. A verificação precede a síntese e não muda o texto narrado. Idioma e geração das outras instâncias permanecem intactos.
+
 - A identificação de voz gerada por IA aparece uma única vez por instância/conversa. Marca Redis persistente distingue reserva de aceitação por ID; nenhuma mensagem posterior repete o aviso confirmado, mesmo com histórico curto. Saída do agente no histórico contendo exatamente o aviso atual ou legado inicializa a confirmação. Fala do cliente não vale como prova. Envio incerto do aviso mantém as próximas respostas em texto, sem repetir o balão nem liberar voz sem identificação confirmada.
 
 - Homologação gradual de voz: `ATENDEIA_VOICE_ALLOWED_NUMBERS` opcional limita a narração aos telefones E.164 exatos separados por vírgula, sem inferir equivalência entre telefone e LID. Lista vazia ou inválida bloqueia todos; variável ausente mantém a habilitação normal da instância. A lista não ativa voz sozinha: continuam obrigatórias a liberação global, a homologação/configuração do chatbot `levaelava` e a entrada em áudio. Demais clientes e mensagens de texto preservam a resposta textual. Revalida a restrição antes de enviar uma narração já preparada.

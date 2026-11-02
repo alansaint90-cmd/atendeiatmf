@@ -155,6 +155,28 @@ usado Redis de produção. Não foi construída a imagem Docker nesta máquina.
 
 ## Fontes oficiais consultadas
 
+Correção de resposta provisória (02/11/2026): o diário de entrega mostrou áudio
+aceito e estado `enviada`, com o próprio texto comercial reduzido a uma frase
+de espera; também havia transcrições curtas fora do português. O sintetizador
+estava lendo fielmente esse texto, sem uma consulta posterior em execução.
+`levaelava` passa a informar `language=pt` na transcrição, conforme a
+[referência oficial de transcrição](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create).
+A geração recebe orientação de entregar a resposta ou pedir esclarecimento.
+Uma saída composta apenas por espera é revisada no máximo uma vez, no mesmo
+prazo de 45 segundos; repetição vira um pedido de esclarecimento. A regra não
+edita o prompt salvo nem afeta as outras instâncias. A síntese recebe somente
+o texto final validado; não há resposta tardia automática ao áudio já processado.
+
+```text
+Validação da resposta sem espera — 02/11/2026
+pnpm verificar: saída 0
+  auditor: 166 arquivos, nenhuma violação; 51/51 checagens
+  Node: 187 aprovados, 0 falhas, 12 pulados por falta de Redis descartável
+  Vitest: 54 aprovados em 17 arquivos
+  documentação: 0 referências quebradas e 0 lacunas
+pnpm build: saída 0; compilação em 10,7 s; seis páginas estáticas
+```
+
 Validação do aviso único em 02/11/2026:
 
 ```text

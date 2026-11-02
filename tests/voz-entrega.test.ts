@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { processMessage, type ProcessingPort, type DeliveryState } from "../src/lib/agent/processor";
 import type { AgentConfig } from "../src/lib/agent/config";
-import { ProviderError } from "../src/lib/agent/providers";
+import { ProviderError, generateReply } from "../src/lib/agent/providers";
 import { EnvioVozRecusado } from "../src/lib/voz/provedor";
 import { avisoVozIa, avisoVozLegado, vozDesativada, numeroLiberadoParaVoz, type EstadoAvisoVoz } from "../src/lib/voz/configuracao";
 
@@ -46,6 +46,17 @@ test("áudio recebido gera texto uma vez, divulga IA e envia voz com checkpoint 
   assert.equal(f.estado()?.saidasVoz?.[1].envio, "aceito");
   assert.equal(f.estado()?.reply, resposta); assert.equal(f.bytes.every(valor => valor === 0), true);
   await f.executar(); assert.equal(f.envios.length, 2); assert.equal(f.sinteses(), 1);
+});
+
+test("áudio narra somente a resposta útil revisada, nunca a frase provisória de espera", async () => {
+  const f = fixture(); let chamadas = 0;
+  const request: typeof fetch = async () => Response.json({ status: "completed", output: [{ type: "message",
+    content: [{ type: "output_text", text: ++chamadas === 1 ? "Aguarde que estou verificando." : resposta }] }] });
+  f.port.generate = (atual, historico, texto) => generateReply(atual, historico, texto, request);
+  assert.equal(await f.executar(), "enviada");
+  assert.equal(chamadas, 2); assert.equal(f.sinteses(), 1);
+  assert.deepEqual(f.envios, [avisoVozIa, "voz"]);
+  assert.equal(f.estado()?.reply, resposta);
 });
 
 test("identifica voz uma vez na conversa e mantém os próximos áudios sem balão repetido", async () => {

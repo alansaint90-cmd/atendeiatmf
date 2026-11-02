@@ -193,6 +193,51 @@ test("provedor busca áudio pelo ID e envia multipart autenticado à OpenAI", as
   assert.equal(calls, 2);
 });
 
+test("levaelava define português na transcrição sem alterar o idioma dos outros chips", async () => {
+  for (const instancia of ["levaelava", "taistmf"]) {
+    let chamadas = 0;
+    const request: typeof fetch = async (_url, init) => {
+      if (++chamadas === 1) return Response.json({ mimetype: "audio/ogg", base64: Buffer.from("audio simulado").toString("base64") });
+      assert.ok(init?.body instanceof FormData);
+      assert.equal(init.body.get("language"), instancia === "levaelava" ? "pt" : null);
+      return Response.json({ text: "Pode me explicar?" });
+    };
+    assert.equal(await transcribeAudio({ ...config, EVOLUTION_INSTANCE_NAME: instancia },
+      { ...message, audio: { id: "audio-teste" } }, request), "Pode me explicar?");
+  }
+});
+
+test("levaelava não encerra atendimento com frase de espera e revisa uma vez no mesmo prazo", async () => {
+  const sinal = AbortSignal.timeout(45000); let chamadas = 0;
+  const request: typeof fetch = async (_url, init) => {
+    chamadas++; assert.equal(init?.signal, sinal);
+    const body = JSON.parse(String(init?.body));
+    assert.ok(body.instructions.includes(config.AI_SYSTEM_PROMPT));
+    assert.ok(body.instructions.includes("Não existe uma consulta em segundo plano"));
+    if (chamadas === 2) assert.ok(body.instructions.includes("A resposta anterior foi apenas uma frase de espera"));
+    return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text",
+      text: chamadas === 1 ? "Aguarde que estou verificando." : "Você pode escolher lavar ou secar suas roupas. Qual opção deseja conhecer?" }] }] });
+  };
+  assert.equal(await generateReply({ ...config, EVOLUTION_INSTANCE_NAME: "levaelava" }, [], "Pode me explicar?", request, sinal),
+    "Você pode escolher lavar ou secar suas roupas. Qual opção deseja conhecer?");
+  assert.equal(chamadas, 2);
+});
+
+test("segunda frase de espera vira esclarecimento sem promessa; informação útil e outros chips são preservados", async () => {
+  for (const [instancia, resposta, esperado, limite] of [
+    ["levaelava", "Aguarde, já estou verificando.", "Não consegui entender sua pergunta com clareza. Pode repetir ou escrever o que deseja saber?", 2],
+    ["levaelava", "Estamos abertos todos os dias. Você quer conhecer o funcionamento?", "Estamos abertos todos os dias. Você quer conhecer o funcionamento?", 1],
+    ["levaelava", "Aguarde o ciclo terminar antes de abrir a máquina.", "Aguarde o ciclo terminar antes de abrir a máquina.", 1],
+    ["taistmf", "Aguarde, já estou verificando.", "Aguarde, já estou verificando.", 1],
+  ] as const) {
+    let chamadas = 0;
+    const request: typeof fetch = async () => { chamadas++; return Response.json({ status: "completed", output: [
+      { type: "message", content: [{ type: "output_text", text: resposta }] }] }); };
+    assert.equal(await generateReply({ ...config, EVOLUTION_INSTANCE_NAME: instancia }, [], "Pergunta", request), esperado);
+    assert.equal(chamadas, limite);
+  }
+});
+
 test("recusa mídia inválida, excessiva e erros dos provedores sem vazar conteúdo", async () => {
   const audio = { ...message, audio: { id: "audio-1" } };
   for (const media of [
